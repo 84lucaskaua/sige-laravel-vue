@@ -68,7 +68,7 @@
                 </p>
                 <p class="text-xs text-gray-500">
                   Por {{ movimento.usuario?.nome || 'Sistema' }} •
-                  {{ formatarData(movimento.data_movimento) }}
+                  {{ formatarDataHora(movimento.data_movimento) }}
                 </p>
               </div>
             </div>
@@ -89,6 +89,7 @@
 import { ref, onMounted } from 'vue'
 import api from '@/servicos/api'
 import CardResumo from '@/componentes/ui/CardResumo.vue'
+import { formatarDataHora } from '@/utils/date'
 
 // ---- Dados da página ----
 const carregando = ref(false)
@@ -127,20 +128,6 @@ async function carregarDashboard() {
  * Formata uma data para o padrão brasileiro
  * Ex: "2024-03-15T10:30:00" → "15/03/2024 às 10:30"
  */
-function formatarData(dataString) {
-  if (!dataString) return '—'
-
-  const data = new Date(dataString)
-
-  const dia  = String(data.getDate()).padStart(2, '0')
-  const mes  = String(data.getMonth() + 1).padStart(2, '0')
-  const ano  = data.getFullYear()
-  const hora = String(data.getHours()).padStart(2, '0')
-  const min  = String(data.getMinutes()).padStart(2, '0')
-
-  return `${dia}/${mes}/${ano} às ${hora}:${min}`
-}
-
 // Carrega os dados ao abrir a página
 onMounted(carregarDashboard)
 </script>

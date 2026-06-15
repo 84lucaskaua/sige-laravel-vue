@@ -167,6 +167,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import api from '@/servicos/api'
+import { formatarData, formatarDataHora, estaVencido } from '@/utils/date'
 
 // Abas disponíveis no relatório
 const abas = [
@@ -222,25 +223,6 @@ watch(abaAtiva, (novaAba) => {
   carregarDadosDaAba(novaAba)
 })
 
-function formatarData(dataString) {
-  if (!dataString) return '—'
-  const [ano, mes, dia] = dataString.split('T')[0].split('-')
-  return `${dia}/${mes}/${ano}`
-}
-
-function formatarDataHora(dataString) {
-  if (!dataString) return '—'
-  return new Date(dataString).toLocaleString('pt-BR')
-}
-
-function estaVencido(validade) {
-  if (!validade) return false
-  return new Date(validade) < new Date()
-}
-
-/**
- * Transforma o objeto de detalhes em um texto legível
- */
 function resumirDetalhes(detalhes) {
   if (!detalhes) return '—'
   return Object.entries(detalhes)

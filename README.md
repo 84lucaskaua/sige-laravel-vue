@@ -84,6 +84,8 @@ php artisan db:seed
 exit
 ```
 
+> Se precisar ajustar o backend usado pelo frontend localmente, copie `frontend/.env.example` para `frontend/.env` e atualize `VITE_API_BASE_URL`.
+
 **5. Acesse o sistema**
 
 | Serviço   | Endereço                  |

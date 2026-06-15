@@ -1,0 +1,35 @@
+export function formatarData(dataString) {
+  if (!dataString) return '—'
+
+  const data = new Date(dataString)
+  return data.toLocaleDateString('pt-BR')
+}
+
+export function formatarDataHora(dataString) {
+  if (!dataString) return '—'
+
+  const data = new Date(dataString)
+  const dataFormatada = data.toLocaleDateString('pt-BR')
+  const horaFormatada = data.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  return `${dataFormatada} às ${horaFormatada}`
+}
+
+export function estaVencido(dataString) {
+  if (!dataString) return false
+  return new Date(dataString) < new Date()
+}
+
+export function proximoDoVencimento(dataString, dias = 30) {
+  if (!dataString) return false
+
+  const dataValidade = new Date(dataString)
+  const hoje = new Date()
+  const limite = new Date()
+  limite.setDate(hoje.getDate() + dias)
+
+  return dataValidade >= hoje && dataValidade <= limite
+}

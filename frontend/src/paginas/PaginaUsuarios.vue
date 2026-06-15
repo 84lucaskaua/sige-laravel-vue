@@ -72,6 +72,7 @@ import { ref, onMounted } from 'vue'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalUsuario from '@/componentes/ui/ModalUsuario.vue'
+import { formatarData } from '@/utils/date'
 
 const autenticacao = useAutenticacaoStore()
 const usuarios          = ref([])
@@ -126,11 +127,6 @@ async function desativarUsuario(usuario) {
   } catch (erro) {
     alert(erro.response?.data?.mensagem || 'Erro ao remover usuário.')
   }
-}
-
-function formatarData(dataString) {
-  if (!dataString) return '—'
-  return new Date(dataString).toLocaleDateString('pt-BR')
 }
 
 onMounted(carregarUsuarios)

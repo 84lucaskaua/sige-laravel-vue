@@ -145,6 +145,7 @@ import { ref, onMounted } from 'vue'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalLote from '@/componentes/ui/ModalLote.vue'
+import { formatarData, estaVencido, proximoDoVencimento } from '@/utils/date'
 
 const autenticacao = useAutenticacaoStore()
 
@@ -204,32 +205,5 @@ function aoSalvar() {
 /**
  * Formata uma data para o padrão brasileiro (dd/mm/aaaa)
  */
-function formatarData(dataString) {
-  if (!dataString) return '—'
-  const [ano, mes, dia] = dataString.split('T')[0].split('-')
-  return `${dia}/${mes}/${ano}`
-}
-
-/**
- * Verifica se a data de validade já passou
- */
-function estaVencido(validade) {
-  if (!validade) return false
-  return new Date(validade) < new Date()
-}
-
-/**
- * Verifica se o produto vence nos próximos 30 dias
- */
-function proximoDoVencimento(validade) {
-  if (!validade) return false
-  const dataValidade = new Date(validade)
-  const hoje         = new Date()
-  const em30Dias     = new Date()
-  em30Dias.setDate(hoje.getDate() + 30)
-
-  return dataValidade >= hoje && dataValidade <= em30Dias
-}
-
 onMounted(carregarLotes)
 </script>

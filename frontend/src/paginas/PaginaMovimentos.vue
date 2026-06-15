@@ -122,6 +122,7 @@ import { ref, onMounted } from 'vue'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalMovimento from '@/componentes/movimentos/ModalMovimento.vue'
+import { formatarData } from '@/utils/date'
 
 const autenticacao = useAutenticacaoStore()
 
@@ -168,12 +169,6 @@ function fecharModal() {
 function aoSalvar() {
   fecharModal()
   carregarMovimentos()
-}
-
-function formatarData(dataString) {
-  if (!dataString) return '—'
-  const data = new Date(dataString)
-  return data.toLocaleString('pt-BR')
 }
 
 onMounted(carregarMovimentos)
