@@ -1,26 +1,17 @@
 <template>
-  <!-- Tela de login com tema escuro -->
-  <div class="min-h-screen flex items-center justify-center bg-slate-950">
+  <div class="min-h-screen flex flex-col items-center justify-center bg-black">
 
-    <div class="w-full max-w-md px-8 py-10 rounded-2xl bg-slate-900 border border-slate-800">
+    <!-- Logo e título FORA do card -->
+    <div class="text-center mb-8">
+  <img :src="logo" alt="Logo Senac" class="h-20 mx-auto mb-8" />
+  <h1 class="text-4xl font-bold text-sky-400">SIGE</h1>
+  <p class="text-sm mt-1 text-slate-400">Sistema de Gerenciamento de Estoque</p>
+</div>
 
-      <!-- Logo do Senac -->
-      <div class="text-center mb-6">
-        <img
-          :src="logo"
-          alt="Logo Senac"
-          class="h-14 mx-auto mb-4"
-        />
+    <!-- Card só com o formulário -->
+    <div class="w-full max-w-md px-8 py-8 rounded-xl bg-slate-900 border border-slate-800">
+      <form @submit.prevent="fazerLogin">
 
-        <!-- Título -->
-        <h1 class="text-3xl font-bold text-sky-400">SIGE</h1>
-        <p class="text-sm mt-1 text-slate-400">Sistema de Gerenciamento de Estoque</p>
-      </div>
-
-      <!-- Formulário de login -->
-      <form @submit.prevent="fazerLogin" class="mt-8">
-
-        <!-- Campo de email -->
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1 text-slate-300">Email</label>
           <input
@@ -32,7 +23,6 @@
           />
         </div>
 
-        <!-- Campo de senha -->
         <div class="mb-6">
           <label class="block text-sm font-medium mb-1 text-slate-300">Senha</label>
           <input
@@ -44,12 +34,10 @@
           />
         </div>
 
-        <!-- Mensagem de erro -->
         <div v-if="mensagemErro" class="mb-4 p-3 rounded-lg text-sm bg-red-900 border border-red-700 text-red-200">
           {{ mensagemErro }}
         </div>
 
-        <!-- Botão de entrar -->
         <button
           type="submit"
           :disabled="carregando"
@@ -59,35 +47,6 @@
         </button>
 
       </form>
-
-      <!-- Divisor -->
-      <div class="my-6 border-t border-slate-800"></div>
-
-      <!-- Atalhos de login para teste -->
-      <div class="space-y-2">
-        <button
-          type="button"
-          @click="preencherLogin('admin@sige.com', 'Admin@2024')"
-          class="w-full py-2 px-4 rounded-lg text-sm font-medium text-left bg-slate-800 text-sky-200 border border-sky-600 hover:bg-slate-700 transition"
-        >
-          <span class="font-bold">Admin:</span> admin@sige.com / Admin@2024
-        </button>
-        <button
-          type="button"
-          @click="preencherLogin('operador@sige.com', 'Operador@2024')"
-          class="w-full py-2 px-4 rounded-lg text-sm font-medium text-left bg-slate-800 text-emerald-300 border border-emerald-600 hover:bg-slate-700 transition"
-        >
-          <span class="font-bold">Operador:</span> operador@sige.com / Operador@2024
-        </button>
-        <button
-          type="button"
-          @click="preencherLogin('visualizador@sige.com', 'Visual@2024')"
-          class="w-full py-2 px-4 rounded-lg text-sm font-medium text-left bg-slate-800 text-amber-200 border border-amber-600 hover:bg-slate-700 transition"
-        >
-          <span class="font-bold">Visualizador:</span> visualizador@sige.com / Visual@2024
-        </button>
-      </div>
-
     </div>
   </div>
 </template>
@@ -96,9 +55,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
-import logoSenac from '@/componentes/img/download.jpg'
+import logoSenac from '@/componentes/img/Senac_logo.svg.png'
 
-// ---- Dados do formulário ----
 const email        = ref('')
 const logo         = logoSenac
 const senha        = ref('')
@@ -108,18 +66,6 @@ const mensagemErro = ref('')
 const router       = useRouter()
 const autenticacao = useAutenticacaoStore()
 
-/**
- * Preenche o formulário com as credenciais de teste
- * Ao clicar nos botões azul/verde/amarelo da tela
- */
-function preencherLogin(emailTeste, senhaTeste) {
-  email.value = emailTeste
-  senha.value = senhaTeste
-}
-
-/**
- * Envia o formulário de login para o backend
- */
 async function fazerLogin() {
   mensagemErro.value = ''
   carregando.value   = true
