@@ -11,10 +11,9 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $hoje    = Carbon::today();
+        $hoje     = Carbon::today();
         $em30dias = Carbon::today()->addDays(30);
 
-        // Cards
         $totalProdutos   = Produto::count();
         $totalLotes      = Lote::where('status', 'ATIVO')->count();
         $totalCategorias = Categoria::count();
@@ -28,7 +27,6 @@ class DashboardController extends Controller
             ->whereBetween('data_validade', [$hoje, $em30dias])
             ->count();
 
-        // Movimentos recentes
         $movimentosRecentes = Movimentacao::with(['lote.produto', 'usuario'])
             ->orderByDesc('data_movimentacao')
             ->limit(10)
@@ -44,7 +42,6 @@ class DashboardController extends Controller
                 ] : null,
             ]);
 
-        // Evolução do estoque — últimos 30 dias
         $evolucao = collect();
         for ($i = 29; $i >= 0; $i--) {
             $dia = Carbon::today()->subDays($i);
@@ -73,7 +70,6 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Distribuição por categoria
         $distribuicao = Categoria::withCount('produtos')
             ->having('produtos_count', '>', 0)
             ->get();
@@ -88,6 +84,18 @@ class DashboardController extends Controller
                 : 0,
         ])->sortByDesc('percentual')->values();
 
+        $topProdutos = Produto::with('categoria')
+            ->orderByDesc('estoque_atual')
+            ->limit(10)
+            ->get()
+            ->map(fn($p) => [
+                'id_produto'     => $p->id_produto,
+                'nome'           => $p->nome,
+                'estoque_atual'  => $p->estoque_atual,
+                'estoque_minimo' => $p->estoque_minimo,
+                'categoria'      => $p->categoria ? ['nome' => $p->categoria->nome] : null,
+            ]);
+
         return response()->json([
             'resumo' => [
                 'totalProdutos'    => $totalProdutos,
@@ -99,6 +107,7 @@ class DashboardController extends Controller
             'movimentosRecentes'     => $movimentosRecentes,
             'evolucaoEstoque'        => $evolucao,
             'distribuicaoCategorias' => $distribuicao,
+            'topProdutos'            => $topProdutos,
         ]);
     }
 }

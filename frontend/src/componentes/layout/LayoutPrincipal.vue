@@ -1,62 +1,69 @@
 <template>
-  <!-- Container principal: sidebar + conteúdo -->
-  <div class="flex h-screen bg-gray-100">
+  <div class="flex h-screen bg-black">
 
-    <!-- ===== SIDEBAR (menu lateral) ===== -->
-    <aside class="w-64 bg-white shadow-md flex flex-col">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
 
-      <!-- Logo no topo da sidebar -->
-      <div class="p-6 border-b">
-        <h1 class="text-xl font-bold text-blue-600">SIGE</h1>
-        <p class="text-xs text-gray-500">Gestão de Estoque</p>
+      <!-- Logo -->
+      <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+        <img :src="logo" alt="Senac" class="h-8" />
+        <div>
+          <h1 class="text-base font-bold text-white">SIGE</h1>
+          <p class="text-xs text-slate-400">Sistema de Estoque</p>
+        </div>
       </div>
 
-      <!-- Menu de navegação -->
-      <nav class="flex-1 p-4">
-        <ul class="space-y-1">
-
-          <!-- Cada item do menu -->
-          <li v-for="item in itensDoMenu" :key="item.rota">
-            <RouterLink
-              :to="item.rota"
-              class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition"
-              active-class="bg-blue-50 text-blue-600 font-medium"
-            >
-              <span class="text-lg">{{ item.icone }}</span>
-              <span>{{ item.nome }}</span>
-            </RouterLink>
-          </li>
-
-        </ul>
-      </nav>
-
-      <!-- Área do usuário no rodapé da sidebar -->
-      <div class="p-4 border-t">
+      <!-- Usuário -->
+      <div class="px-4 py-4 border-b border-slate-800">
         <div class="flex items-center gap-3 mb-3">
-          <!-- Avatar com as iniciais do nome -->
-          <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium">
+          <div class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
             {{ iniciaisDoUsuario }}
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-800">{{ usuario?.nome }}</p>
-            <p class="text-xs text-gray-500 capitalize">{{ usuario?.perfil }}</p>
+            <p class="text-sm font-medium text-white">{{ usuario?.nome }}</p>
+            <p class="text-xs text-slate-400 capitalize">{{ usuario?.perfil }}</p>
           </div>
         </div>
+        <RouterLink
+          to="/perfil"
+          class="flex items-center gap-2 text-xs text-slate-400 hover:text-white px-2 py-1.5 rounded-lg hover:bg-slate-800 transition"
+        >
+          <Settings :size="14" />
+          Editar Perfil
+        </RouterLink>
+      </div>
 
-        <!-- Botão de sair -->
+      <!-- Menu -->
+      <nav class="flex-1 p-3 overflow-y-auto">
+        <ul class="space-y-0.5">
+          <li v-for="item in itensDoMenu" :key="item.rota">
+            <RouterLink
+              :to="item.rota"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition text-sm"
+              active-class="bg-blue-600 text-white font-medium hover:bg-blue-600"
+            >
+              <component :is="item.icone" :size="18" />
+              <span>{{ item.nome }}</span>
+            </RouterLink>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Sair -->
+      <div class="p-3 border-t border-slate-800">
         <button
           @click="sair"
-          class="w-full text-left text-sm text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition"
+          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-900/20 hover:text-red-300 transition text-sm"
         >
-          🚪 Sair
+          <LogOut :size="18" />
+          Sair
         </button>
       </div>
 
     </aside>
 
-    <!-- ===== CONTEÚDO DA PÁGINA ===== -->
+    <!-- ===== CONTEÚDO ===== -->
     <main class="flex-1 overflow-auto">
-      <!-- RouterView renderiza a página atual -->
       <RouterView />
     </main>
 
@@ -66,47 +73,50 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
+import {
+  LayoutDashboard, PackagePlus, Package, Trash2,
+  History, FileText, BarChart3, Download, Shield,
+  Users, Settings, LogOut
+} from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
+import logoSenac from '@/componentes/img/Senac_logo.svg.png'
 
-const router = useRouter()
+const router       = useRouter()
 const autenticacao = useAutenticacaoStore()
+const logo         = logoSenac
 
-// Dados do usuário logado
 const usuario = computed(() => autenticacao.usuario)
 
-// Pega as duas primeiras letras do nome para usar como avatar
 const iniciaisDoUsuario = computed(() => {
   if (!usuario.value?.nome) return '?'
   return usuario.value.nome
     .split(' ')
     .slice(0, 2)
-    .map(parte => parte[0])
+    .map(p => p[0])
     .join('')
     .toUpperCase()
 })
 
-// ---- Itens do menu lateral ----
-// O menu muda conforme o perfil do usuário
 const itensDoMenu = computed(() => {
   const menus = [
-    { nome: 'Dashboard',    rota: '/dashboard',  icone: '📊' },
-    { nome: 'Produtos',     rota: '/produtos',   icone: '📦' },
-    { nome: 'Lotes',        rota: '/lotes',      icone: '🗂️' },
-    { nome: 'Movimentos',   rota: '/movimentos', icone: '🔄' },
-    { nome: 'Relatórios',   rota: '/relatorios', icone: '📋' },
+    { nome: 'Dashboard',      rota: '/dashboard',  icone: LayoutDashboard },
+    { nome: 'Lotes',          rota: '/lotes',      icone: PackagePlus     },
+    { nome: 'Produtos',       rota: '/produtos',   icone: Package         },
+    { nome: 'Perdas',         rota: '/perdas',     icone: Trash2          },
+    { nome: 'Histórico',      rota: '/historico',  icone: History         },
+    { nome: 'Relatórios',     rota: '/relatorios', icone: FileText        },
+    { nome: 'Rel. Avançados', rota: '/rel-avancados', icone: BarChart3   },
+    { nome: 'Import/Export',  rota: '/importexport',  icone: Download    },
+    { nome: 'Log',            rota: '/log',        icone: Shield          },
   ]
 
-  // O menu de usuários só aparece para admins
   if (autenticacao.ehAdmin) {
-    menus.push({ nome: 'Usuários', rota: '/usuarios', icone: '👥' })
+    menus.push({ nome: 'Usuários', rota: '/usuarios', icone: Users })
   }
 
   return menus
 })
 
-/**
- * Faz o logout e redireciona para o login
- */
 async function sair() {
   await autenticacao.fazerLogout()
   router.push('/login')
