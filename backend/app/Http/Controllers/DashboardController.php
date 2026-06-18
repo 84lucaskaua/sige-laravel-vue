@@ -102,6 +102,3 @@ class DashboardController extends Controller
         ]);
     }
 }
-use App\Http\Controllers\DashboardController;
-
-Route::middleware('auth:sanctum')->get('/dashboard', [DashboardController::class, 'index']);

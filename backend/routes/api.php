@@ -11,3 +11,6 @@ use App\Http\Controllers\AuthController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
+
+use App\Http\Controllers\DashboardController;
+Route::middleware('auth:sanctum')->get('/dashboard', [DashboardController::class, 'index']);
