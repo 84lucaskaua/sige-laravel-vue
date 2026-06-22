@@ -111,8 +111,12 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800">
-            <tr v-for="item in loteAtivo.itens" :key="item.id_item" class="hover:bg-slate-800/50 transition">
-
+            <tr
+              v-for="item in loteAtivo.itens"
+              :key="item.id_item"
+              class="hover:bg-slate-800/50 transition cursor-pointer"
+              @click="itemSelecionado = item; modalDetalhesAberto = true"
+            >
               <td class="py-3 text-slate-400">{{ item.sku || '—' }}</td>
               <td class="py-3 text-white font-medium">{{ item.nome || '—' }}</td>
 
@@ -156,7 +160,7 @@
                 </div>
               </td>
 
-              <td class="py-3">
+              <td class="py-3" @click.stop>
                 <div class="flex items-center gap-3">
                   <button @click="itemSelecionado = item; modalEditarAberto = true"
                     class="text-blue-400 hover:text-blue-300 transition" title="Editar">
@@ -166,12 +170,12 @@
                     class="text-yellow-400 hover:text-yellow-300 transition" title="Baixa de estoque">
                     <PackageOpen :size="16" />
                   </button>
-                  <button
-                    @click="itemSelecionado = item; modalEntradaAberto = true"
+                  <button @click="itemSelecionado = item; modalEntradaAberto = true"
                     class="text-green-400 hover:text-green-300 transition" title="Entrada de estoque">
                     <PackagePlus :size="16" />
                   </button>
-                  <button class="text-red-400 hover:text-red-300 transition" title="Excluir">
+                  <button @click="itemSelecionado = item; modalExcluirAberto = true"
+                    class="text-red-400 hover:text-red-300 transition" title="Excluir">
                     <Trash2 :size="16" />
                   </button>
                 </div>
@@ -317,6 +321,26 @@
       @salvo="modalEntradaAberto = false; carregarLotes()"
     />
 
+    <!-- Modal excluir item -->
+    <ModalExcluirItem
+      v-if="modalExcluirAberto"
+      :item="itemSelecionado"
+      @fechar="modalExcluirAberto = false"
+      @salvo="modalExcluirAberto = false; carregarLotes()"
+    />
+
+    <!-- Modal detalhes produto -->
+    <ModalDetalhesProduto
+      v-if="modalDetalhesAberto"
+      :item="itemSelecionado"
+      :lote-numero="loteAtivo?.numero_lote"
+      @fechar="modalDetalhesAberto = false"
+      @editar="modalDetalhesAberto = false; itemSelecionado = $event; modalEditarAberto = true"
+      @baixa="modalDetalhesAberto = false; itemSelecionado = $event; modalBaixaAberto = true"
+      @entrada="modalDetalhesAberto = false; itemSelecionado = $event; modalEntradaAberto = true"
+      @excluir="modalDetalhesAberto = false; itemSelecionado = $event; modalExcluirAberto = true"
+    />
+
   </div>
 </template>
 
@@ -325,24 +349,28 @@ import { ref, computed, onMounted } from 'vue'
 import { Plus, Shield, Lock, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
-import ModalLote from '@/componentes/ui/ModalLote.vue'
-import ModalAdicionarItem from '@/componentes/ui/ModalAdicionarItem.vue'
-import ModalEditarItem from '@/componentes/ui/ModalEditarItem.vue'
-import ModalBaixaEstoque from '@/componentes/ui/ModalBaixaEstoque.vue'
-import ModalEntradaEstoque from '@/componentes/ui/ModalEntradaEstoque.vue'
+import ModalLote            from '@/componentes/ui/ModalLote.vue'
+import ModalAdicionarItem   from '@/componentes/ui/ModalAdicionarItem.vue'
+import ModalEditarItem      from '@/componentes/ui/ModalEditarItem.vue'
+import ModalExcluirItem     from '@/componentes/ui/ModalExcluirItem.vue'
+import ModalDetalhesProduto from '@/componentes/ui/ModalDetalhesProduto.vue'
+import ModalBaixaEstoque    from '@/componentes/ui/ModalBaixaEstoque.vue'
+import ModalEntradaEstoque  from '@/componentes/ui/ModalEntradaEstoque.vue'
 import { formatarData, estaVencido, proximoDoVencimento } from '@/utils/date'
 
-const autenticacao       = useAutenticacaoStore()
-const lotes              = ref([])
-const carregando         = ref(false)
-const modalAberto        = ref(false)
-const modalItemAberto    = ref(false)
-const modalEditarAberto  = ref(false)
-const modalBaixaAberto   = ref(false)
-const modalEntradaAberto = ref(false)
-const loteSelecionado    = ref(null)
-const itemSelecionado    = ref(null)
-const tabAtiva           = ref(null)
+const autenticacao        = useAutenticacaoStore()
+const lotes               = ref([])
+const carregando          = ref(false)
+const modalAberto         = ref(false)
+const modalItemAberto     = ref(false)
+const modalEditarAberto   = ref(false)
+const modalDetalhesAberto = ref(false)
+const modalBaixaAberto    = ref(false)
+const modalEntradaAberto  = ref(false)
+const modalExcluirAberto  = ref(false)
+const loteSelecionado     = ref(null)
+const itemSelecionado     = ref(null)
+const tabAtiva            = ref(null)
 
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 

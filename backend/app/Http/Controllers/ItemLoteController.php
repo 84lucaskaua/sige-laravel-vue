@@ -81,4 +81,16 @@ public function entrada(Request $request, $id)
 
     return response()->json($item);
 }
+public function destroy($id)
+{
+    $item = ItemLote::findOrFail($id);
+    $item->delete();
+
+    return response()->json(['message' => 'Item excluído com sucesso.']);
+}
+public function historico($id)
+{
+    $item = ItemLote::findOrFail($id);
+    return response()->json($item->historicos()->orderBy('created_at', 'desc')->get());
+}
 }

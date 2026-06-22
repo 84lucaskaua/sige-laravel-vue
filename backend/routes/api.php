@@ -24,3 +24,5 @@ Route::middleware('auth:sanctum')->post('/lotes/{idLote}/itens', [ItemLoteContro
 Route::middleware('auth:sanctum')->put('/itens/{id}', [ItemLoteController::class, 'update']);
 Route::middleware('auth:sanctum')->patch('/itens/{id}/baixa', [ItemLoteController::class, 'baixa']);
 Route::middleware('auth:sanctum')->patch('/itens/{id}/entrada', [ItemLoteController::class, 'entrada']);
+Route::middleware('auth:sanctum')->delete('/itens/{id}', [ItemLoteController::class, 'destroy']);
+Route::middleware('auth:sanctum')->get('/itens/{id}/historico', [ItemLoteController::class, 'historico']);
