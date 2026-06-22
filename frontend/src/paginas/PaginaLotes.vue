@@ -109,8 +109,8 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800">
-            <tr v-for="item in loteAtivo.itens" :key="item.id_lote" class="hover:bg-slate-800/50 transition">
-              <td class="py-3 text-white font-medium">{{ item.produto?.nome || '—' }}</td>
+            <tr v-for="item in loteAtivo.itens" :key="item.id_item" class="hover:bg-slate-800/50 transition">
+              <td class="py-3 text-white font-medium">{{ item.nome || '—' }}</td>
               <td class="py-3">
                 <span :class="item.quantidade === 0 ? 'text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-400 font-semibold' : 'text-green-400 font-semibold'">
                   {{ item.quantidade }}
@@ -123,14 +123,14 @@
                 </span>
                 <span v-else class="text-slate-500">Sem validade</span>
               </td>
-              <td class="py-3 text-slate-400">{{ item.localizacao?.corredor || item.localizacao || '—' }}</td>
+              <td class="py-3 text-slate-400">{{ item.localizacao || '—' }}</td>
               <td class="py-3 text-slate-400">{{ item.fornecedor || '—' }}</td>
               <td class="py-3">
                 <span v-if="item.prioridade_abc"
                   :class="{
-                    'bg-red-900/40 text-red-400 border border-red-800':    item.prioridade_abc === 'A',
+                    'bg-red-900/40 text-red-400 border border-red-800':         item.prioridade_abc === 'A',
                     'bg-yellow-900/40 text-yellow-400 border border-yellow-800': item.prioridade_abc === 'B',
-                    'bg-green-900/40 text-green-400 border border-green-800': item.prioridade_abc === 'C',
+                    'bg-green-900/40 text-green-400 border border-green-800':    item.prioridade_abc === 'C',
                   }"
                   class="px-2 py-0.5 rounded-full text-xs font-bold"
                 >
@@ -233,12 +233,20 @@
       </div>
     </div>
 
-    <!-- Modal do formulário do lote -->
+    <!-- Modal criar/editar lote -->
     <ModalLote
       v-if="modalAberto"
       :lote="loteSelecionado"
       @fechar="fecharModal"
       @salvo="aoSalvar"
+    />
+
+    <!-- Modal adicionar item -->
+    <ModalAdicionarItem
+      v-if="modalItemAberto"
+      :lote="loteAtivo"
+      @fechar="modalItemAberto = false"
+      @salvo="modalItemAberto = false; carregarLotes()"
     />
 
   </div>
@@ -250,22 +258,23 @@ import { Plus, Shield, Lock, X, PackageMinus, Package, Trash2, Calendar } from '
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalLote from '@/componentes/ui/ModalLote.vue'
+import ModalAdicionarItem from '@/componentes/ui/ModalAdicionarItem.vue'
 import { formatarData, estaVencido, proximoDoVencimento } from '@/utils/date'
 
 const autenticacao    = useAutenticacaoStore()
 const lotes           = ref([])
 const carregando      = ref(false)
 const modalAberto     = ref(false)
+const modalItemAberto = ref(false)
 const loteSelecionado = ref(null)
 const tabAtiva        = ref(null)
 
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 
-// PIN e etapas
 const etapa       = ref(0)
 const pinDigitado = ref('')
 const erroPin     = ref('')
-const acaoAtual   = ref('') // 'criar' | 'item' | 'excluir'
+const acaoAtual   = ref('')
 const PIN_CORRETO = '8401'
 
 function iniciarCriacaoLote() {
@@ -294,10 +303,9 @@ function verificarPin() {
     etapa.value = 0
     if (acaoAtual.value === 'criar') {
       loteSelecionado.value = null
-      modalAberto.value = true
+      modalAberto.value     = true
     } else if (acaoAtual.value === 'item') {
-      loteSelecionado.value = loteAtivo.value
-      modalAberto.value = true
+      modalItemAberto.value = true
     } else if (acaoAtual.value === 'excluir') {
       excluirLote()
     }
@@ -324,7 +332,7 @@ async function excluirLote() {
 }
 
 function fecharModal() {
-  modalAberto.value    = false
+  modalAberto.value     = false
   loteSelecionado.value = null
 }
 
