@@ -166,7 +166,9 @@
                     class="text-yellow-400 hover:text-yellow-300 transition" title="Baixa de estoque">
                     <PackageOpen :size="16" />
                   </button>
-                  <button class="text-green-400 hover:text-green-300 transition" title="Adicionar estoque">
+                  <button
+                    @click="itemSelecionado = item; modalEntradaAberto = true"
+                    class="text-green-400 hover:text-green-300 transition" title="Entrada de estoque">
                     <PackagePlus :size="16" />
                   </button>
                   <button class="text-red-400 hover:text-red-300 transition" title="Excluir">
@@ -252,8 +254,12 @@
             v-model="pinDigitado"
             type="password"
             maxlength="4"
-            placeholder="••••"
-            class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 text-center text-2xl tracking-widest outline-none focus:border-blue-500 transition"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            placeholder="• • • •"
+            autofocus
+            class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.6em] outline-none focus:border-blue-500 transition placeholder-slate-600"
+            @input="pinDigitado = pinDigitado.replace(/\D/g, '')"
             @keyup.enter="verificarPin"
           />
           <p v-if="erroPin" class="text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
@@ -263,7 +269,8 @@
           <button @click="etapa = 1; pinDigitado = ''; erroPin = ''" class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition">
             Voltar
           </button>
-          <button @click="verificarPin" class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-medium">
+          <button @click="verificarPin" :disabled="pinDigitado.length < 4"
+            class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium">
             Confirmar PIN
           </button>
         </div>
@@ -302,6 +309,14 @@
       @salvo="modalBaixaAberto = false; carregarLotes()"
     />
 
+    <!-- Modal entrada de estoque -->
+    <ModalEntradaEstoque
+      v-if="modalEntradaAberto"
+      :item="itemSelecionado"
+      @fechar="modalEntradaAberto = false"
+      @salvo="modalEntradaAberto = false; carregarLotes()"
+    />
+
   </div>
 </template>
 
@@ -314,18 +329,20 @@ import ModalLote from '@/componentes/ui/ModalLote.vue'
 import ModalAdicionarItem from '@/componentes/ui/ModalAdicionarItem.vue'
 import ModalEditarItem from '@/componentes/ui/ModalEditarItem.vue'
 import ModalBaixaEstoque from '@/componentes/ui/ModalBaixaEstoque.vue'
+import ModalEntradaEstoque from '@/componentes/ui/ModalEntradaEstoque.vue'
 import { formatarData, estaVencido, proximoDoVencimento } from '@/utils/date'
 
-const autenticacao      = useAutenticacaoStore()
-const lotes             = ref([])
-const carregando        = ref(false)
-const modalAberto       = ref(false)
-const modalItemAberto   = ref(false)
-const modalEditarAberto = ref(false)
-const modalBaixaAberto  = ref(false)
-const loteSelecionado   = ref(null)
-const itemSelecionado   = ref(null)
-const tabAtiva          = ref(null)
+const autenticacao       = useAutenticacaoStore()
+const lotes              = ref([])
+const carregando         = ref(false)
+const modalAberto        = ref(false)
+const modalItemAberto    = ref(false)
+const modalEditarAberto  = ref(false)
+const modalBaixaAberto   = ref(false)
+const modalEntradaAberto = ref(false)
+const loteSelecionado    = ref(null)
+const itemSelecionado    = ref(null)
+const tabAtiva           = ref(null)
 
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 

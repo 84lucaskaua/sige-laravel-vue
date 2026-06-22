@@ -68,4 +68,17 @@ public function baixa(Request $request, $id)
 
     return response()->json($item);
 }
+public function entrada(Request $request, $id)
+{
+    $request->validate([
+        'quantidade' => 'required|integer|min:1',
+        'motivo'     => 'nullable|string|max:255',
+    ]);
+
+    $item = ItemLote::findOrFail($id);
+    $item->quantidade += $request->quantidade;
+    $item->save();
+
+    return response()->json($item);
+}
 }

@@ -22,17 +22,26 @@
             class="w-full rounded-lg px-4 py-3 text-sm outline-none bg-slate-800 border border-slate-700 text-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
           />
         </div>
-
-        <div class="mb-6">
-          <label class="block text-sm font-medium mb-1 text-slate-300">Senha</label>
-          <input
-            v-model="senha"
-            type="password"
-            placeholder="••••••••"
-            required
-            class="w-full rounded-lg px-4 py-3 text-sm outline-none bg-slate-800 border border-slate-700 text-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-          />
-        </div>
+<div class="mb-6">
+  <label class="block text-sm font-medium mb-1 text-slate-300">Senha</label>
+  <div class="relative">
+    <input
+      v-model="senha"
+      :type="mostrarSenha ? 'text' : 'password'"
+      placeholder="••••••••"
+      required
+      class="w-full rounded-lg px-4 py-3 pr-11 text-sm outline-none bg-slate-800 border border-slate-700 text-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+    />
+    <button
+      type="button"
+      @click="mostrarSenha = !mostrarSenha"
+      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
+    >
+      <Eye v-if="!mostrarSenha" :size="18" />
+      <EyeOff v-else :size="18" />
+    </button>
+  </div>
+</div>
 
         <div v-if="mensagemErro" class="mb-4 p-3 rounded-lg text-sm bg-red-900 border border-red-700 text-red-200">
           {{ mensagemErro }}
@@ -53,6 +62,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import logoSenac from '@/componentes/img/Senac_logo.svg.png'
@@ -60,6 +70,7 @@ import logoSenac from '@/componentes/img/Senac_logo.svg.png'
 const email        = ref('')
 const logo         = logoSenac
 const senha        = ref('')
+const mostrarSenha = ref(false)
 const carregando   = ref(false)
 const mensagemErro = ref('')
 
