@@ -17,18 +17,18 @@
         </button>
       </div>
 
-      <div class="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4 mb-3">
+      <div class="bg-green-900/30 border border-green-700 rounded-lg p-4 mb-3">
         <div class="flex items-center gap-2 mb-1">
-          <Shield class="text-yellow-400" :size="16" />
-          <span class="text-white font-medium text-sm">Baixa de Estoque</span>
+          <Shield class="text-green-400" :size="16" />
+          <span class="text-white font-medium text-sm">Entrada de Estoque</span>
         </div>
         <p class="text-slate-300 text-sm">
-          Você está dando baixa de
+          Você está adicionando
           <strong class="text-white">{{ form.quantidade || '?' }} unidades</strong>
           do produto <strong class="text-white">"{{ item.nome }}"</strong>.
-          O estoque será reduzido de
+          O estoque será atualizado de
           <strong class="text-white">{{ item.quantidade }}</strong> para
-          <strong class="text-white">{{ item.quantidade - (form.quantidade || 0) }}</strong>.
+          <strong class="text-white">{{ item.quantidade + (form.quantidade || 0) }}</strong>.
         </p>
       </div>
 
@@ -101,19 +101,20 @@
       </div>
     </div>
 
-    <!-- ===== ETAPA 0: FORMULÁRIO DE BAIXA ===== -->
+    <!-- ===== ETAPA 0: FORMULÁRIO DE ENTRADA ===== -->
     <div v-else class="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md">
 
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h2 class="text-lg font-bold text-white">Baixa de Estoque</h2>
-          <p class="text-slate-400 text-xs mt-0.5">Registre a saída de produtos do estoque.</p>
+          <h2 class="text-lg font-bold text-white">Entrada de Estoque</h2>
+          <p class="text-slate-400 text-xs mt-0.5">Registre a entrada de produtos no estoque.</p>
         </div>
         <button @click="$emit('fechar')" class="text-slate-400 hover:text-white">
           <X :size="20" />
         </button>
       </div>
 
+      <!-- Info do produto -->
       <div class="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-6">
         <p class="text-slate-400 text-xs mb-1">Produto</p>
         <p class="text-white font-bold text-base">{{ item.nome }}</p>
@@ -124,12 +125,11 @@
       <form @submit.prevent="abrirConfirmacao">
 
         <div class="mb-4">
-          <label class="label">Quantidade para baixa *</label>
+          <label class="label">Quantidade para entrada *</label>
           <input
             v-model.number="form.quantidade"
             type="number"
             min="1"
-            :max="item.quantidade"
             required
             class="campo"
             placeholder="Ex: 10"
@@ -142,7 +142,7 @@
             v-model="form.motivo"
             rows="3"
             class="campo"
-            placeholder="Ex: Venda, Perda, Uso interno..."
+            placeholder="Ex: Compra, Retorno, Ajuste..."
           />
         </div>
 
@@ -156,9 +156,9 @@
             Cancelar
           </button>
           <button type="submit"
-            :disabled="!form.quantidade || form.quantidade < 1 || form.quantidade > item.quantidade"
-            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium">
-            Confirmar Baixa
+            :disabled="!form.quantidade || form.quantidade < 1"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium">
+            Confirmar Entrada
           </button>
         </div>
 
@@ -184,7 +184,6 @@ const erroPin     = ref('')
 const tentativas  = ref(0)
 const salvando    = ref(false)
 const erro        = ref('')
-const inputPin    = ref(null)
 
 const PIN_CORRETO = '8401'
 
@@ -195,10 +194,6 @@ const form = ref({
 
 function abrirConfirmacao() {
   erro.value        = ''
-  if (form.value.quantidade > props.item.quantidade) {
-    erro.value = 'Quantidade maior que o estoque disponível.'
-    return
-  }
   pinDigitado.value = ''
   erroPin.value     = ''
   tentativas.value  = 0
@@ -222,13 +217,13 @@ async function verificarPin() {
   erroPin.value  = ''
   salvando.value = true
   try {
-    await api.patch(`/itens/${props.item.id_item}/baixa`, {
+    await api.patch(`/itens/${props.item.id_item}/entrada`, {
       quantidade: form.value.quantidade,
       motivo:     form.value.motivo,
     })
     emit('salvo')
   } catch (e) {
-    erro.value        = e.response?.data?.message || 'Erro ao registrar baixa.'
+    erro.value        = e.response?.data?.message || 'Erro ao registrar entrada.'
     pinDigitado.value = ''
     etapa.value       = 0
   } finally {
@@ -256,7 +251,7 @@ async function verificarPin() {
   resize: none;
 }
 .campo:focus {
-  border-color: #f97316;
-  box-shadow: 0 0 0 2px rgba(249,115,22,0.2);
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.2);
 }
 </style>
