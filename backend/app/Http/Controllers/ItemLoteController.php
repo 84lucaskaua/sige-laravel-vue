@@ -36,4 +36,36 @@ class ItemLoteController extends Controller
         $itens = ItemLote::where('id_lote', $idLote)->get();
         return response()->json($itens);
     }
+    public function update(Request $request, $id)
+{
+    $item = ItemLote::findOrFail($id);
+
+    $request->validate([
+        'nome'       => 'required|string',
+        'quantidade' => 'required|integer|min:0',
+        'categoria'  => 'required|string',
+    ]);
+
+    $item->update($request->only([
+        'nome', 'sku', 'quantidade', 'estoque_minimo',
+        'unidade_medida', 'data_validade', 'fornecedor',
+        'localizacao', 'prioridade_abc', 'categoria',
+    ]));
+
+    return response()->json($item);
+}
+public function baixa(Request $request, $id)
+{
+    $item = ItemLote::findOrFail($id);
+
+    $request->validate([
+        'quantidade' => 'required|integer|min:1|max:' . $item->quantidade,
+    ]);
+
+    $item->update([
+        'quantidade' => $item->quantidade - $request->quantidade,
+    ]);
+
+    return response()->json($item);
+}
 }

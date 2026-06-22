@@ -4,8 +4,8 @@
 
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h2 class="text-lg font-bold text-white">Adicionar Item ao Lote {{ lote?.numero_lote }}</h2>
-          <p class="text-slate-400 text-xs mt-0.5">Preencha as informações do produto para adicionar ao lote.</p>
+          <h2 class="text-lg font-bold text-white">Editar Item</h2>
+          <p class="text-slate-400 text-xs mt-0.5">Modifique as informações do produto.</p>
         </div>
         <button @click="$emit('fechar')" class="text-slate-400 hover:text-white">
           <X :size="20" />
@@ -16,7 +16,7 @@
 
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <label class="label">Código / SKU</label>
+            <label class="label">Código / SKU *</label>
             <input v-model="form.sku" type="text" class="campo" placeholder="Ex: PROD001" />
           </div>
           <div>
@@ -28,32 +28,32 @@
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label class="label">Quantidade *</label>
-            <input v-model.number="form.quantidade" type="number" min="1" required class="campo" placeholder="Ex: 50" />
+            <input v-model.number="form.quantidade" type="number" min="1" required class="campo" />
           </div>
-         <div>
-  <label class="label">Unidade *</label>
-  <select v-model="form.unidade_medida" class="campo">
-    <option value="UN">UN — Unidade</option>
-    <option value="CX">CX — Caixa</option>
-    <option value="PCT">PCT — Pacote</option>
-    <option value="PTC">PTC — Pacote (variação)</option>
-    <option value="FR">FR — Frasco</option>
-    <option value="RL">RL — Rolo</option>
-    <option value="EMB">EMB — Embalagem</option>
-    <option value="KIT">KIT — Kit</option>
-    <option value="BEM">BEM — Bem</option>
-    <option value="UM">UM — Unidade de Medida</option>
-  </select>
-</div>
+          <div>
+            <label class="label">Unidade *</label>
+            <select v-model="form.unidade_medida" class="campo">
+              <option value="UN">UN — Unidade</option>
+              <option value="CX">CX — Caixa</option>
+              <option value="PCT">PCT — Pacote</option>
+              <option value="PTC">PTC — Pacote (variação)</option>
+              <option value="FR">FR — Frasco</option>
+              <option value="RL">RL — Rolo</option>
+              <option value="EMB">EMB — Embalagem</option>
+              <option value="KIT">KIT — Kit</option>
+              <option value="BEM">BEM — Bem</option>
+              <option value="UM">UM — Unidade de Medida</option>
+            </select>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label class="label">Estoque Mínimo</label>
-            <input v-model.number="form.estoque_minimo" type="number" min="0" class="campo" placeholder="Ex: 10" />
+            <input v-model.number="form.estoque_minimo" type="number" min="0" class="campo" />
           </div>
           <div>
-            <label class="label">Validade</label>
+            <label class="label">Validade *</label>
             <input v-model="form.data_validade" type="date" class="campo" />
           </div>
         </div>
@@ -79,22 +79,22 @@
           </select>
         </div>
 
-     <div class="mb-6">
-  <label class="label">Categoria *</label>
-  <select v-model="form.categoria" required class="campo">
-    <option value="" disabled>Selecione uma categoria *</option>
-    <option value="Medicina">Medicina</option>
-    <option value="Enfermagem">Enfermagem</option>
-    <option value="Odontologia">Odontologia</option>
-    <option value="Laboratório">Laboratório</option>
-    <option value="Higiene e Antissepsia">Higiene e Antissepsia</option>
-    <option value="Estética">Estética</option>
-    <option value="Podologia">Podologia</option>
-    <option value="Equipamentos">Equipamentos</option>
-    <option value="Consumíveis">Consumíveis</option>
-    <option value="Outros">Outros</option>
-  </select>
-</div>
+        <div class="mb-6">
+          <label class="label">Categoria *</label>
+          <select v-model="form.categoria" required class="campo">
+            <option value="" disabled>Selecione uma categoria *</option>
+            <option value="Medicina">Medicina</option>
+            <option value="Enfermagem">Enfermagem</option>
+            <option value="Odontologia">Odontologia</option>
+            <option value="Laboratório">Laboratório</option>
+            <option value="Higiene e Antissepsia">Higiene e Antissepsia</option>
+            <option value="Estética">Estética</option>
+            <option value="Podologia">Podologia</option>
+            <option value="Equipamentos">Equipamentos</option>
+            <option value="Consumíveis">Consumíveis</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
 
         <div v-if="erro" class="mb-4 p-3 bg-red-900/30 border border-red-700 rounded text-red-400 text-sm">
           {{ erro }}
@@ -107,7 +107,7 @@
           </button>
           <button type="submit" :disabled="salvando"
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
-            {{ salvando ? 'Adicionando...' : 'Adicionar' }}
+            {{ salvando ? 'Salvando...' : 'Salvar Alterações' }}
           </button>
         </div>
 
@@ -122,7 +122,7 @@ import { X } from 'lucide-vue-next'
 import api from '@/servicos/api'
 
 const props = defineProps({
-  lote: { type: Object, required: true },
+  item: { type: Object, required: true },
 })
 const emit = defineEmits(['fechar', 'salvo'])
 
@@ -130,29 +130,29 @@ const salvando = ref(false)
 const erro     = ref('')
 
 const form = ref({
-  sku:            '',
-  nome:           '',
-  quantidade:     null,
-  unidade_medida: 'UN',
-  estoque_minimo: 0,
-  data_validade:  '',
-  fornecedor:     '',
-  localizacao:    '',
-  prioridade_abc: '',
-  categoria:      '',
+  sku:            props.item.sku            || '',
+  nome:           props.item.nome           || '',
+  quantidade:     props.item.quantidade     ?? null,
+  unidade_medida: props.item.unidade_medida || 'UN',
+  estoque_minimo: props.item.estoque_minimo ?? 0,
+  data_validade:  props.item.data_validade  || '',
+  fornecedor:     props.item.fornecedor     || '',
+  localizacao:    props.item.localizacao    || '',
+  prioridade_abc: props.item.prioridade_abc || '',
+  categoria:      props.item.categoria      || '',
 })
 
 async function salvar() {
   erro.value     = ''
   salvando.value = true
   try {
-    await api.post(`/lotes/${props.lote.id_lote}/itens`, form.value)
+    await api.put(`/itens/${props.item.id_item}`, form.value)
     emit('salvo')
   } catch (e) {
     const erros = e.response?.data?.errors
     erro.value = erros
       ? Object.values(erros).flat().join('. ')
-      : e.response?.data?.message || 'Erro ao adicionar item.'
+      : e.response?.data?.message || 'Erro ao salvar item.'
   } finally {
     salvando.value = false
   }

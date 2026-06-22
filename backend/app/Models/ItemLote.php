@@ -8,6 +8,7 @@ class ItemLote extends Model
 {
     protected $table      = 'item_lote';
     protected $primaryKey = 'id_item';
+    public $timestamps = false;
 
     protected $fillable = [
         'id_lote',

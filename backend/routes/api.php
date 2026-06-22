@@ -21,3 +21,5 @@ Route::middleware('auth:sanctum')->apiResource('/lotes', LoteController::class);
 use App\Http\Controllers\ItemLoteController;
 Route::middleware('auth:sanctum')->get('/lotes/{idLote}/itens', [ItemLoteController::class, 'index']);
 Route::middleware('auth:sanctum')->post('/lotes/{idLote}/itens', [ItemLoteController::class, 'store']);
+Route::middleware('auth:sanctum')->put('/itens/{id}', [ItemLoteController::class, 'update']);
+Route::middleware('auth:sanctum')->patch('/itens/{id}/baixa', [ItemLoteController::class, 'baixa']);

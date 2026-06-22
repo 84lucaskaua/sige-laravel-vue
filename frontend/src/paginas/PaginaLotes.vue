@@ -100,44 +100,81 @@
         <table v-else class="w-full text-sm">
           <thead>
             <tr class="text-slate-400 border-b border-slate-800">
-              <th class="text-left pb-3 font-medium">Produto</th>
-              <th class="text-left pb-3 font-medium">Quantidade</th>
+              <th class="text-left pb-3 font-medium">SKU</th>
+              <th class="text-left pb-3 font-medium">Nome</th>
+              <th class="text-left pb-3 font-medium">Qtd</th>
               <th class="text-left pb-3 font-medium">Validade</th>
-              <th class="text-left pb-3 font-medium">Localização</th>
               <th class="text-left pb-3 font-medium">Fornecedor</th>
-              <th class="text-left pb-3 font-medium">Prioridade</th>
+              <th class="text-left pb-3 font-medium">Localização</th>
+              <th class="text-left pb-3 font-medium">Status</th>
+              <th class="text-left pb-3 font-medium">Ações</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800">
             <tr v-for="item in loteAtivo.itens" :key="item.id_item" class="hover:bg-slate-800/50 transition">
+
+              <td class="py-3 text-slate-400">{{ item.sku || '—' }}</td>
               <td class="py-3 text-white font-medium">{{ item.nome || '—' }}</td>
+
               <td class="py-3">
                 <span :class="item.quantidade === 0 ? 'text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-400 font-semibold' : 'text-green-400 font-semibold'">
-                  {{ item.quantidade }}
+                  {{ item.quantidade }} {{ item.unidade_medida }}
                 </span>
               </td>
-              <td class="py-3">
-                <span v-if="item.data_validade" :class="estaVencido(item.data_validade) ? 'text-red-400' : proximoDoVencimento(item.data_validade) ? 'text-yellow-400' : 'text-slate-300'">
-                  {{ formatarData(item.data_validade) }}
-                  {{ estaVencido(item.data_validade) ? '⚠️' : '' }}
-                </span>
-                <span v-else class="text-slate-500">Sem validade</span>
-              </td>
-              <td class="py-3 text-slate-400">{{ item.localizacao || '—' }}</td>
-              <td class="py-3 text-slate-400">{{ item.fornecedor || '—' }}</td>
-              <td class="py-3">
-                <span v-if="item.prioridade_abc"
-                  :class="{
-                    'bg-red-900/40 text-red-400 border border-red-800':         item.prioridade_abc === 'A',
-                    'bg-yellow-900/40 text-yellow-400 border border-yellow-800': item.prioridade_abc === 'B',
-                    'bg-green-900/40 text-green-400 border border-green-800':    item.prioridade_abc === 'C',
-                  }"
-                  class="px-2 py-0.5 rounded-full text-xs font-bold"
-                >
-                  {{ item.prioridade_abc }}
-                </span>
+
+              <td class="py-3 text-slate-300">
+                <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
                 <span v-else class="text-slate-500">—</span>
               </td>
+
+              <td class="py-3 text-slate-400">{{ item.fornecedor || '—' }}</td>
+              <td class="py-3 text-slate-400">{{ item.localizacao || '—' }}</td>
+
+              <td class="py-3">
+                <div class="flex items-center gap-1 flex-wrap">
+                  <span v-if="item.data_validade && estaVencido(item.data_validade)"
+                    class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
+                    Vencido
+                  </span>
+                  <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)"
+                    class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
+                    Vencendo
+                  </span>
+                  <span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo"
+                    class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
+                    Crítico
+                  </span>
+                  <span v-if="item.prioridade_abc"
+                    :class="{
+                      'bg-red-900/40 text-red-400 border border-red-800':         item.prioridade_abc === 'A',
+                      'bg-yellow-900/40 text-yellow-400 border border-yellow-800': item.prioridade_abc === 'B',
+                      'bg-green-900/40 text-green-400 border border-green-800':    item.prioridade_abc === 'C',
+                    }"
+                    class="px-2 py-0.5 rounded-full text-xs font-bold">
+                    {{ item.prioridade_abc }}
+                  </span>
+                </div>
+              </td>
+
+              <td class="py-3">
+                <div class="flex items-center gap-3">
+                  <button @click="itemSelecionado = item; modalEditarAberto = true"
+                    class="text-blue-400 hover:text-blue-300 transition" title="Editar">
+                    <Pencil :size="16" />
+                  </button>
+                  <button @click="itemSelecionado = item; modalBaixaAberto = true"
+                    class="text-yellow-400 hover:text-yellow-300 transition" title="Baixa de estoque">
+                    <PackageOpen :size="16" />
+                  </button>
+                  <button class="text-green-400 hover:text-green-300 transition" title="Adicionar estoque">
+                    <PackagePlus :size="16" />
+                  </button>
+                  <button class="text-red-400 hover:text-red-300 transition" title="Excluir">
+                    <Trash2 :size="16" />
+                  </button>
+                </div>
+              </td>
+
             </tr>
           </tbody>
         </table>
@@ -249,25 +286,46 @@
       @salvo="modalItemAberto = false; carregarLotes()"
     />
 
+    <!-- Modal editar item -->
+    <ModalEditarItem
+      v-if="modalEditarAberto"
+      :item="itemSelecionado"
+      @fechar="modalEditarAberto = false"
+      @salvo="modalEditarAberto = false; carregarLotes()"
+    />
+
+    <!-- Modal baixa de estoque -->
+    <ModalBaixaEstoque
+      v-if="modalBaixaAberto"
+      :item="itemSelecionado"
+      @fechar="modalBaixaAberto = false"
+      @salvo="modalBaixaAberto = false; carregarLotes()"
+    />
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Plus, Shield, Lock, X, PackageMinus, Package, Trash2, Calendar } from 'lucide-vue-next'
+import { Plus, Shield, Lock, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalLote from '@/componentes/ui/ModalLote.vue'
 import ModalAdicionarItem from '@/componentes/ui/ModalAdicionarItem.vue'
+import ModalEditarItem from '@/componentes/ui/ModalEditarItem.vue'
+import ModalBaixaEstoque from '@/componentes/ui/ModalBaixaEstoque.vue'
 import { formatarData, estaVencido, proximoDoVencimento } from '@/utils/date'
 
-const autenticacao    = useAutenticacaoStore()
-const lotes           = ref([])
-const carregando      = ref(false)
-const modalAberto     = ref(false)
-const modalItemAberto = ref(false)
-const loteSelecionado = ref(null)
-const tabAtiva        = ref(null)
+const autenticacao      = useAutenticacaoStore()
+const lotes             = ref([])
+const carregando        = ref(false)
+const modalAberto       = ref(false)
+const modalItemAberto   = ref(false)
+const modalEditarAberto = ref(false)
+const modalBaixaAberto  = ref(false)
+const loteSelecionado   = ref(null)
+const itemSelecionado   = ref(null)
+const tabAtiva          = ref(null)
 
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 
