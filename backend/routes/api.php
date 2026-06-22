@@ -14,3 +14,10 @@ Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logo
 
 use App\Http\Controllers\DashboardController;
 Route::middleware('auth:sanctum')->get('/dashboard', [DashboardController::class, 'index']);
+
+use App\Http\Controllers\LoteController;
+Route::middleware('auth:sanctum')->apiResource('/lotes', LoteController::class);
+
+use App\Http\Controllers\ItemLoteController;
+Route::middleware('auth:sanctum')->get('/lotes/{idLote}/itens', [ItemLoteController::class, 'index']);
+Route::middleware('auth:sanctum')->post('/lotes/{idLote}/itens', [ItemLoteController::class, 'store']);
