@@ -1,10 +1,12 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\ItemLote;
 use App\Models\Movimentacao;
 use App\Services\AbcPriorityService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ItemLoteController extends Controller
 {
@@ -15,7 +17,7 @@ class ItemLoteController extends Controller
         $this->abcService = $abcService;
     }
 
-    public function store(Request $request, $idLote)
+    public function store(Request $request, int $idLote)
     {
         $request->validate([
             'nome'       => 'required|string',
@@ -45,13 +47,13 @@ class ItemLoteController extends Controller
         return response()->json($item->refresh(), 201);
     }
 
-    public function index($idLote)
+    public function index(int $idLote)
     {
         $itens = ItemLote::where('id_lote', $idLote)->get();
         return response()->json($itens);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         $item = ItemLote::findOrFail($id);
 
@@ -79,7 +81,7 @@ class ItemLoteController extends Controller
         return response()->json($item->refresh());
     }
 
-    public function baixa(Request $request, $id)
+    public function baixa(Request $request, int $id)
     {
         $item = ItemLote::findOrFail($id);
 
@@ -99,7 +101,7 @@ class ItemLoteController extends Controller
             'observacao'        => $request->motivo,
             'id_lote'           => $item->id_lote,
             'id_item'           => $item->id_item,
-            'id_usuario'        => auth()->id(),
+            'id_usuario'        => Auth::id(),
         ]);
 
         $this->abcService->recalcularTodos();
@@ -107,7 +109,7 @@ class ItemLoteController extends Controller
         return response()->json($item->refresh());
     }
 
-    public function entrada(Request $request, $id)
+    public function entrada(Request $request, int $id)
     {
         $request->validate([
             'quantidade' => 'required|integer|min:1',
@@ -125,7 +127,7 @@ class ItemLoteController extends Controller
             'observacao'        => $request->motivo,
             'id_lote'           => $item->id_lote,
             'id_item'           => $item->id_item,
-            'id_usuario'        => auth()->id(),
+            'id_usuario'        => Auth::id(),
         ]);
 
         $this->abcService->recalcularTodos();
@@ -133,7 +135,7 @@ class ItemLoteController extends Controller
         return response()->json($item->refresh());
     }
 
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $item = ItemLote::findOrFail($id);
         $item->delete();
@@ -143,7 +145,7 @@ class ItemLoteController extends Controller
         return response()->json(['message' => 'Item excluído com sucesso.']);
     }
 
-    public function historico($id)
+    public function historico(int $id)
     {
         $item = ItemLote::findOrFail($id);
         return response()->json(

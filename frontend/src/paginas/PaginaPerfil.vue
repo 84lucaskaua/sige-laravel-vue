@@ -77,11 +77,11 @@ import api from '@/servicos/api'
 const autenticacao = useAutenticacaoStore()
 const usuario = autenticacao.usuario
 
-const sucesso = ref('')
-const erro = ref('')
-const salvando = ref(false)
+const sucesso      = ref('')
+const erro         = ref('')
+const salvando     = ref(false)
+const arquivoFoto  = ref(null)
 const imagemPreview = ref((usuario && usuario.foto_url) ? usuario.foto_url : '')
-const imagemBase64 = ref('')
 
 const form = reactive({
   nome: (usuario && usuario.name) ? usuario.name : '',
@@ -100,22 +100,18 @@ function onFotoChange(e) {
     erro.value = 'A imagem deve ter no máximo 2MB.'
     return
   }
-  const reader = new FileReader()
-  reader.onloadend = () => {
-    imagemBase64.value = reader.result
-    imagemPreview.value = reader.result
-  }
-  reader.readAsDataURL(arquivo)
+  arquivoFoto.value   = arquivo
+  imagemPreview.value = URL.createObjectURL(arquivo)
 }
 
 function removerImagem() {
-  imagemBase64.value = ''
+  arquivoFoto.value   = null
   imagemPreview.value = ''
 }
 
 function limparMensagens() {
   sucesso.value = ''
-  erro.value = ''
+  erro.value    = ''
 }
 
 async function salvar() {
@@ -129,29 +125,35 @@ async function salvar() {
 
   salvando.value = true
   try {
-    const resposta = await api.put('/perfil', {
-      nome: form.nome,
-      foto_url: imagemBase64.value || imagemPreview.value || null,
+    const formData = new FormData()
+    formData.append('nome', form.nome)
+    if (arquivoFoto.value) {
+      formData.append('foto', arquivoFoto.value)
+    }
+
+    const resposta = await api.post('/perfil', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     })
 
-    autenticacao.usuario.name = resposta.data.usuario.name
+    autenticacao.usuario.name     = resposta.data.usuario.name
     autenticacao.usuario.foto_url = resposta.data.usuario.foto_url
     localStorage.setItem('usuario', JSON.stringify(autenticacao.usuario))
+    imagemPreview.value = resposta.data.usuario.foto_url || ''
 
     if (senhas.nova) {
       await api.put('/perfil/senha', {
-        senha_atual: senhas.atual,
-        nova_senha: senhas.nova,
-        nova_senha_confirmation: senhas.confirmacao,
+        senha_atual:              senhas.atual,
+        nova_senha:               senhas.nova,
+        nova_senha_confirmation:  senhas.confirmacao,
       })
-      senhas.atual = ''
-      senhas.nova = ''
-      senhas.confirmacao = ''
+      senhas.atual        = ''
+      senhas.nova         = ''
+      senhas.confirmacao  = ''
     }
 
     sucesso.value = 'Perfil atualizado com sucesso!'
   } catch (e) {
-    erro.value = (e.response && e.response.data && e.response.data.message) ? e.response.data.message : 'Erro ao salvar.'
+    erro.value = e.response?.data?.message || 'Erro ao salvar.'
   } finally {
     salvando.value = false
   }

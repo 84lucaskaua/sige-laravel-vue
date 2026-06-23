@@ -24,4 +24,8 @@ class ItemLote extends Model
         'prioridade_manual',
         'categoria',
     ];
+    public function lote()
+{
+    return $this->belongsTo(Lote::class, 'id_lote', 'id_lote');
+}
 }

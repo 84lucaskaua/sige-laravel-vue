@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,19 +24,20 @@ class AuthController extends Controller
             return response()->json(['message' => 'Credenciais inválidas'], 401);
         }
 
+        /** @var User $user */
         $user  = Auth::user();
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
-    'token'   => $token,
-    'usuario' => [
-        'id'       => $user->id,
-        'name'     => $user->name,
-        'email'    => $user->email,
-        'perfil'   => $user->perfil ?? 'admin',
-        'foto_url' => $user->foto_url ? asset('storage/' . $user->foto_url) : null,
-    ],
-]);
+            'token'   => $token,
+            'usuario' => [
+                'id'       => $user->id,
+                'name'     => $user->name,
+                'email'    => $user->email,
+                'perfil' => $user->perfil ?? 'visualizador',
+                'foto_url' => $user->foto_url ?: null,
+            ],
+        ]);
     }
 
     public function logout(Request $request)

@@ -1,79 +1,111 @@
 <template>
   <div class="p-6">
 
-    <!-- Cabeçalho da página -->
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Produtos</h1>
-
-      <!-- Botão de novo produto (só aparece para admin e operador) -->
+    <!-- Cabeçalho -->
+    <div class="flex justify-between items-center mb-1">
+      <h1 class="text-2xl font-bold text-white">Produtos</h1>
       <button
         v-if="autenticacao.podeCadastrar"
         @click="abrirModalNovoProduto"
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
       >
         + Novo Produto
       </button>
     </div>
+    <p class="text-slate-400 text-sm mb-6">Visão geral de todos os produtos e seus lotes</p>
 
-    <!-- Barra de busca -->
-    <div class="mb-4">
+    <!-- Filtros -->
+    <div class="bg-slate-800 rounded-xl p-4 mb-6 flex flex-col gap-3">
       <input
         v-model="termoDeBusca"
         type="text"
-        placeholder="Buscar por nome ou código..."
-        class="w-full max-w-md border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="🔍 Buscar por nome ou SKU..."
+        class="w-full bg-slate-700 text-white placeholder-slate-400 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
         @input="buscarComAtraso"
       />
+      <button
+        @click="toggleEstoqueBaixo"
+        :class="[
+          'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors w-fit',
+          filtroBaixo
+            ? 'bg-orange-500 text-white'
+            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+        ]"
+      >
+        ⬇ Estoque Baixo
+      </button>
     </div>
 
-    <!-- Indicador de carregamento -->
-    <div v-if="carregando" class="text-center py-12 text-gray-500">
+    <!-- Carregando -->
+    <div v-if="carregando" class="text-center py-12 text-slate-400">
       Carregando produtos...
     </div>
 
-    <!-- Mensagem quando não tem produtos -->
-    <div v-else-if="produtos.length === 0" class="text-center py-12 text-gray-500">
+    <!-- Vazio -->
+    <div v-else-if="produtosFiltrados.length === 0" class="text-center py-12 text-slate-400">
       Nenhum produto encontrado.
     </div>
 
-    <!-- Tabela de produtos -->
-    <div v-else class="bg-white rounded-xl shadow overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-gray-50 border-b">
-          <tr>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Código</th>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Nome</th>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Categoria</th>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Unidade</th>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Estoque Mín.</th>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Ações</th>
+    <!-- Tabela -->
+    <div v-else class="bg-slate-800 rounded-xl overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-700 text-slate-400 text-left">
+            <th class="px-4 py-3">SKU</th>
+            <th class="px-4 py-3">Nome do Produto</th>
+            <th class="px-4 py-3">Quantidade Total</th>
+            <th class="px-4 py-3">Próxima Validade</th>
+            <th class="px-4 py-3">Lotes</th>
+            <th class="px-4 py-3">Status Validade</th>
+            <th class="px-4 py-3">Status Estoque</th>
+            <th class="px-4 py-3">Ações</th>
           </tr>
         </thead>
         <tbody>
           <tr
-            v-for="produto in produtos"
-            :key="produto.id"
-            class="border-b hover:bg-gray-50 transition"
+            v-for="item in produtosFiltrados"
+            :key="item.id_item"
+            class="border-b border-slate-700 hover:bg-slate-700/50 transition-colors"
           >
-            <td class="px-4 py-3 text-sm font-mono text-gray-600">{{ produto.codigo }}</td>
-            <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ produto.nome }}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">{{ produto.categoria?.nome || '—' }}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">{{ produto.unidade }}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">{{ produto.estoque_minimo }}</td>
+            <td class="px-4 py-3 text-slate-300 font-mono text-xs">{{ item.sku ?? '—' }}</td>
+            <td class="px-4 py-3 text-white font-medium">{{ item.nome }}</td>
+            <td class="px-4 py-3" :class="estoqueBaixo(item) ? 'text-orange-400 font-bold' : 'text-white'">
+              {{ item.quantidade }} {{ item.unidade_medida }}
+            </td>
+            <td class="px-4 py-3 text-slate-300">{{ formatarData(item.data_validade) }}</td>
+            <td class="px-4 py-3">
+              <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded font-medium">
+                {{ item.lote?.numero_lote ?? 'Lote ' + item.id_lote }}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <span :class="badgeValidade(item)">
+                {{ labelValidade(item) }}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <span :class="estoqueBaixo(item)
+                ? 'bg-orange-500/20 text-orange-400 px-2 py-1 rounded text-xs font-semibold'
+                : 'bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-semibold'"
+              >
+                {{ estoqueBaixo(item) ? '↓ Baixo' : 'OK' }}
+              </span>
+            </td>
             <td class="px-4 py-3">
               <button
                 v-if="autenticacao.podeCadastrar"
-                @click="abrirModalEdicao(produto)"
-                class="text-blue-600 hover:text-blue-800 text-sm mr-3"
+                @click="abrirModalEdicao(item)"
+                class="text-blue-400 hover:text-blue-300 text-xs mr-3 transition-colors"
               >
                 Editar
               </button>
               <button
                 v-if="autenticacao.ehAdmin"
-                @click="desativarProduto(produto)"
-                class="text-red-500 hover:text-red-700 text-sm"
+                @click="desativarProduto(item)"
+                class="text-red-400 hover:text-red-300 transition-colors"
+                title="Excluir"
               >
-                Remover
+                🗑
               </button>
             </td>
           </tr>
@@ -81,7 +113,23 @@
       </table>
     </div>
 
-    <!-- Modal de criar/editar produto -->
+    <!-- Rodapé -->
+    <div class="grid grid-cols-3 gap-4 mt-6">
+      <div class="bg-slate-800 rounded-xl p-4">
+        <p class="text-slate-400 text-xs mb-1">Total de Produtos Únicos</p>
+        <p class="text-white text-2xl font-bold">{{ produtos.length }}</p>
+      </div>
+      <div class="bg-slate-800 rounded-xl p-4">
+        <p class="text-slate-400 text-xs mb-1">Produtos Vencendo</p>
+        <p class="text-orange-400 text-2xl font-bold">{{ totalVencendo }}</p>
+      </div>
+      <div class="bg-slate-800 rounded-xl p-4">
+        <p class="text-slate-400 text-xs mb-1">Produtos Vencidos</p>
+        <p class="text-red-400 text-2xl font-bold">{{ totalVencidos }}</p>
+      </div>
+    </div>
+
+    <!-- Modal -->
     <ModalProduto
       v-if="modalAberto"
       :produto="produtoSelecionado"
@@ -93,100 +141,126 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalProduto from '@/componentes/produtos/ModalProduto.vue'
 
-const autenticacao = useAutenticacaoStore()
+const autenticacao       = useAutenticacaoStore()
+const produtos           = ref([])
+const carregando         = ref(false)
+const termoDeBusca       = ref('')
+const filtroBaixo        = ref(false)
+const modalAberto        = ref(false)
+const produtoSelecionado = ref(null)
 
-// ---- Dados da página ----
-const produtos          = ref([])
-const carregando        = ref(false)
-const termoDeBusca      = ref('')
-const modalAberto       = ref(false)
-const produtoSelecionado = ref(null)  // null = novo produto; objeto = edição
-
-// Temporizador para a busca com atraso (evita buscar a cada tecla)
 let temporizadorBusca = null
 
-/**
- * Carrega a lista de produtos do backend
- */
+const estoqueBaixo = (item) => item.quantidade <= item.estoque_minimo
+
+const diasParaVencer = (data) => {
+  if (!data) return null
+  const diff = new Date(data) - new Date()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
+const labelValidade = (item) => {
+  const dias = diasParaVencer(item.data_validade)
+  if (dias === null) return '—'
+  if (dias < 0) return 'Vencido'
+  if (dias <= 30) return `${dias}d`
+  return 'OK'
+}
+
+const badgeValidade = (item) => {
+  const dias = diasParaVencer(item.data_validade)
+  const base = 'px-2 py-1 rounded text-xs font-semibold'
+  if (dias === null) return `${base} text-slate-400`
+  if (dias < 0)     return `${base} bg-red-500/20 text-red-400`
+  if (dias <= 30)   return `${base} bg-orange-500/20 text-orange-400`
+  return `${base} bg-green-500/20 text-green-400`
+}
+
+const formatarData = (data) => {
+  if (!data) return '—'
+  const dias = diasParaVencer(data)
+  const dataFmt = new Date(data).toLocaleDateString('pt-BR')
+  return dias !== null ? `${dataFmt} (${dias}d)` : dataFmt
+}
+
+const produtosFiltrados = computed(() => {
+  return produtos.value.filter(item => {
+    const termo = termoDeBusca.value.toLowerCase()
+    const buscaOk = !termo ||
+      item.nome?.toLowerCase().includes(termo) ||
+      item.sku?.toLowerCase().includes(termo)
+    const baixoOk = !filtroBaixo.value || estoqueBaixo(item)
+    return buscaOk && baixoOk
+  })
+})
+
+const totalVencendo = computed(() =>
+  produtos.value.filter(i => {
+    const dias = diasParaVencer(i.data_validade)
+    return dias !== null && dias >= 0 && dias <= 30
+  }).length
+)
+
+const totalVencidos = computed(() =>
+  produtos.value.filter(i => {
+    const dias = diasParaVencer(i.data_validade)
+    return dias !== null && dias < 0
+  }).length
+)
+
+const toggleEstoqueBaixo = () => { filtroBaixo.value = !filtroBaixo.value }
+
 async function carregarProdutos() {
   carregando.value = true
-
   try {
-    const resposta = await api.get('/produtos', {
-      params: { busca: termoDeBusca.value || undefined },
-    })
-    produtos.value = resposta.data
-
-  } catch (erro) {
-    console.error('Erro ao carregar produtos:', erro)
+    const { data } = await api.get('/produtos')
+    produtos.value = data
+  } catch {
     alert('Não foi possível carregar os produtos.')
-
   } finally {
     carregando.value = false
   }
 }
 
-/**
- * Aguarda 400ms após o usuário parar de digitar para buscar
- * Isso evita uma requisição a cada tecla pressionada
- */
 function buscarComAtraso() {
   clearTimeout(temporizadorBusca)
   temporizadorBusca = setTimeout(carregarProdutos, 400)
 }
 
-/**
- * Abre o modal para criar um novo produto
- */
 function abrirModalNovoProduto() {
-  produtoSelecionado.value = null  // Limpa para indicar que é um novo produto
+  produtoSelecionado.value = null
   modalAberto.value = true
 }
 
-/**
- * Abre o modal preenchido com os dados do produto para editar
- */
 function abrirModalEdicao(produto) {
   produtoSelecionado.value = produto
   modalAberto.value = true
 }
 
-/**
- * Fecha o modal
- */
 function fecharModal() {
   modalAberto.value = false
   produtoSelecionado.value = null
 }
 
-/**
- * Chamado quando o produto é salvo no modal
- */
 function aoSalvarProduto() {
   fecharModal()
-  carregarProdutos()  // Recarrega a lista
+  carregarProdutos()
 }
 
-/**
- * Desativa um produto após confirmação
- */
-async function desativarProduto(produto) {
-  const confirmar = confirm(`Tem certeza que deseja remover "${produto.nome}"?`)
-  if (!confirmar) return
-
+async function desativarProduto(item) {
+  if (!confirm(`Tem certeza que deseja remover "${item.nome}"?`)) return
   try {
-    await api.delete(`/produtos/${produto.id}`)
-    carregarProdutos()  // Recarrega a lista
-  } catch (erro) {
+    await api.delete(`/produtos/${item.id_item}`)
+    produtos.value = produtos.value.filter(i => i.id_item !== item.id_item)
+  } catch {
     alert('Não foi possível remover o produto.')
   }
 }
 
-// Carrega os produtos quando a página abre
 onMounted(carregarProdutos)
 </script>

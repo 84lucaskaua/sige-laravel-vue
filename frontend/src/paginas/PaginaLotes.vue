@@ -450,7 +450,7 @@ async function carregarLotes() {
     const resposta = await api.get('/lotes')
     lotes.value = resposta.data
     if (lotes.value.length > 0 && !tabAtiva.value) {
-      tabAtiva.value = lotes.value[lotes.value.length - 1].id_lote
+      tabAtiva.value = lotes.value[0].id_lote
     }
   } catch {
     alert('Não foi possível carregar os lotes.')

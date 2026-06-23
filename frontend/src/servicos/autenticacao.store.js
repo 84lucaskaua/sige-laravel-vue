@@ -29,9 +29,11 @@ export const useAutenticacaoStore = defineStore('autenticacao', () => {
   const perfil = computed(() => usuario.value?.perfil || null)
 
   // Helpers de permissão
-  const ehAdmin = computed(() => perfil.value === 'admin')
-  const podeMovimentar = computed(() => ['admin', 'operador'].includes(perfil.value))
-  const podeCadastrar = computed(() => ['admin', 'operador'].includes(perfil.value))
+ const ehRoot         = computed(() => perfil.value === 'root')
+const ehAdmin        = computed(() => perfil.value === 'root') // root é o único "admin"
+const podeMovimentar = computed(() => ['root', 'operador'].includes(perfil.value))
+const podeCadastrar  = computed(() => ['root', 'operador'].includes(perfil.value))
+const podeGerenciarUsuarios = computed(() => perfil.value === 'root')
 
   // ---- Actions (funções) ----
 
@@ -74,17 +76,16 @@ export const useAutenticacaoStore = defineStore('autenticacao', () => {
   }
 
   return {
-    // State
-    usuario,
-    token,
-    // Computed
-    estaLogado,
-    perfil,
-    ehAdmin,
-    podeMovimentar,
-    podeCadastrar,
-    // Actions
-    fazerLogin,
-    fazerLogout,
-  }
+  usuario,
+  token,
+  estaLogado,
+  perfil,
+  ehRoot,
+  ehAdmin,
+  podeMovimentar,
+  podeCadastrar,
+  podeGerenciarUsuarios,
+  fazerLogin,
+  fazerLogout,
+}
 })

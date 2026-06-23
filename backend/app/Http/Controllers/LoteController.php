@@ -8,7 +8,7 @@ class LoteController extends Controller
 {
     public function index()
 {
-    $lotes = Lote::with('itens')->orderBy('id_lote', 'desc')->get();
+    $lotes = Lote::with('itens')->orderBy('id_lote', 'asc')->get();
     return response()->json($lotes);
 }
 

@@ -29,4 +29,11 @@ Route::middleware('auth:sanctum')->get('/itens/{id}/historico', [ItemLoteControl
 use App\Http\Controllers\PerfilController;
 Route::middleware('auth:sanctum')->put('/perfil',       [PerfilController::class, 'atualizar']);
 Route::middleware('auth:sanctum')->put('/perfil/senha', [PerfilController::class, 'alterarSenha']);
-Route::middleware('auth:sanctum')->post('/perfil/foto', [PerfilController::class, 'uploadFoto']);
+Route::middleware('auth:sanctum')->post('/perfil', [PerfilController::class, 'atualizar']);
+use App\Http\Controllers\ProdutoController;
+Route::middleware('auth:sanctum')->get('/produtos', [ProdutoController::class, 'index']);
+Route::middleware('auth:sanctum')->delete('/produtos/{id}', [ProdutoController::class, 'destroy']);
+use App\Http\Controllers\PerdaController;
+Route::middleware('auth:sanctum')->get('/perdas', [PerdaController::class, 'index']);
+Route::middleware('auth:sanctum')->post('/perdas', [PerdaController::class, 'store']);
+Route::middleware('auth:sanctum')->get('/perdas/estatisticas', [PerdaController::class, 'estatisticas']);

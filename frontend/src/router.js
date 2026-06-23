@@ -10,15 +10,17 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 
 // Importação lazy: cada página só é carregada quando o usuário acessar
-const PaginaLogin      = () => import('@/paginas/PaginaLogin.vue')
-const PaginaDashboard  = () => import('@/paginas/PaginaDashboard.vue')
-const PaginaProdutos   = () => import('@/paginas/PaginaProdutos.vue')
-const PaginaLotes      = () => import('@/paginas/PaginaLotes.vue')
-const PaginaMovimentos = () => import('@/paginas/PaginaMovimentos.vue')
-const PaginaRelatorios = () => import('@/paginas/PaginaRelatorios.vue')
-const PaginaUsuarios   = () => import('@/paginas/PaginaUsuarios.vue')
-const PaginaPerfil     = () => import('@/paginas/PaginaPerfil.vue')
-const LayoutPrincipal  = () => import('@/componentes/layout/LayoutPrincipal.vue')
+const PaginaLogin       = () => import('@/paginas/PaginaLogin.vue')
+const PaginaDashboard   = () => import('@/paginas/PaginaDashboard.vue')
+const PaginaProdutos    = () => import('@/paginas/PaginaProdutos.vue')
+const PaginaLotes       = () => import('@/paginas/PaginaLotes.vue')
+const PaginaMovimentos  = () => import('@/paginas/PaginaMovimentos.vue')
+const PaginaRelatorios  = () => import('@/paginas/PaginaRelatorios.vue')
+const PaginaUsuarios    = () => import('@/paginas/PaginaUsuarios.vue')
+const PaginaPerfil      = () => import('@/paginas/PaginaPerfil.vue')
+const PaginaPerdas      = () => import('@/paginas/PaginaPerdas.vue')
+const PaginaHistorico   = () => import('@/paginas/PaginaHistorico.vue')
+const LayoutPrincipal   = () => import('@/componentes/layout/LayoutPrincipal.vue')
 
 const rotas = [
   // Rota pública (não precisa de login)
@@ -32,7 +34,7 @@ const rotas = [
   {
     path: '/',
     component: LayoutPrincipal,
-    meta: { requerLogin: true },  // Marca como protegida
+    meta: { requerLogin: true },
     children: [
       {
         path: '',
@@ -59,18 +61,27 @@ const rotas = [
         component: PaginaMovimentos,
       },
       {
+        path: 'perdas',
+        name: 'perdas',
+        component: PaginaPerdas,
+      },
+      {
+        path: 'historico',
+        name: 'historico',
+        component: PaginaHistorico,
+      },
+      {
         path: 'relatorios',
         name: 'relatorios',
         component: PaginaRelatorios,
       },
-      // Só admin pode ver esta página
       {
         path: 'usuarios',
         name: 'usuarios',
         component: PaginaUsuarios,
-        meta: { requerPerfil: 'admin' },
+        meta: { requerPerfil: 'root' },
       },
-          {
+      {
         path: 'perfil',
         name: 'perfil',
         component: PaginaPerfil,
@@ -91,25 +102,20 @@ const router = createRouter({
 })
 
 // ---- Guarda de Navegação Global ----
-// Roda antes de entrar em qualquer rota
 router.beforeEach((rotaDestino) => {
   const autenticacao = useAutenticacaoStore()
 
-  // Se a rota precisa de login e o usuário não está logado
   if (rotaDestino.meta.requerLogin && !autenticacao.estaLogado) {
-    return { name: 'login' }  // Redireciona para o login
+    return { name: 'login' }
   }
 
-  // Se a rota precisa de um perfil específico
   if (rotaDestino.meta.requerPerfil) {
     const perfilNecessario = rotaDestino.meta.requerPerfil
-
     if (autenticacao.perfil !== perfilNecessario) {
-      return { name: 'dashboard' }  // Redireciona para o dashboard
+      return { name: 'dashboard' }
     }
   }
 
-  // Se já está logado e tenta acessar o login, vai para o dashboard
   if (rotaDestino.name === 'login' && autenticacao.estaLogado) {
     return { name: 'dashboard' }
   }
