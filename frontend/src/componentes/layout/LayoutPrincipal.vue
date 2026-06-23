@@ -16,11 +16,12 @@
       <!-- Usuário -->
       <div class="px-4 py-4 border-b border-slate-800">
         <div class="flex items-center gap-3 mb-3">
-          <div class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
-            {{ iniciaisDoUsuario }}
+          <div class="w-9 h-9 rounded-full bg-blue-600 overflow-hidden flex items-center justify-center text-sm font-bold text-white">
+            <img v-if="usuario?.foto_url" :src="usuario.foto_url" class="w-full h-full object-cover" />
+            <span v-else>{{ iniciaisDoUsuario }}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-white">{{ usuario?.nome }}</p>
+            <p class="text-sm font-medium text-white">{{ usuario?.name }}</p>
             <p class="text-xs text-slate-400 capitalize">{{ usuario?.perfil }}</p>
           </div>
         </div>
@@ -88,8 +89,8 @@ const logo         = logoSenac
 const usuario = computed(() => autenticacao.usuario)
 
 const iniciaisDoUsuario = computed(() => {
-  if (!usuario.value?.nome) return '?'
-  return usuario.value.nome
+  if (!usuario.value?.name) return '?'
+  return usuario.value.name
     .split(' ')
     .slice(0, 2)
     .map(p => p[0])
@@ -99,15 +100,15 @@ const iniciaisDoUsuario = computed(() => {
 
 const itensDoMenu = computed(() => {
   const menus = [
-    { nome: 'Dashboard',      rota: '/dashboard',  icone: LayoutDashboard },
-    { nome: 'Lotes',          rota: '/lotes',      icone: PackagePlus     },
-    { nome: 'Produtos',       rota: '/produtos',   icone: Package         },
-    { nome: 'Perdas',         rota: '/perdas',     icone: Trash2          },
-    { nome: 'Histórico',      rota: '/historico',  icone: History         },
-    { nome: 'Relatórios',     rota: '/relatorios', icone: FileText        },
-    { nome: 'Rel. Avançados', rota: '/rel-avancados', icone: BarChart3   },
-    { nome: 'Import/Export',  rota: '/importexport',  icone: Download    },
-    { nome: 'Log',            rota: '/log',        icone: Shield          },
+    { nome: 'Dashboard',       rota: '/dashboard',      icone: LayoutDashboard },
+    { nome: 'Lotes',           rota: '/lotes',          icone: PackagePlus     },
+    { nome: 'Produtos',        rota: '/produtos',       icone: Package         },
+    { nome: 'Perdas',          rota: '/perdas',         icone: Trash2          },
+    { nome: 'Histórico',       rota: '/historico',      icone: History         },
+    { nome: 'Relatórios',      rota: '/relatorios',     icone: FileText        },
+    { nome: 'Rel. Avançados',  rota: '/rel-avancados',  icone: BarChart3       },
+    { nome: 'Import/Export',   rota: '/importexport',   icone: Download        },
+    { nome: 'Log',             rota: '/log',            icone: Shield          },
   ]
 
   if (autenticacao.ehAdmin) {

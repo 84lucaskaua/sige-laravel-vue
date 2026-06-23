@@ -26,3 +26,7 @@ Route::middleware('auth:sanctum')->patch('/itens/{id}/baixa', [ItemLoteControlle
 Route::middleware('auth:sanctum')->patch('/itens/{id}/entrada', [ItemLoteController::class, 'entrada']);
 Route::middleware('auth:sanctum')->delete('/itens/{id}', [ItemLoteController::class, 'destroy']);
 Route::middleware('auth:sanctum')->get('/itens/{id}/historico', [ItemLoteController::class, 'historico']);
+use App\Http\Controllers\PerfilController;
+Route::middleware('auth:sanctum')->put('/perfil',       [PerfilController::class, 'atualizar']);
+Route::middleware('auth:sanctum')->put('/perfil/senha', [PerfilController::class, 'alterarSenha']);
+Route::middleware('auth:sanctum')->post('/perfil/foto', [PerfilController::class, 'uploadFoto']);

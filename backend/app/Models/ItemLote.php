@@ -21,6 +21,7 @@ class ItemLote extends Model
         'fornecedor',
         'localizacao',
         'prioridade_abc',
+        'prioridade_manual',
         'categoria',
     ];
 }

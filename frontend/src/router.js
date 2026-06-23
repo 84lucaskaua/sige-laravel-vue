@@ -17,6 +17,7 @@ const PaginaLotes      = () => import('@/paginas/PaginaLotes.vue')
 const PaginaMovimentos = () => import('@/paginas/PaginaMovimentos.vue')
 const PaginaRelatorios = () => import('@/paginas/PaginaRelatorios.vue')
 const PaginaUsuarios   = () => import('@/paginas/PaginaUsuarios.vue')
+const PaginaPerfil     = () => import('@/paginas/PaginaPerfil.vue')
 const LayoutPrincipal  = () => import('@/componentes/layout/LayoutPrincipal.vue')
 
 const rotas = [
@@ -68,6 +69,11 @@ const rotas = [
         name: 'usuarios',
         component: PaginaUsuarios,
         meta: { requerPerfil: 'admin' },
+      },
+          {
+        path: 'perfil',
+        name: 'perfil',
+        component: PaginaPerfil,
       },
     ],
   },

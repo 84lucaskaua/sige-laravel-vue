@@ -136,27 +136,27 @@
 
               <td class="py-3">
                 <div class="flex items-center gap-1 flex-wrap">
-                  <span v-if="item.data_validade && estaVencido(item.data_validade)"
-                    class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
-                    Vencido
-                  </span>
-                  <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)"
-                    class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
-                    Vencendo
-                  </span>
-                  <span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo"
-                    class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
-                    Crítico
-                  </span>
-                  <span v-if="item.prioridade_abc"
-                    :class="{
-                      'bg-red-900/40 text-red-400 border border-red-800':         item.prioridade_abc === 'A',
-                      'bg-yellow-900/40 text-yellow-400 border border-yellow-800': item.prioridade_abc === 'B',
-                      'bg-green-900/40 text-green-400 border border-green-800':    item.prioridade_abc === 'C',
-                    }"
-                    class="px-2 py-0.5 rounded-full text-xs font-bold">
-                    {{ item.prioridade_abc }}
-                  </span>
+                 <span v-if="item.data_validade && estaVencido(item.data_validade)"
+  class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
+  Vencido
+</span>
+<span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)"
+  class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
+  Vencendo
+</span>
+<span v-else
+  class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+  OK
+</span>
+
+<span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo"
+  class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
+  Crítico
+</span>
+<span v-else
+  class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+  OK
+</span>
                 </div>
               </td>
 

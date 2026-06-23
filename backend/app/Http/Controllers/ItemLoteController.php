@@ -2,33 +2,47 @@
 namespace App\Http\Controllers;
 
 use App\Models\ItemLote;
+use App\Models\Movimentacao;
+use App\Services\AbcPriorityService;
 use Illuminate\Http\Request;
 
 class ItemLoteController extends Controller
 {
+    protected AbcPriorityService $abcService;
+
+    public function __construct(AbcPriorityService $abcService)
+    {
+        $this->abcService = $abcService;
+    }
+
     public function store(Request $request, $idLote)
     {
         $request->validate([
-            'nome'      => 'required|string',
+            'nome'       => 'required|string',
             'quantidade' => 'required|integer|min:1',
-            'categoria' => 'required|string',
+            'categoria'  => 'required|string',
         ]);
+
+        $ehManual = $request->filled('prioridade_abc');
 
         $item = ItemLote::create([
-            'id_lote'        => $idLote,
-            'nome'           => $request->nome,
-            'sku'            => $request->sku,
-            'quantidade'     => $request->quantidade,
-            'estoque_minimo' => $request->estoque_minimo ?? 0,
-            'unidade_medida' => $request->unidade_medida ?? 'UN',
-            'data_validade'  => $request->data_validade ?: null,
-            'fornecedor'     => $request->fornecedor,
-            'localizacao'    => $request->localizacao,
-            'prioridade_abc' => $request->prioridade_abc ?: null,
-            'categoria'      => $request->categoria,
+            'id_lote'           => $idLote,
+            'nome'              => $request->nome,
+            'sku'               => $request->sku,
+            'quantidade'        => $request->quantidade,
+            'estoque_minimo'    => $request->estoque_minimo ?? 0,
+            'unidade_medida'    => $request->unidade_medida ?? 'UN',
+            'data_validade'     => $request->data_validade ?: null,
+            'fornecedor'        => $request->fornecedor,
+            'localizacao'       => $request->localizacao,
+            'prioridade_abc'    => $ehManual ? $request->prioridade_abc : null,
+            'prioridade_manual' => $ehManual,
+            'categoria'         => $request->categoria,
         ]);
 
-        return response()->json($item, 201);
+        $this->abcService->recalcularTodos();
+
+        return response()->json($item->refresh(), 201);
     }
 
     public function index($idLote)
@@ -36,61 +50,106 @@ class ItemLoteController extends Controller
         $itens = ItemLote::where('id_lote', $idLote)->get();
         return response()->json($itens);
     }
+
     public function update(Request $request, $id)
-{
-    $item = ItemLote::findOrFail($id);
+    {
+        $item = ItemLote::findOrFail($id);
 
-    $request->validate([
-        'nome'       => 'required|string',
-        'quantidade' => 'required|integer|min:0',
-        'categoria'  => 'required|string',
-    ]);
+        $request->validate([
+            'nome'       => 'required|string',
+            'quantidade' => 'required|integer|min:0',
+            'categoria'  => 'required|string',
+        ]);
 
-    $item->update($request->only([
-        'nome', 'sku', 'quantidade', 'estoque_minimo',
-        'unidade_medida', 'data_validade', 'fornecedor',
-        'localizacao', 'prioridade_abc', 'categoria',
-    ]));
+        $ehManual = $request->filled('prioridade_abc');
 
-    return response()->json($item);
-}
-public function baixa(Request $request, $id)
-{
-    $item = ItemLote::findOrFail($id);
+        $dados = $request->only([
+            'nome', 'sku', 'quantidade', 'estoque_minimo',
+            'unidade_medida', 'data_validade', 'fornecedor',
+            'localizacao', 'categoria',
+        ]);
 
-    $request->validate([
-        'quantidade' => 'required|integer|min:1|max:' . $item->quantidade,
-    ]);
+        $dados['prioridade_manual'] = $ehManual;
+        $dados['prioridade_abc']    = $ehManual ? $request->prioridade_abc : null;
 
-    $item->update([
-        'quantidade' => $item->quantidade - $request->quantidade,
-    ]);
+        $item->update($dados);
 
-    return response()->json($item);
-}
-public function entrada(Request $request, $id)
-{
-    $request->validate([
-        'quantidade' => 'required|integer|min:1',
-        'motivo'     => 'nullable|string|max:255',
-    ]);
+        $this->abcService->recalcularTodos();
 
-    $item = ItemLote::findOrFail($id);
-    $item->quantidade += $request->quantidade;
-    $item->save();
+        return response()->json($item->refresh());
+    }
 
-    return response()->json($item);
-}
-public function destroy($id)
-{
-    $item = ItemLote::findOrFail($id);
-    $item->delete();
+    public function baixa(Request $request, $id)
+    {
+        $item = ItemLote::findOrFail($id);
 
-    return response()->json(['message' => 'Item excluído com sucesso.']);
-}
-public function historico($id)
-{
-    $item = ItemLote::findOrFail($id);
-    return response()->json($item->historicos()->orderBy('created_at', 'desc')->get());
-}
+        $request->validate([
+            'quantidade' => 'required|integer|min:1|max:' . $item->quantidade,
+            'motivo'     => 'nullable|string|max:255',
+        ]);
+
+        $item->update([
+            'quantidade' => $item->quantidade - $request->quantidade,
+        ]);
+
+        Movimentacao::create([
+            'tipo'              => 'SAIDA',
+            'quantidade'        => $request->quantidade,
+            'data_movimentacao' => now(),
+            'observacao'        => $request->motivo,
+            'id_lote'           => $item->id_lote,
+            'id_item'           => $item->id_item,
+            'id_usuario'        => auth()->id(),
+        ]);
+
+        $this->abcService->recalcularTodos();
+
+        return response()->json($item->refresh());
+    }
+
+    public function entrada(Request $request, $id)
+    {
+        $request->validate([
+            'quantidade' => 'required|integer|min:1',
+            'motivo'     => 'nullable|string|max:255',
+        ]);
+
+        $item = ItemLote::findOrFail($id);
+        $item->quantidade += $request->quantidade;
+        $item->save();
+
+        Movimentacao::create([
+            'tipo'              => 'ENTRADA',
+            'quantidade'        => $request->quantidade,
+            'data_movimentacao' => now(),
+            'observacao'        => $request->motivo,
+            'id_lote'           => $item->id_lote,
+            'id_item'           => $item->id_item,
+            'id_usuario'        => auth()->id(),
+        ]);
+
+        $this->abcService->recalcularTodos();
+
+        return response()->json($item->refresh());
+    }
+
+    public function destroy($id)
+    {
+        $item = ItemLote::findOrFail($id);
+        $item->delete();
+
+        $this->abcService->recalcularTodos();
+
+        return response()->json(['message' => 'Item excluído com sucesso.']);
+    }
+
+    public function historico($id)
+    {
+        $item = ItemLote::findOrFail($id);
+        return response()->json(
+            Movimentacao::where('id_item', $item->id_item)
+                ->orderBy('data_movimentacao', 'desc')
+                ->get()
+        );
+    }
 }
