@@ -1,61 +1,73 @@
 <?php
 
-use App\Http\Controllers\ImportacaoExportacaoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
-
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LoteController;
+use App\Http\Controllers\ItemLoteController;
+use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\ProdutoController;
+use App\Http\Controllers\PerdaController;
+use App\Http\Controllers\MovimentacaoController;
+use App\Http\Controllers\RelatorioController;
+use App\Http\Controllers\RelatorioAvancadoController;
+use App\Http\Controllers\ImportacaoExportacaoController;
+use App\Http\Controllers\AuditLogController;
 
+// Auth
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
 
-use App\Http\Controllers\DashboardController;
-Route::middleware('auth:sanctum')->get('/dashboard', [DashboardController::class, 'index']);
+Route::middleware('auth:sanctum')->group(function () {
 
-use App\Http\Controllers\LoteController;
-Route::middleware('auth:sanctum')->apiResource('/lotes', LoteController::class);
+    Route::get('/user', fn(Request $request) => $request->user());
 
-use App\Http\Controllers\ItemLoteController;
-Route::middleware('auth:sanctum')->get('/lotes/{idLote}/itens', [ItemLoteController::class, 'index']);
-Route::middleware('auth:sanctum')->post('/lotes/{idLote}/itens', [ItemLoteController::class, 'store']);
-Route::middleware('auth:sanctum')->put('/itens/{id}', [ItemLoteController::class, 'update']);
-Route::middleware('auth:sanctum')->patch('/itens/{id}/baixa', [ItemLoteController::class, 'baixa']);
-Route::middleware('auth:sanctum')->patch('/itens/{id}/entrada', [ItemLoteController::class, 'entrada']);
-Route::middleware('auth:sanctum')->delete('/itens/{id}', [ItemLoteController::class, 'destroy']);
-Route::middleware('auth:sanctum')->get('/itens/{id}/historico', [ItemLoteController::class, 'historico']);
-use App\Http\Controllers\PerfilController;
-Route::middleware('auth:sanctum')->put('/perfil',       [PerfilController::class, 'atualizar']);
-Route::middleware('auth:sanctum')->put('/perfil/senha', [PerfilController::class, 'alterarSenha']);
-Route::middleware('auth:sanctum')->post('/perfil', [PerfilController::class, 'atualizar']);
-use App\Http\Controllers\ProdutoController;
-Route::middleware('auth:sanctum')->get('/produtos', [ProdutoController::class, 'index']);
-Route::middleware('auth:sanctum')->delete('/produtos/{id}', [ProdutoController::class, 'destroy']);
-use App\Http\Controllers\PerdaController;
-Route::middleware('auth:sanctum')->get('/perdas', [PerdaController::class, 'index']);
-Route::middleware('auth:sanctum')->post('/perdas', [PerdaController::class, 'store']);
-Route::middleware('auth:sanctum')->get('/perdas/estatisticas', [PerdaController::class, 'estatisticas']);
-use App\Http\Controllers\MovimentacaoController;
-Route::middleware('auth:sanctum')->get('/movimentacoes', [MovimentacaoController::class, 'index']);
-Route::middleware('auth:sanctum')->delete('/movimentacoes/{id}', [MovimentacaoController::class, 'destroy']);
-use App\Http\Controllers\RelatorioController;
-Route::middleware('auth:sanctum')->get('/relatorios/estoque',     [RelatorioController::class, 'estoque']);
-Route::middleware('auth:sanctum')->get('/relatorios/vencimentos', [RelatorioController::class, 'vencimentos']);
-Route::middleware('auth:sanctum')->get('/relatorios/auditoria',   [RelatorioController::class, 'auditoria']);
-Route::middleware('auth:sanctum')->get('/relatorios/itens', [RelatorioController::class, 'itens']);
-use App\Http\Controllers\RelatorioAvancadoController;
-Route::middleware('auth:sanctum')->get('/relatorios-avancados/perdas',   [RelatorioAvancadoController::class, 'perdas']);
-Route::middleware('auth:sanctum')->get('/relatorios-avancados/abc',      [RelatorioAvancadoController::class, 'abc']);
-// Importação e Exportação
-Route::prefix('importacao-exportacao')->group(function () {
-    Route::get('/stats',                     [ImportacaoExportacaoController::class, 'stats']);
-    Route::get('/exportar/backup',           [ImportacaoExportacaoController::class, 'exportarBackup']);
-    Route::get('/exportar/produtos-csv',     [ImportacaoExportacaoController::class, 'exportarProdutosCSV']);
-    Route::get('/exportar/movimentacoes-csv',[ImportacaoExportacaoController::class, 'exportarMovimentacoesCSV']);
-    Route::get('/template-csv',              [ImportacaoExportacaoController::class, 'downloadTemplate']);
-    Route::post('/importar/produtos-csv',    [ImportacaoExportacaoController::class, 'importarProdutosCSV']);
-    Route::post('/restaurar/backup',         [ImportacaoExportacaoController::class, 'restaurarBackup']);
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    Route::apiResource('/lotes', LoteController::class);
+
+    Route::get('/lotes/{idLote}/itens',   [ItemLoteController::class, 'index']);
+    Route::post('/lotes/{idLote}/itens',  [ItemLoteController::class, 'store']);
+    Route::put('/itens/{id}',             [ItemLoteController::class, 'update']);
+    Route::patch('/itens/{id}/baixa',     [ItemLoteController::class, 'baixa']);
+    Route::patch('/itens/{id}/entrada',   [ItemLoteController::class, 'entrada']);
+    Route::delete('/itens/{id}',          [ItemLoteController::class, 'destroy']);
+    Route::get('/itens/{id}/historico',   [ItemLoteController::class, 'historico']);
+
+    Route::put('/perfil',       [PerfilController::class, 'atualizar']);
+    Route::post('/perfil',      [PerfilController::class, 'atualizar']);
+    Route::put('/perfil/senha', [PerfilController::class, 'alterarSenha']);
+
+    Route::get('/produtos',         [ProdutoController::class, 'index']);
+    Route::delete('/produtos/{id}', [ProdutoController::class, 'destroy']);
+
+    Route::get('/perdas',              [PerdaController::class, 'index']);
+    Route::post('/perdas',             [PerdaController::class, 'store']);
+    Route::get('/perdas/estatisticas', [PerdaController::class, 'estatisticas']);
+
+    Route::get('/movimentacoes',         [MovimentacaoController::class, 'index']);
+    Route::delete('/movimentacoes/{id}', [MovimentacaoController::class, 'destroy']);
+
+    Route::get('/relatorios/estoque',     [RelatorioController::class, 'estoque']);
+    Route::get('/relatorios/vencimentos', [RelatorioController::class, 'vencimentos']);
+    Route::get('/relatorios/auditoria',   [RelatorioController::class, 'auditoria']);
+    Route::get('/relatorios/itens',       [RelatorioController::class, 'itens']);
+
+    Route::get('/relatorios-avancados/perdas', [RelatorioAvancadoController::class, 'perdas']);
+    Route::get('/relatorios-avancados/abc',    [RelatorioAvancadoController::class, 'abc']);
+
+    Route::get ('importacao-exportacao/stats',                      [ImportacaoExportacaoController::class, 'stats']);
+    Route::get ('importacao-exportacao/template-csv',               [ImportacaoExportacaoController::class, 'downloadTemplate']);
+    Route::get ('importacao-exportacao/exportar/backup',            [ImportacaoExportacaoController::class, 'exportarBackup']);
+    Route::get ('importacao-exportacao/exportar/produtos-csv',      [ImportacaoExportacaoController::class, 'exportarProdutosCSV']);
+    Route::get ('importacao-exportacao/exportar/movimentacoes-csv', [ImportacaoExportacaoController::class, 'exportarMovimentacoesCSV']);
+    Route::post('importacao-exportacao/importar/produtos-csv',      [ImportacaoExportacaoController::class, 'importarProdutosCSV']);
+    Route::post('importacao-exportacao/restaurar/backup',           [ImportacaoExportacaoController::class, 'restaurarBackup']);
+    Route::post('importacao-exportacao/importar/excel',             [ImportacaoExportacaoController::class, 'importarExcel']);
+
+    // Audit Logs
+    Route::get('/audit-logs',        [AuditLogController::class, 'index']);
+    Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
 });

@@ -32,8 +32,7 @@
             <p class="text-white font-semibold">Backup Completo</p>
             <p class="text-gray-400 text-sm">Exporta todos os dados do sistema em formato JSON</p>
           </div>
-          <button @click="exportar('backup')"
-            :disabled="loadingExport.backup"
+          <button @click="exportar('backup')" :disabled="loadingExport.backup"
             class="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
             <i :class="loadingExport.backup ? 'fas fa-spinner fa-spin' : 'fas fa-database'"></i>
             Exportar Tudo
@@ -46,8 +45,7 @@
             <p class="text-white font-semibold">Produtos (CSV)</p>
             <p class="text-gray-400 text-sm">Exporta cadastro de produtos com estoque atual</p>
           </div>
-          <button @click="exportar('produtos-csv')"
-            :disabled="loadingExport.produtos"
+          <button @click="exportar('produtos-csv')" :disabled="loadingExport.produtos"
             class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
             <i :class="loadingExport.produtos ? 'fas fa-spinner fa-spin' : 'fas fa-file-csv'"></i>
             Exportar CSV
@@ -60,8 +58,7 @@
             <p class="text-white font-semibold">Movimentações (CSV)</p>
             <p class="text-gray-400 text-sm">Exporta histórico de entradas e saídas</p>
           </div>
-          <button @click="exportar('movimentacoes-csv')"
-            :disabled="loadingExport.movimentacoes"
+          <button @click="exportar('movimentacoes-csv')" :disabled="loadingExport.movimentacoes"
             class="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
             <i :class="loadingExport.movimentacoes ? 'fas fa-spinner fa-spin' : 'fas fa-sync'"></i>
             Exportar CSV
@@ -77,30 +74,35 @@
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-        <!-- Importar CSV -->
+        <!-- Importar Excel -->
         <div class="bg-[#1e1e2e] border border-gray-700 rounded-lg p-4 space-y-3">
           <div>
-            <p class="text-white font-semibold">Produtos (CSV)</p>
-            <p class="text-gray-400 text-sm">Importa produtos em lote via arquivo CSV</p>
+            <p class="text-white font-semibold">Planilha Excel (.xlsx)</p>
+            <p class="text-gray-400 text-sm">
+              Importa produtos do almoxarifado. Mesmo produto com validade diferente gera novo lote.
+            </p>
           </div>
           <div class="space-y-2">
-            <label class="text-gray-400 text-xs">Selecione o arquivo CSV</label>
+            <label class="text-gray-400 text-xs">Selecione o arquivo Excel</label>
             <label class="flex items-center gap-2 bg-[#2a2a3e] border border-gray-600 rounded-lg px-3 py-2 cursor-pointer hover:border-blue-500 transition">
               <i class="fas fa-folder-open text-gray-400"></i>
               <span class="text-gray-300 text-sm truncate">
-                {{ arquivoCSV ? arquivoCSV.name : 'Nenhum arquivo escolhido' }}
+                {{ arquivoExcel ? arquivoExcel.name : 'Nenhum arquivo escolhido' }}
               </span>
-              <input type="file" accept=".csv" class="hidden" @change="onArquivoCSV" />
+              <input type="file" accept=".xlsx,.xls" class="hidden" @change="onArquivoExcel" />
             </label>
-            <button @click="importarCSV"
-              :disabled="!arquivoCSV || loadingImport.csv"
+
+            <!-- Preview das colunas esperadas -->
+            <div class="bg-[#0f1a2e] border border-blue-900 rounded-lg px-3 py-2 text-xs text-blue-300 space-y-1">
+              <p class="font-semibold text-blue-400">Colunas lidas da planilha:</p>
+              <p>CÓDIGO · DESCRIÇÃO · UNIDADE · SALDO · VALIDADE</p>
+            </div>
+
+            <button @click="importarExcel"
+              :disabled="!arquivoExcel || loadingImport.excel"
               class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
-              <i :class="loadingImport.csv ? 'fas fa-spinner fa-spin' : 'fas fa-file-import'"></i>
-              {{ loadingImport.csv ? 'Importando...' : 'Importar CSV' }}
-            </button>
-            <button @click="downloadTemplate"
-              class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition text-sm">
-              <i class="fas fa-download"></i> Baixar Template
+              <i :class="loadingImport.excel ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'"></i>
+              {{ loadingImport.excel ? 'Importando...' : 'Importar Planilha' }}
             </button>
           </div>
         </div>
@@ -133,32 +135,45 @@
           </div>
         </div>
 
-        <!-- Formato CSV Info -->
+        <!-- Info formato -->
         <div class="bg-[#1a2744] border border-blue-800 rounded-lg p-4 space-y-3">
           <p class="text-blue-300 font-semibold flex items-center gap-2">
-            <i class="fas fa-file-lines"></i> Formato CSV
+            <i class="fas fa-circle-info"></i> Como funciona a importação
           </p>
-          <ul class="text-blue-200 text-xs space-y-1">
-            <li>• Separe colunas com vírgula</li>
-            <li>• Use aspas para textos</li>
-            <li>• Primeira linha = cabeçalhos</li>
-            <li>• Codificação UTF-8</li>
-            <li>• Tags separadas por ponto-e-vírgula</li>
-            <li class="mt-1">• <strong>Mesmo SKU + data validade diferente = novo lote</strong></li>
+          <ul class="text-blue-200 text-xs space-y-2">
+            <li>✅ Lê a planilha do almoxarifado diretamente</li>
+            <li>✅ Ignora linhas de agrupamento (LETRA A, LETRA B...)</li>
+            <li>✅ Converte validade serial do Excel automaticamente</li>
+            <li>✅ Produtos sem código recebem SKU gerado pelo nome</li>
+            <li>✅ <strong>Mesmo produto + validade diferente = novo lote</strong></li>
+            <li>✅ Produto já existente tem estoque incrementado</li>
           </ul>
-          <div class="mt-2">
-            <p class="text-blue-400 text-xs mb-1">Exemplo de cabeçalho:</p>
-            <code class="text-blue-200 text-xs bg-[#0f1a2e] px-2 py-1 rounded block">
-              SKU, Nome, Descricao, Categoria,<br>
-              Unidade, Quantidade, Data_Validade,<br>
-              Preco_Custo, Fornecedor
-            </code>
-          </div>
         </div>
       </div>
     </div>
 
-    <!-- Toast de feedback -->
+    <!-- Resultado da importação -->
+    <div v-if="resultadoImport" class="bg-[#1a2e1a] border border-green-700 rounded-xl p-5 space-y-2">
+      <p class="text-green-400 font-semibold flex items-center gap-2">
+        <i class="fas fa-check-circle"></i> {{ resultadoImport.message }}
+      </p>
+      <div class="grid grid-cols-3 gap-4 mt-2">
+        <div class="text-center">
+          <p class="text-2xl font-bold text-white">{{ resultadoImport.produtos_novos }}</p>
+          <p class="text-gray-400 text-xs">Produtos criados</p>
+        </div>
+        <div class="text-center">
+          <p class="text-2xl font-bold text-white">{{ resultadoImport.lotes_criados }}</p>
+          <p class="text-gray-400 text-xs">Lotes criados</p>
+        </div>
+        <div class="text-center">
+          <p class="text-2xl font-bold text-white">{{ resultadoImport.ignorados }}</p>
+          <p class="text-gray-400 text-xs">Linhas ignoradas</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
     <transition name="fade">
       <div v-if="toast.show"
         :class="['fixed bottom-6 right-6 z-50 px-5 py-3 rounded-lg shadow-lg text-white flex items-center gap-3 text-sm',
@@ -169,8 +184,7 @@
     </transition>
 
     <!-- Modal confirmação restaurar -->
-    <div v-if="modalRestaurar"
-      class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+    <div v-if="modalRestaurar" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
       <div class="bg-[#1e1e2e] border border-red-700 rounded-xl p-6 max-w-sm w-full mx-4 space-y-4">
         <p class="text-white font-semibold text-lg">⚠️ Atenção!</p>
         <p class="text-gray-300 text-sm">
@@ -195,15 +209,15 @@
 import { ref, onMounted } from 'vue'
 import api from '@/servicos/api'
 
-const stats = ref({ lotes: 0, produtos: 0, movimentacoes: 0, itens_estoque: 0 })
-const arquivoCSV  = ref(null)
-const arquivoJSON = ref(null)
+const stats          = ref({ lotes: 0, produtos: 0, movimentacoes: 0, itens_estoque: 0 })
+const arquivoExcel   = ref(null)
+const arquivoJSON    = ref(null)
 const modalRestaurar = ref(false)
+const resultadoImport = ref(null)
 
 const loadingExport = ref({ backup: false, produtos: false, movimentacoes: false })
-const loadingImport = ref({ csv: false, backup: false })
-
-const toast = ref({ show: false, message: '', type: 'success' })
+const loadingImport = ref({ excel: false, backup: false })
+const toast         = ref({ show: false, message: '', type: 'success' })
 
 const statsCards = [
   { label: 'Lotes',         key: 'lotes',         icon: 'fas fa-database',  bg: 'bg-blue-600'   },
@@ -217,7 +231,6 @@ function showToast(message, type = 'success') {
   setTimeout(() => (toast.value.show = false), 4000)
 }
 
-// ✅ CORRIGIDO: era axios.get, agora é api.get
 async function carregarStats() {
   try {
     const { data } = await api.get('/importacao-exportacao/stats')
@@ -227,14 +240,13 @@ async function carregarStats() {
   }
 }
 
-// ✅ CORRIGIDO: tinha responseType duplicado quebrando a sintaxe
 async function exportar(tipo) {
   const chave = tipo === 'backup' ? 'backup' : tipo === 'produtos-csv' ? 'produtos' : 'movimentacoes'
   loadingExport.value[chave] = true
   try {
     const response = await api.get(`/importacao-exportacao/exportar/${tipo}`, { responseType: 'blob' })
     const ext  = tipo === 'backup' ? 'json' : 'csv'
-    const nome = `${tipo}_${new Date().toISOString().slice(0,10)}.${ext}`
+    const nome = `${tipo}_${new Date().toISOString().slice(0, 10)}.${ext}`
     const url  = URL.createObjectURL(new Blob([response.data]))
     const a    = document.createElement('a')
     a.href = url; a.download = nome; a.click()
@@ -247,31 +259,32 @@ async function exportar(tipo) {
   }
 }
 
-async function downloadTemplate() {
-  const response = await api.get('/importacao-exportacao/template-csv', { responseType: 'blob' })
-  const url = URL.createObjectURL(new Blob([response.data]))
-  const a   = document.createElement('a')
-  a.href = url; a.download = 'template_importacao.csv'; a.click()
-  URL.revokeObjectURL(url)
+function onArquivoExcel(e) {
+  const file = e.target.files[0]
+  console.log('Arquivo selecionado:', file)
+  arquivoExcel.value = file
 }
+function onArquivoJSON(e)  { arquivoJSON.value  = e.target.files[0] }
 
-function onArquivoCSV(e)  { arquivoCSV.value  = e.target.files[0] }
-function onArquivoJSON(e) { arquivoJSON.value = e.target.files[0] }
-
-async function importarCSV() {
-  if (!arquivoCSV.value) return
-  loadingImport.value.csv = true
+async function importarExcel() {
+  if (!arquivoExcel.value) return
+  loadingImport.value.excel = true
+  resultadoImport.value = null
   const form = new FormData()
-  form.append('arquivo', arquivoCSV.value)
+  form.append('arquivo', arquivoExcel.value)
   try {
-    const { data } = await api.post('/importacao-exportacao/importar/produtos-csv', form)
-    showToast(`${data.message} | ${data.lotes_criados} lotes criados, ${data.produtos_novos} produtos novos.`)
-    arquivoCSV.value = null
+    const { data } = await api.post('/importacao-exportacao/importar/excel', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    resultadoImport.value = data
+    showToast(data.message)
+    arquivoExcel.value = null
     carregarStats()
   } catch (err) {
-    showToast(err.response?.data?.message ?? 'Erro ao importar CSV.', 'error')
+    console.log('ERRO:', JSON.stringify(err.response?.data))
+    showToast(err.response?.data?.message ?? 'Erro ao importar planilha.', 'error')
   } finally {
-    loadingImport.value.csv = false
+    loadingImport.value.excel = false
   }
 }
 
