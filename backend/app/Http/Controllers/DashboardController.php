@@ -1,10 +1,9 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\Produto;
+use App\Models\ItemLote;
 use App\Models\Lote;
 use App\Models\Movimentacao;
-use App\Models\Categoria;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -14,20 +13,23 @@ class DashboardController extends Controller
         $hoje     = Carbon::today();
         $em30dias = Carbon::today()->addDays(30);
 
-        $totalProdutos   = Produto::count();
-        $totalLotes      = Lote::where('status', 'ATIVO')->count();
-        $totalCategorias = Categoria::count();
+        $totalLotes = Lote::count();
+        $totalItens = ItemLote::count();
 
-        $estoqueCritico = Produto::whereColumn('estoque_atual', '<=', 'estoque_minimo')
+        $estoqueCritico = ItemLote::whereColumn('quantidade', '<=', 'estoque_minimo')
             ->where('estoque_minimo', '>', 0)
             ->count();
 
-        $vencendoEm30Dias = Lote::where('status', 'ATIVO')
-            ->whereNotNull('data_validade')
+        $vencendoEm30Dias = ItemLote::whereNotNull('data_validade')
             ->whereBetween('data_validade', [$hoje, $em30dias])
             ->count();
 
-        $movimentosRecentes = Movimentacao::with(['lote.produto', 'usuario'])
+        $totalCategorias = ItemLote::whereNotNull('categoria')
+            ->where('categoria', '!=', '')
+            ->distinct()
+            ->count('categoria');
+
+        $movimentosRecentes = Movimentacao::with(['item', 'usuario'])
             ->orderByDesc('data_movimentacao')
             ->limit(10)
             ->get()
@@ -36,9 +38,9 @@ class DashboardController extends Controller
                 'tipo'           => strtolower($m->tipo),
                 'quantidade'     => $m->quantidade,
                 'data_movimento' => $m->data_movimentacao,
-                'usuario'        => $m->usuario ? ['nome' => $m->usuario->nome] : null,
-                'item_lote'      => $m->lote ? [
-                    'produto' => $m->lote->produto ? ['nome' => $m->lote->produto->nome] : null
+                'usuario'        => $m->usuario ? ['nome' => $m->usuario->name ?? $m->usuario->nome ?? null] : null,
+                'item_lote'      => $m->item ? [
+                    'produto' => ['nome' => $m->item->nome]
                 ] : null,
             ]);
 
@@ -46,7 +48,7 @@ class DashboardController extends Controller
         for ($i = 29; $i >= 0; $i--) {
             $dia = Carbon::today()->subDays($i);
 
-            $entradas = Movimentacao::whereIn('tipo', ['ENTRADA'])
+            $entradas = Movimentacao::where('tipo', 'ENTRADA')
                 ->whereDate('data_movimentacao', $dia)
                 ->sum('quantidade');
 
@@ -54,7 +56,7 @@ class DashboardController extends Controller
                 ->whereDate('data_movimentacao', $dia)
                 ->sum('quantidade');
 
-            $estoqueTotal = Movimentacao::whereIn('tipo', ['ENTRADA'])
+            $estoqueTotal = Movimentacao::where('tipo', 'ENTRADA')
                 ->whereDate('data_movimentacao', '<=', $dia)
                 ->sum('quantidade')
                 -
@@ -70,35 +72,36 @@ class DashboardController extends Controller
             ]);
         }
 
-        $distribuicao = Categoria::withCount('produtos')
-            ->having('produtos_count', '>', 0)
+        $distribuicao = ItemLote::whereNotNull('categoria')
+            ->where('categoria', '!=', '')
+            ->selectRaw('categoria, COUNT(*) as total')
+            ->groupBy('categoria')
             ->get();
 
-        $totalItens = $distribuicao->sum('produtos_count');
+        $totalParaPercentual = $distribuicao->sum('total');
 
         $distribuicao = $distribuicao->map(fn($c) => [
-            'categoria'  => $c->nome,
-            'quantidade' => $c->produtos_count,
-            'percentual' => $totalItens > 0
-                ? round(($c->produtos_count / $totalItens) * 100, 1)
+            'categoria'  => $c->categoria,
+            'quantidade' => $c->total,
+            'percentual' => $totalParaPercentual > 0
+                ? round(($c->total / $totalParaPercentual) * 100, 1)
                 : 0,
         ])->sortByDesc('percentual')->values();
 
-        $topProdutos = Produto::with('categoria')
-            ->orderByDesc('estoque_atual')
+        $topProdutos = ItemLote::orderByDesc('quantidade')
             ->limit(10)
             ->get()
-            ->map(fn($p) => [
-                'id_produto'     => $p->id_produto,
-                'nome'           => $p->nome,
-                'estoque_atual'  => $p->estoque_atual,
-                'estoque_minimo' => $p->estoque_minimo,
-                'categoria'      => $p->categoria ? ['nome' => $p->categoria->nome] : null,
+            ->map(fn($i) => [
+                'id_produto'     => $i->id_item,
+                'nome'           => $i->nome,
+                'estoque_atual'  => $i->quantidade,
+                'estoque_minimo' => $i->estoque_minimo,
+                'categoria'      => $i->categoria ? ['nome' => $i->categoria] : null,
             ]);
 
         return response()->json([
             'resumo' => [
-                'totalProdutos'    => $totalProdutos,
+                'totalProdutos'    => $totalItens,
                 'totalLotes'       => $totalLotes,
                 'estoqueCritico'   => $estoqueCritico,
                 'vencendoEm30Dias' => $vencendoEm30Dias,

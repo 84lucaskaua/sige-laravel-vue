@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services;
 
 use App\Models\ItemLote;
@@ -23,15 +22,22 @@ class AbcPriorityService
             ->groupBy('id_item')
             ->pluck('total', 'id_item');
 
-        $itens = $itens->map(function ($item) use ($movimentos) {
-            $item->movimento_calculado = $movimentos[$item->id_item] ?? 0;
-            return $item;
-        })->sortByDesc('movimento_calculado')->values();
+        // Guarda o total movimentado de cada item num array auxiliar,
+        // SEM atribuir como atributo do model (evita que o Eloquent
+        // tente salvar essa coluna inexistente no update()).
+        $totaisPorItem = [];
+        foreach ($itens as $item) {
+            $totaisPorItem[$item->id_item] = $movimentos[$item->id_item] ?? 0;
+        }
 
-        $totalGeral = $itens->sum('movimento_calculado');
+        $itensOrdenados = $itens->sortByDesc(function ($item) use ($totaisPorItem) {
+            return $totaisPorItem[$item->id_item];
+        })->values();
+
+        $totalGeral = array_sum($totaisPorItem);
 
         if ($totalGeral <= 0) {
-            foreach ($itens as $item) {
+            foreach ($itensOrdenados as $item) {
                 if ($item->prioridade_abc !== 'C') {
                     $item->update(['prioridade_abc' => 'C']);
                 }
@@ -40,9 +46,8 @@ class AbcPriorityService
         }
 
         $acumulado = 0;
-
-        foreach ($itens as $item) {
-            $acumulado += $item->movimento_calculado;
+        foreach ($itensOrdenados as $item) {
+            $acumulado += $totaisPorItem[$item->id_item];
             $percentual = $acumulado / $totalGeral;
 
             if ($percentual <= 0.80) {

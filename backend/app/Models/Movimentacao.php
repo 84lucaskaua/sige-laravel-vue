@@ -14,7 +14,7 @@ class Movimentacao extends Model {
     public function item() {
         return $this->belongsTo(ItemLote::class, 'id_item');
     }
-    public function usuario() {
-        return $this->belongsTo(Usuario::class, 'id_usuario');
-    }
+  public function usuario() {
+    return $this->belongsTo(User::class, 'id_usuario');
+}
 }
