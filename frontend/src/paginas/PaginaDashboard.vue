@@ -244,24 +244,27 @@ function formatarData(data) {
 
 async function carregarDashboard() {
   carregando.value = true
+  let dadosEvolucao = []
+  let dadosDistribuicao = []
+
   try {
     const resposta = await api.get('/dashboard')
     resumo.value             = resposta.data.resumo
     movimentosRecentes.value = resposta.data.movimentosRecentes || []
     topProdutos.value        = resposta.data.topProdutos || []
-
-    await nextTick()
-    montarGraficoLinha(resposta.data.evolucaoEstoque || [])
-    montarGraficoPizza(resposta.data.distribuicaoCategorias || [])
-
+    dadosEvolucao            = resposta.data.evolucaoEstoque || []
+    dadosDistribuicao        = resposta.data.distribuicaoCategorias || []
   } catch (erro) {
     console.error('Erro ao carregar dashboard:', erro)
-    await nextTick()
-    montarGraficoLinha([])
-    montarGraficoPizza([])
   } finally {
     carregando.value = false
   }
+
+  // Só desenha os gráficos DEPOIS que carregando = false,
+  // garantindo que o <canvas> já existe no DOM.
+  await nextTick()
+  montarGraficoLinha(dadosEvolucao)
+  montarGraficoPizza(dadosDistribuicao)
 }
 
 function montarGraficoLinha(dados) {
