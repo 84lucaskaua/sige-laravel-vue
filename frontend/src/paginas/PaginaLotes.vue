@@ -428,6 +428,7 @@ function fecharTudo() {
 async function excluirLote() {
   try {
     await api.delete(`/lotes/${loteAtivo.value.id_lote}`)
+    tabAtiva.value = null
     await carregarLotes()
   } catch {
     alert('Erro ao excluir lote.')

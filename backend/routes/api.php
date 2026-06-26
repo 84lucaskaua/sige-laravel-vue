@@ -2,7 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LoteController;
@@ -14,8 +15,6 @@ use App\Http\Controllers\MovimentacaoController;
 use App\Http\Controllers\RelatorioController;
 use App\Http\Controllers\RelatorioAvancadoController;
 use App\Http\Controllers\ImportacaoExportacaoController;
-use App\Http\Controllers\AuditLogController;
-
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
@@ -67,7 +66,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('importacao-exportacao/restaurar/backup',           [ImportacaoExportacaoController::class, 'restaurarBackup']);
     Route::post('importacao-exportacao/importar/excel',             [ImportacaoExportacaoController::class, 'importarExcel']);
 
-    // Audit Logs
-    Route::get('/audit-logs',        [AuditLogController::class, 'index']);
+ Route::get('/audit-logs',        [AuditLogController::class, 'index']);
     Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
+
+    Route::get('/usuarios', [UsuarioController::class, 'index']);
+    Route::post('/usuarios', [UsuarioController::class, 'store']);
+    Route::put('/usuarios/{id}', [UsuarioController::class, 'update']);
+    Route::delete('/usuarios/{id}', [UsuarioController::class, 'destroy']);
 });

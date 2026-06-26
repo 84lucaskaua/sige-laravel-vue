@@ -1,59 +1,102 @@
 <template>
-  <div class="p-6">
+  <div class="p-6 min-h-screen bg-black text-white">
 
+    <!-- Cabeçalho -->
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Usuários</h1>
-      <button @click="abrirModalNovoUsuario" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-        + Novo Usuário
+      <div>
+        <h1 class="text-2xl font-bold text-white">Gerenciamento de Usuários</h1>
+        <p class="text-sm text-slate-400">Cadastre e gerencie usuários do sistema</p>
+      </div>
+      <button
+        @click="abrirModalNovoUsuario"
+        class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+      >
+        <Plus :size="18" />
+        Novo Usuário
       </button>
     </div>
 
+    <!-- Busca -->
+    <div class="relative mb-6">
+      <Search :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+      <input
+        v-model="busca"
+        type="text"
+        placeholder="Buscar por nome ou email..."
+        class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-slate-500 outline-none focus:border-blue-500 transition"
+      />
+    </div>
+
     <!-- Carregando -->
-    <div v-if="carregando" class="text-center py-12 text-gray-500">Carregando...</div>
+    <div v-if="carregando" class="text-center py-12 text-slate-400">
+      Carregando usuários...
+    </div>
 
     <!-- Sem usuários -->
-    <div v-else-if="usuarios.length === 0" class="text-center py-12 text-gray-500">
-      Nenhum usuário encontrado.
+    <div v-else-if="usuariosFiltrados.length === 0" class="rounded-xl bg-slate-900 border border-slate-800 p-16 text-center">
+      <UserX class="mx-auto mb-4 text-slate-600" :size="48" />
+      <h2 class="text-xl font-bold text-white mb-2">Nenhum usuário encontrado</h2>
+      <p class="text-slate-400">
+        {{ busca ? 'Tente buscar por outro nome ou email.' : 'Crie o primeiro usuário do sistema.' }}
+      </p>
     </div>
 
     <!-- Tabela de usuários -->
-    <div v-else class="bg-white rounded-xl shadow overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-gray-50 border-b">
-          <tr>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Nome</th>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Email</th>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Perfil</th>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Cadastrado em</th>
-            <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Ações</th>
+    <div v-else class="rounded-xl bg-slate-900 border border-slate-800 overflow-hidden mb-6">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-slate-400 border-b border-slate-800">
+            <th class="text-left px-6 py-4 font-medium">Nome</th>
+            <th class="text-left px-6 py-4 font-medium">Email</th>
+            <th class="text-left px-6 py-4 font-medium">Tipo</th>
+            <th class="text-left px-6 py-4 font-medium">Data de Cadastro</th>
+            <th class="text-right px-6 py-4 font-medium">Ações</th>
           </tr>
         </thead>
-        <tbody>
-          <tr v-for="usuario in usuarios" :key="usuario.id" class="border-b hover:bg-gray-50">
-            <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ usuario.nome }}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">{{ usuario.email }}</td>
-            <td class="px-4 py-3">
-              <!-- Badge colorido por perfil -->
-              <span :class="corDoPerfil[usuario.perfil]" class="px-2 py-1 rounded-full text-xs font-medium capitalize">
-                {{ usuario.perfil }}
+        <tbody class="divide-y divide-slate-800">
+          <tr v-for="usuario in usuariosFiltrados" :key="usuario.id" class="hover:bg-slate-800/50 transition">
+            <td class="px-6 py-4 text-white font-medium">{{ usuario.name }}</td>
+            <td class="px-6 py-4 text-slate-400">{{ usuario.email }}</td>
+            <td class="px-6 py-4">
+              <span :class="corDoPerfil[usuario.perfil]" class="px-3 py-1 rounded-md text-xs font-semibold">
+                {{ nomeDoPerfil[usuario.perfil] || usuario.perfil }}
               </span>
             </td>
-            <td class="px-4 py-3 text-sm text-gray-600">
-              {{ formatarData(usuario.created_at) }}
-            </td>
-            <td class="px-4 py-3 flex gap-3">
-              <button @click="abrirModalEdicao(usuario)" class="text-blue-600 hover:text-blue-800 text-sm">Editar</button>
-              <button
-                @click="desativarUsuario(usuario)"
-                :disabled="usuario.id === autenticacao.usuario?.id"
-                class="text-red-500 hover:text-red-700 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                Remover
-              </button>
+            <td class="px-6 py-4 text-slate-400">{{ formatarData(usuario.created_at) }}</td>
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-2">
+                <button
+                  @click="abrirModalEdicao(usuario)"
+                  class="p-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition"
+                  title="Editar"
+                >
+                  <Pencil :size="16" />
+                </button>
+                <button
+                  @click="excluirUsuario(usuario)"
+                  :disabled="usuario.id === autenticacao.usuario?.id"
+                  class="p-2 rounded-lg border border-red-800 bg-red-900/30 text-red-400 hover:bg-red-900/50 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Excluir"
+                >
+                  <Trash2 :size="16" />
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Cards de totais -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="rounded-xl bg-slate-900 border border-slate-800 p-5">
+        <p class="text-sm text-slate-400 mb-2">Total de Usuários</p>
+        <p class="text-3xl font-bold text-white">{{ usuarios.length }}</p>
+      </div>
+      <div class="rounded-xl bg-slate-900 border border-slate-800 p-5">
+        <p class="text-sm text-slate-400 mb-2">Administradores</p>
+        <p class="text-3xl font-bold text-blue-500">{{ totalAdministradores }}</p>
+      </div>
     </div>
 
     <!-- Modal -->
@@ -68,24 +111,45 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { Plus, Search, UserX, Pencil, Trash2 } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalUsuario from '@/componentes/ui/ModalUsuario.vue'
 import { formatarData } from '@/utils/date'
 
 const autenticacao = useAutenticacaoStore()
-const usuarios          = ref([])
-const carregando        = ref(false)
-const modalAberto       = ref(false)
+
+const usuarios           = ref([])
+const carregando         = ref(false)
+const busca              = ref('')
+const modalAberto        = ref(false)
 const usuarioSelecionado = ref(null)
 
-// Cores diferentes para cada perfil
 const corDoPerfil = {
-  admin:         'bg-purple-100 text-purple-700',
-  operador:      'bg-blue-100 text-blue-700',
-  visualizador:  'bg-gray-100 text-gray-600',
+  root:         'bg-blue-600 text-white',
+  operador:     'bg-slate-700 text-slate-200',
+  visualizador: 'bg-slate-700 text-slate-200',
 }
+
+const nomeDoPerfil = {
+  root:         'Administrador',
+  operador:     'Operador',
+  visualizador: 'Visualizador',
+}
+
+const usuariosFiltrados = computed(() => {
+  const termo = busca.value.trim().toLowerCase()
+  if (!termo) return usuarios.value
+  return usuarios.value.filter(u =>
+    u.name?.toLowerCase().includes(termo) ||
+    u.email?.toLowerCase().includes(termo)
+  )
+})
+
+const totalAdministradores = computed(() =>
+  usuarios.value.filter(u => u.perfil === 'root').length
+)
 
 async function carregarUsuarios() {
   carregando.value = true
@@ -114,18 +178,18 @@ function fecharModal() {
   usuarioSelecionado.value = null
 }
 
-function aoSalvar() {
+async function aoSalvar() {
   fecharModal()
-  carregarUsuarios()
+  await carregarUsuarios()
 }
 
-async function desativarUsuario(usuario) {
-  if (!confirm(`Remover o usuário "${usuario.nome}"?`)) return
+async function excluirUsuario(usuario) {
+  if (!confirm(`Excluir o usuário "${usuario.name}"? Esta ação não pode ser desfeita.`)) return
   try {
     await api.delete(`/usuarios/${usuario.id}`)
-    carregarUsuarios()
+    await carregarUsuarios()
   } catch (erro) {
-    alert(erro.response?.data?.mensagem || 'Erro ao remover usuário.')
+    alert(erro.response?.data?.mensagem || erro.response?.data?.message || 'Erro ao excluir usuário.')
   }
 }
 
