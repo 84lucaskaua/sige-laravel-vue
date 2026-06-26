@@ -49,7 +49,9 @@ class RelatorioAvancadoController extends Controller
 
     public function abc()
     {
-        // Soma total de movimentações (ENTRADA + SAIDA) por item
+        // Soma total de movimentações (ENTRADA + SAIDA) por item.
+        // Usado só para os números informativos (movimento, % do total, % acumulado),
+        // não para decidir a classe — a classe já vem pronta do item_lote.
         $movimentos = Movimentacao::whereIn('tipo', ['ENTRADA', 'SAIDA'])
             ->selectRaw('id_item, SUM(quantidade) as total')
             ->groupBy('id_item')
@@ -58,10 +60,15 @@ class RelatorioAvancadoController extends Controller
 
         $itens = ItemLote::all()->map(function ($item) use ($movimentos) {
             return [
-                'id_item'   => $item->id_item,
-                'nome'      => $item->nome,
-                'sku'       => $item->sku,
-                'movimento' => $movimentos[$item->id_item]->total ?? 0,
+                'id_item'           => $item->id_item,
+                'nome'              => $item->nome,
+                'sku'               => $item->sku,
+                'movimento'         => $movimentos[$item->id_item]->total ?? 0,
+                // Classe real do item: respeita o que foi definido manualmente
+                // (prioridade_manual = true) ou o que o AbcPriorityService já
+                // calculou automaticamente (prioridade_manual = false).
+                'classe'            => $item->prioridade_abc ?? 'C',
+                'prioridade_manual' => $item->prioridade_manual,
             ];
         })->sortByDesc('movimento')->values();
 
@@ -74,12 +81,9 @@ class RelatorioAvancadoController extends Controller
                 : 0;
             $acumulado += $percentual;
 
-            $classe = $acumulado <= 80 ? 'A' : ($acumulado <= 95 ? 'B' : 'C');
-
             return array_merge($item, [
                 'percentual' => $percentual,
                 'acumulado'  => round($acumulado, 2),
-                'classe'     => $classe,
             ]);
         });
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ImportacaoExportacaoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -48,3 +49,13 @@ Route::middleware('auth:sanctum')->get('/relatorios/itens', [RelatorioController
 use App\Http\Controllers\RelatorioAvancadoController;
 Route::middleware('auth:sanctum')->get('/relatorios-avancados/perdas',   [RelatorioAvancadoController::class, 'perdas']);
 Route::middleware('auth:sanctum')->get('/relatorios-avancados/abc',      [RelatorioAvancadoController::class, 'abc']);
+// Importação e Exportação
+Route::prefix('importacao-exportacao')->group(function () {
+    Route::get('/stats',                     [ImportacaoExportacaoController::class, 'stats']);
+    Route::get('/exportar/backup',           [ImportacaoExportacaoController::class, 'exportarBackup']);
+    Route::get('/exportar/produtos-csv',     [ImportacaoExportacaoController::class, 'exportarProdutosCSV']);
+    Route::get('/exportar/movimentacoes-csv',[ImportacaoExportacaoController::class, 'exportarMovimentacoesCSV']);
+    Route::get('/template-csv',              [ImportacaoExportacaoController::class, 'downloadTemplate']);
+    Route::post('/importar/produtos-csv',    [ImportacaoExportacaoController::class, 'importarProdutosCSV']);
+    Route::post('/restaurar/backup',         [ImportacaoExportacaoController::class, 'restaurarBackup']);
+});
