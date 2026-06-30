@@ -191,6 +191,7 @@
               v-for="(produto, index) in topProdutos"
               :key="produto.id_produto"
               class="hover:bg-slate-800/50 transition"
+              
             >
               <td class="py-3 text-slate-500">{{ index + 1 }}</td>
               <td class="py-3 text-white font-medium">{{ produto.nome }}</td>
