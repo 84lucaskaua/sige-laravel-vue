@@ -4,13 +4,6 @@
     <!-- Cabeçalho -->
     <div class="flex justify-between items-center mb-1">
       <h1 class="text-2xl font-bold text-white">Produtos</h1>
-      <button
-        v-if="autenticacao.podeCadastrar"
-        @click="abrirModalNovoProduto"
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
-      >
-        + Novo Produto
-      </button>
     </div>
     <p class="text-slate-400 text-sm mb-6">Visão geral de todos os produtos e seus lotes</p>
 
@@ -230,11 +223,6 @@ async function carregarProdutos() {
 function buscarComAtraso() {
   clearTimeout(temporizadorBusca)
   temporizadorBusca = setTimeout(carregarProdutos, 400)
-}
-
-function abrirModalNovoProduto() {
-  produtoSelecionado.value = null
-  modalAberto.value = true
 }
 
 function abrirModalEdicao(produto) {
