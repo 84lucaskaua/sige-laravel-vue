@@ -85,7 +85,7 @@
             <Download :size="16" /> Exportar CSV
           </button>
           <button @click="exportarExcel" class="flex items-center gap-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-            <FileSpreadsheet :size="16" /> Exportar Excel
+            <FileSpreadsheet :size="16" /> Exportar Excel{{ selecionados.size ? ` (${selecionados.size})` : '' }}
           </button>
           <button @click="exportarPDF" class="flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
             <FileText :size="16" /> Exportar PDF
@@ -112,8 +112,17 @@
 
     <!-- Tabela -->
     <div class="rounded-xl bg-slate-900 border border-slate-800">
-      <div class="px-5 py-4 border-b border-slate-800">
-        <h2 class="font-semibold text-white">Resultados ({{ itensFiltrados.length }} itens)</h2>
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+        <h2 class="font-semibold text-white">
+          Resultados ({{ itensFiltrados.length }} itens)
+          <span v-if="selecionados.size" class="text-blue-400 font-normal text-sm">
+            — {{ selecionados.size }} selecionado(s)
+          </span>
+        </h2>
+        <button v-if="selecionados.size" @click="limparSelecao"
+          class="text-xs text-slate-400 hover:text-white underline">
+          Limpar seleção
+        </button>
       </div>
 
       <div v-if="carregando" class="text-center py-12 text-slate-500">Carregando...</div>
@@ -125,6 +134,10 @@
       <table v-else class="w-full text-sm">
         <thead>
           <tr class="text-slate-400 border-b border-slate-800">
+            <th class="text-left px-4 py-3 font-medium w-10">
+              <input type="checkbox" :checked="todosSelecionados" @change="alternarTodos"
+                class="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
+            </th>
             <th class="text-left px-4 py-3 font-medium">Lote</th>
             <th class="text-left px-4 py-3 font-medium">SKU</th>
             <th class="text-left px-4 py-3 font-medium">Produto</th>
@@ -136,7 +149,14 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-800">
-          <tr v-for="item in itensFiltrados" :key="item.id_item" class="hover:bg-slate-800/50 transition">
+          <tr v-for="item in itensFiltrados" :key="item.id_item"
+            class="hover:bg-slate-800/50 transition"
+            :class="selecionados.has(item.id_item) ? 'bg-blue-950/40' : ''">
+            <td class="px-4 py-3">
+              <input type="checkbox" :checked="selecionados.has(item.id_item)"
+                @change="alternarSelecao(item.id_item)"
+                class="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
+            </td>
             <td class="px-4 py-3">
               <span class="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded">
                 {{ item.lote?.numero_lote ?? '—' }}
@@ -163,7 +183,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/servicos/api'
 import { formatarData } from '@/utils/date'
 import { Filter, Search, ChevronDown, Check, Download, FileSpreadsheet, FileText } from 'lucide-vue-next'
@@ -175,6 +195,9 @@ const carregando = ref(false)
 const itens      = ref([])
 const dropdownLoteAberto = ref(false)
 const dropdownVencAberto  = ref(false)
+
+// Seleção de itens (id_item)
+const selecionados = ref(new Set())
 
 const opcoesVencimento = ['Todos', 'Vencidos', 'Vencendo em 7 dias', 'Vencendo em 30 dias', 'Vencendo em 90 dias']
 const opcoesLote = ref(['Todos os lotes'])
@@ -233,6 +256,37 @@ const itensFiltrados = computed(() => {
   })
 })
 
+// Se os filtros mudarem, remove da seleção itens que saíram da lista filtrada
+watch(itensFiltrados, (novosItens) => {
+  if (!selecionados.value.size) return
+  const idsVisiveis = new Set(novosItens.map(i => i.id_item))
+  const novaSelecao = new Set([...selecionados.value].filter(id => idsVisiveis.has(id)))
+  if (novaSelecao.size !== selecionados.value.size) selecionados.value = novaSelecao
+})
+
+const todosSelecionados = computed(() =>
+  itensFiltrados.value.length > 0 &&
+  itensFiltrados.value.every(i => selecionados.value.has(i.id_item))
+)
+
+function alternarSelecao(id) {
+  const novo = new Set(selecionados.value)
+  novo.has(id) ? novo.delete(id) : novo.add(id)
+  selecionados.value = novo
+}
+
+function alternarTodos() {
+  if (todosSelecionados.value) {
+    selecionados.value = new Set()
+  } else {
+    selecionados.value = new Set(itensFiltrados.value.map(i => i.id_item))
+  }
+}
+
+function limparSelecao() {
+  selecionados.value = new Set()
+}
+
 const totalVencidos  = computed(() => {
   const hoje = new Date()
   return itensFiltrados.value.filter(i => i.data_validade && new Date(i.data_validade) < hoje).length
@@ -278,8 +332,16 @@ function limparFiltros() {
 // Exportação
 const CABECALHOS = ['Lote', 'SKU', 'Produto', 'Quantidade', 'Validade', 'Fornecedor', 'Localização', 'Status']
 
+// Retorna apenas os selecionados (se houver seleção) ou todos os filtrados
+function itensParaExportar() {
+  if (selecionados.value.size > 0) {
+    return itensFiltrados.value.filter(i => selecionados.value.has(i.id_item))
+  }
+  return itensFiltrados.value
+}
+
 function linhas() {
-  return itensFiltrados.value.map(i => [
+  return itensParaExportar().map(i => [
     i.lote?.numero_lote ?? '—',
     i.sku ?? '—',
     i.nome,
@@ -293,7 +355,8 @@ function linhas() {
 
 function nomeArquivo(ext) {
   const h = new Date()
-  return `relatorio-${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}.${ext}`
+  const sufixo = selecionados.value.size ? '-selecionados' : ''
+  return `relatorio${sufixo}-${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}.${ext}`
 }
 
 function baixar(blob, nome) {

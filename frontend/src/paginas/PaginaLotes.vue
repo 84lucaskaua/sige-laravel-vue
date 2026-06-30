@@ -44,18 +44,25 @@
         <button
           v-for="lote in lotes"
           :key="lote.id_lote"
-          @click="tabAtiva = lote.id_lote"
+          @click="aoClicarTab(lote.id_lote)"
           :class="tabAtiva === lote.id_lote
             ? 'bg-slate-700 text-white border-b-2 border-blue-500'
             : 'text-slate-400 hover:text-white hover:bg-slate-800'"
-          class="px-4 py-2 rounded-t-lg text-sm font-medium transition whitespace-nowrap"
+          class="px-4 py-2 rounded-t-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5"
         >
+          <Lock v-if="!pinValido" :size="12" class="text-slate-500" />
           {{ lote.numero_lote }}
         </button>
+
+        <!-- Indicador de sessão liberada -->
+        <span v-if="pinValido" class="ml-auto mr-2 flex items-center gap-1 text-xs text-green-400 whitespace-nowrap">
+          <ShieldCheck :size="14" />
+          Liberado
+        </span>
       </div>
 
       <!-- Conteúdo da tab ativa -->
-      <div v-if="loteAtivo" class="p-6">
+      <div v-if="loteAtivo && pinValido" class="p-6">
 
         <!-- Cabeçalho do lote -->
         <div class="flex justify-between items-start mb-6">
@@ -185,69 +192,26 @@
           </tbody>
         </table>
       </div>
-    </div>
 
-    <!-- ===== MODAL ETAPA 1: CONFIRMAÇÃO ===== -->
-    <div v-if="etapa === 1" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6">
-        <div class="flex justify-between items-start mb-5">
-          <div class="flex items-center gap-2">
-            <Shield class="text-blue-400" :size="20" />
-            <div>
-              <h2 class="text-white font-bold">Confirmação de Segurança</h2>
-              <p class="text-slate-400 text-xs">Esta ação requer confirmação em 2 etapas</p>
-            </div>
-          </div>
-          <button @click="fecharTudo" class="text-slate-400 hover:text-white">
-            <X :size="18" />
-          </button>
-        </div>
-
-        <div class="bg-blue-900/30 border border-blue-700 rounded-lg p-4 mb-3">
-          <div class="flex items-center gap-2 mb-1">
-            <Shield class="text-blue-400" :size="16" />
-            <span class="text-white font-medium">{{ acaoAtual === 'criar' ? 'Criar Novo Lote' : acaoAtual === 'item' ? 'Adicionar Item' : 'Excluir Lote' }}</span>
-          </div>
-          <p class="text-slate-300 text-sm">
-            {{ acaoAtual === 'criar'
-              ? 'Você está criando um novo lote no sistema. Um número sequencial será gerado automaticamente.'
-              : acaoAtual === 'item'
-                ? 'Você está adicionando um item ao lote ' + loteAtivo?.numero_lote + '.'
-                : 'Você está excluindo o lote ' + loteAtivo?.numero_lote + '. Esta ação não pode ser desfeita.' }}
-          </p>
-        </div>
-
-        <div class="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-6">
-          <div class="flex items-center gap-2 mb-1">
-            <Lock :size="16" class="text-slate-400" />
-            <span class="text-white font-medium text-sm">Etapa 1 de 2: Confirmação</span>
-          </div>
-          <p class="text-slate-400 text-sm">Confirme para prosseguir para a etapa de verificação PIN.</p>
-        </div>
-
-        <div class="flex gap-3">
-          <button @click="fecharTudo" class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition">
-            Cancelar
-          </button>
-          <button @click="etapa = 2" class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-medium">
-            Confirmar e Prosseguir
-          </button>
-        </div>
+      <!-- Aba selecionada mas ainda não liberada (aguardando PIN) -->
+      <div v-else-if="loteAtivo && !pinValido" class="p-16 text-center">
+        <Lock class="mx-auto mb-3 text-slate-600" :size="40" />
+        <p class="text-slate-500">Digite o PIN para acessar este lote</p>
       </div>
     </div>
 
-    <!-- ===== MODAL ETAPA 2: PIN ===== -->
-    <div v-if="etapa === 2" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <!-- ===== MODAL PIN (acesso à aba) ===== -->
+    <div v-if="modalPinAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6">
         <div class="flex justify-between items-start mb-5">
           <div class="flex items-center gap-2">
             <Lock class="text-blue-400" :size="20" />
             <div>
               <h2 class="text-white font-bold">Verificação de PIN</h2>
-              <p class="text-slate-400 text-xs">Etapa 2 de 2: Digite o PIN de segurança</p>
+              <p class="text-slate-400 text-xs">Necessário para acessar os lotes</p>
             </div>
           </div>
-          <button @click="fecharTudo" class="text-slate-400 hover:text-white">
+          <button @click="cancelarPin" class="text-slate-400 hover:text-white">
             <X :size="18" />
           </button>
         </div>
@@ -267,15 +231,51 @@
             @keyup.enter="verificarPin"
           />
           <p v-if="erroPin" class="text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
+          <p class="text-slate-500 text-xs mt-3 text-center">
+            Após confirmado, o acesso fica liberado enquanto você estiver ativo. Após {{ TIMEOUT_INATIVIDADE_MINUTOS }} min sem uso, será solicitado novamente.
+          </p>
         </div>
 
         <div class="flex gap-3">
-          <button @click="etapa = 1; pinDigitado = ''; erroPin = ''" class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition">
-            Voltar
+          <button @click="cancelarPin" class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition">
+            Cancelar
           </button>
           <button @click="verificarPin" :disabled="pinDigitado.length < 4"
             class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium">
             Confirmar PIN
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL CONFIRMAÇÃO EXCLUSÃO DE LOTE ===== -->
+    <div v-if="modalExcluirLoteAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6">
+        <div class="flex justify-between items-start mb-5">
+          <div class="flex items-center gap-2">
+            <Shield class="text-red-400" :size="20" />
+            <div>
+              <h2 class="text-white font-bold">Excluir Lote</h2>
+              <p class="text-slate-400 text-xs">Esta ação não pode ser desfeita</p>
+            </div>
+          </div>
+          <button @click="modalExcluirLoteAberto = false" class="text-slate-400 hover:text-white">
+            <X :size="18" />
+          </button>
+        </div>
+
+        <div class="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6">
+          <p class="text-slate-300 text-sm">
+            Você está excluindo o lote <strong class="text-white">{{ loteAtivo?.numero_lote }}</strong>. Esta ação não pode ser desfeita.
+          </p>
+        </div>
+
+        <div class="flex gap-3">
+          <button @click="modalExcluirLoteAberto = false" class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition">
+            Cancelar
+          </button>
+          <button @click="excluirLote" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium">
+            Confirmar Exclusão
           </button>
         </div>
       </div>
@@ -345,8 +345,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { Plus, Shield, Lock, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { Plus, Shield, Lock, ShieldCheck, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalLote            from '@/componentes/ui/ModalLote.vue'
@@ -374,61 +374,100 @@ const tabAtiva            = ref(null)
 
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 
-const etapa       = ref(0)
-const pinDigitado = ref('')
-const erroPin     = ref('')
-const acaoAtual   = ref('')
+// ===== Controle de PIN por INATIVIDADE =====
+const TIMEOUT_INATIVIDADE_MINUTOS = 5 // <-- ajuste aqui o tempo de inatividade tolerado
+const TIMEOUT_INATIVIDADE_MS = TIMEOUT_INATIVIDADE_MINUTOS * 60 * 1000
+
 const PIN_CORRETO = '8401'
 
-function iniciarCriacaoLote() {
-  acaoAtual.value   = 'criar'
-  etapa.value       = 1
-  pinDigitado.value = ''
-  erroPin.value     = ''
+const modalPinAberto    = ref(false)
+const pinDigitado       = ref('')
+const erroPin           = ref('')
+const pinValido         = ref(false)
+const loteAlvoPendente  = ref(null) // lote que o usuário tentou abrir, aguardando PIN
+
+let timerInatividade = null
+
+function bloquearPorInatividade() {
+  pinValido.value = false
+  // se o usuário estava vendo um lote, mantemos a aba selecionada,
+  // mas o conteúdo só reaparece após digitar o PIN de novo
 }
 
-function iniciarAdicaoItem() {
-  acaoAtual.value   = 'item'
-  etapa.value       = 1
-  pinDigitado.value = ''
-  erroPin.value     = ''
+function reiniciarTimerInatividade() {
+  if (!pinValido.value) return // só conta inatividade se a sessão estiver liberada
+  if (timerInatividade) clearTimeout(timerInatividade)
+  timerInatividade = setTimeout(bloquearPorInatividade, TIMEOUT_INATIVIDADE_MS)
 }
 
-function iniciarExclusaoLote() {
-  acaoAtual.value   = 'excluir'
-  etapa.value       = 1
+const eventosAtividade = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click']
+
+onMounted(() => {
+  eventosAtividade.forEach(ev => window.addEventListener(ev, reiniciarTimerInatividade))
+})
+onUnmounted(() => {
+  eventosAtividade.forEach(ev => window.removeEventListener(ev, reiniciarTimerInatividade))
+  if (timerInatividade) clearTimeout(timerInatividade)
+})
+
+function aoClicarTab(idLote) {
+  if (pinValido.value) {
+    tabAtiva.value = idLote
+    reiniciarTimerInatividade()
+    return
+  }
+  loteAlvoPendente.value = idLote
   pinDigitado.value = ''
-  erroPin.value     = ''
+  erroPin.value = ''
+  modalPinAberto.value = true
 }
 
 function verificarPin() {
   if (pinDigitado.value === PIN_CORRETO) {
-    etapa.value = 0
-    if (acaoAtual.value === 'criar') {
-      loteSelecionado.value = null
-      modalAberto.value     = true
-    } else if (acaoAtual.value === 'item') {
-      modalItemAberto.value = true
-    } else if (acaoAtual.value === 'excluir') {
-      excluirLote()
+    pinValido.value = true
+    if (loteAlvoPendente.value !== null) {
+      tabAtiva.value = loteAlvoPendente.value
     }
+    modalPinAberto.value = false
+    pinDigitado.value = ''
+    erroPin.value = ''
+    loteAlvoPendente.value = null
+    reiniciarTimerInatividade()
   } else {
-    erroPin.value     = 'PIN incorreto. Tente novamente.'
+    erroPin.value = 'PIN incorreto. Tente novamente.'
     pinDigitado.value = ''
   }
 }
 
-function fecharTudo() {
-  etapa.value       = 0
+function cancelarPin() {
+  modalPinAberto.value = false
   pinDigitado.value = ''
-  erroPin.value     = ''
-  acaoAtual.value   = ''
+  erroPin.value = ''
+  loteAlvoPendente.value = null
+}
+
+// ===== Ações sem PIN (criar lote / adicionar item) =====
+function iniciarCriacaoLote() {
+  loteSelecionado.value = null
+  modalAberto.value = true
+}
+
+function iniciarAdicaoItem() {
+  modalItemAberto.value = true
+}
+
+// ===== Exclusão de lote (confirmação simples) =====
+const modalExcluirLoteAberto = ref(false)
+
+function iniciarExclusaoLote() {
+  modalExcluirLoteAberto.value = true
 }
 
 async function excluirLote() {
   try {
     await api.delete(`/lotes/${loteAtivo.value.id_lote}`)
     tabAtiva.value = null
+    modalExcluirLoteAberto.value = false
     await carregarLotes()
   } catch {
     alert('Erro ao excluir lote.')
