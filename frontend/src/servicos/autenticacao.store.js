@@ -65,13 +65,14 @@ const podeGerenciarUsuarios = computed(() => perfil.value === 'root')
       await api.post('/logout')
     } catch {
       // Mesmo que o backend dê erro, fazemos logout local
-    } finally {
+  } finally {
       // Limpa os dados do usuário
       token.value   = null
       usuario.value = null
 
       localStorage.removeItem('token')
       localStorage.removeItem('usuario')
+      sessionStorage.removeItem('lotes_pin_valido')
     }
   }
 

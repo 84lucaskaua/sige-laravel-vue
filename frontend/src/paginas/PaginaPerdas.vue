@@ -350,7 +350,9 @@ async function carregarEstatisticas() {
   try {
     const { data } = await api.get('/perdas/estatisticas')
     estatisticas.value = data
-  } catch {}
+  } catch (e) {
+    console.error('Erro ao carregar estatísticas:', e)
+  }
 }
 
 onMounted(() => {

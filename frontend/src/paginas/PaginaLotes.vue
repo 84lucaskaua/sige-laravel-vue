@@ -345,7 +345,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Plus, Shield, Lock, ShieldCheck, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
@@ -374,46 +374,18 @@ const tabAtiva            = ref(null)
 
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 
-// ===== Controle de PIN por INATIVIDADE =====
-const TIMEOUT_INATIVIDADE_MINUTOS = 5 // <-- ajuste aqui o tempo de inatividade tolerado
-const TIMEOUT_INATIVIDADE_MS = TIMEOUT_INATIVIDADE_MINUTOS * 60 * 1000
-
+// ===== Controle de PIN por SESSÃO (até logout) =====
 const PIN_CORRETO = '8401'
 
 const modalPinAberto    = ref(false)
 const pinDigitado       = ref('')
 const erroPin           = ref('')
-const pinValido         = ref(false)
+const pinValido         = ref(sessionStorage.getItem('lotes_pin_valido') === 'true')
 const loteAlvoPendente  = ref(null) // lote que o usuário tentou abrir, aguardando PIN
-
-let timerInatividade = null
-
-function bloquearPorInatividade() {
-  pinValido.value = false
-  // se o usuário estava vendo um lote, mantemos a aba selecionada,
-  // mas o conteúdo só reaparece após digitar o PIN de novo
-}
-
-function reiniciarTimerInatividade() {
-  if (!pinValido.value) return // só conta inatividade se a sessão estiver liberada
-  if (timerInatividade) clearTimeout(timerInatividade)
-  timerInatividade = setTimeout(bloquearPorInatividade, TIMEOUT_INATIVIDADE_MS)
-}
-
-const eventosAtividade = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click']
-
-onMounted(() => {
-  eventosAtividade.forEach(ev => window.addEventListener(ev, reiniciarTimerInatividade))
-})
-onUnmounted(() => {
-  eventosAtividade.forEach(ev => window.removeEventListener(ev, reiniciarTimerInatividade))
-  if (timerInatividade) clearTimeout(timerInatividade)
-})
 
 function aoClicarTab(idLote) {
   if (pinValido.value) {
     tabAtiva.value = idLote
-    reiniciarTimerInatividade()
     return
   }
   loteAlvoPendente.value = idLote
@@ -425,6 +397,7 @@ function aoClicarTab(idLote) {
 function verificarPin() {
   if (pinDigitado.value === PIN_CORRETO) {
     pinValido.value = true
+    sessionStorage.setItem('lotes_pin_valido', 'true')
     if (loteAlvoPendente.value !== null) {
       tabAtiva.value = loteAlvoPendente.value
     }
@@ -432,7 +405,6 @@ function verificarPin() {
     pinDigitado.value = ''
     erroPin.value = ''
     loteAlvoPendente.value = null
-    reiniciarTimerInatividade()
   } else {
     erroPin.value = 'PIN incorreto. Tente novamente.'
     pinDigitado.value = ''
