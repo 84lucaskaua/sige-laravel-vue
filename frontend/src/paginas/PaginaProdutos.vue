@@ -160,7 +160,7 @@ const diasParaVencer = (data) => {
 const labelValidade = (item) => {
   const dias = diasParaVencer(item.data_validade)
   if (dias === null) return '—'
-  if (dias < 0) return 'Vencido'
+  if (dias < 0) return `Vencido há ${Math.abs(dias)}d`
   if (dias <= 30) return `${dias}d`
   return 'OK'
 }

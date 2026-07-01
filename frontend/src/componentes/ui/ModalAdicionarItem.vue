@@ -52,10 +52,10 @@
             <label class="label">Estoque Mínimo</label>
             <input v-model.number="form.estoque_minimo" type="number" min="0" class="campo" placeholder="Ex: 10" />
           </div>
-          <div>
-            <label class="label">Validade</label>
-            <input v-model="form.data_validade" type="date" class="campo" />
-          </div>
+         <div>
+  <label class="label">Validade *</label>
+  <input v-model="form.data_validade" type="date" required class="campo" />
+</div>
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-4">
@@ -165,7 +165,13 @@ function tentarFechar() {
 }
 
 async function salvar() {
-  erro.value     = ''
+  erro.value = ''
+
+  if (!form.value.data_validade) {
+    erro.value = 'A data de validade é obrigatória.'
+    return
+  }
+
   salvando.value = true
   try {
     await api.post(`/lotes/${props.lote.id_lote}/itens`, form.value)
