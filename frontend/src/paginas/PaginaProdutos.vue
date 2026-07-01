@@ -86,13 +86,6 @@
             </td>
             <td class="px-4 py-3">
               <button
-                v-if="autenticacao.podeCadastrar"
-                @click="abrirModalEdicao(item)"
-                class="text-blue-400 hover:text-blue-300 text-xs mr-3 transition-colors"
-              >
-                Editar
-              </button>
-              <button
                 v-if="autenticacao.ehAdmin"
                 @click="desativarProduto(item)"
                 class="text-red-400 hover:text-red-300 transition-colors"
@@ -122,14 +115,6 @@
       </div>
     </div>
 
-    <!-- Modal -->
-    <ModalProduto
-      v-if="modalAberto"
-      :produto="produtoSelecionado"
-      @fechar="fecharModal"
-      @salvo="aoSalvarProduto"
-    />
-
   </div>
 </template>
 
@@ -137,15 +122,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
-import ModalProduto from '@/componentes/produtos/ModalProduto.vue'
 
 const autenticacao       = useAutenticacaoStore()
 const produtos           = ref([])
 const carregando         = ref(false)
 const termoDeBusca       = ref('')
 const filtroBaixo        = ref(false)
-const modalAberto        = ref(false)
-const produtoSelecionado = ref(null)
 
 let temporizadorBusca = null
 
@@ -223,21 +205,6 @@ async function carregarProdutos() {
 function buscarComAtraso() {
   clearTimeout(temporizadorBusca)
   temporizadorBusca = setTimeout(carregarProdutos, 400)
-}
-
-function abrirModalEdicao(produto) {
-  produtoSelecionado.value = produto
-  modalAberto.value = true
-}
-
-function fecharModal() {
-  modalAberto.value = false
-  produtoSelecionado.value = null
-}
-
-function aoSalvarProduto() {
-  fecharModal()
-  carregarProdutos()
 }
 
 async function desativarProduto(item) {
