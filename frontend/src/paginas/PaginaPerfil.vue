@@ -81,6 +81,7 @@ const sucesso      = ref('')
 const erro         = ref('')
 const salvando     = ref(false)
 const arquivoFoto  = ref(null)
+const removerFoto  = ref(false)
 const imagemPreview = ref((usuario && usuario.foto_url) ? usuario.foto_url : '')
 
 const form = reactive({
@@ -102,11 +103,13 @@ function onFotoChange(e) {
   }
   arquivoFoto.value   = arquivo
   imagemPreview.value = URL.createObjectURL(arquivo)
+  removerFoto.value   = false
 }
 
 function removerImagem() {
   arquivoFoto.value   = null
   imagemPreview.value = ''
+  removerFoto.value   = true
 }
 
 function limparMensagens() {
@@ -129,6 +132,8 @@ async function salvar() {
     formData.append('nome', form.nome)
     if (arquivoFoto.value) {
       formData.append('foto', arquivoFoto.value)
+    } else if (removerFoto.value) {
+      formData.append('remover_foto', '1')
     }
 
     const resposta = await api.post('/perfil', formData, {
@@ -139,6 +144,8 @@ async function salvar() {
     autenticacao.usuario.foto_url = resposta.data.usuario.foto_url
     localStorage.setItem('usuario', JSON.stringify(autenticacao.usuario))
     imagemPreview.value = resposta.data.usuario.foto_url || ''
+    arquivoFoto.value   = null
+    removerFoto.value   = false
 
     if (senhas.nova) {
       await api.put('/perfil/senha', {

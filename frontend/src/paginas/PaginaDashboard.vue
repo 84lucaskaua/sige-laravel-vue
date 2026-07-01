@@ -77,15 +77,30 @@
             <AlertTriangle class="text-red-500" :size="20" />
             Alertas Críticos
           </h2>
-          <div class="space-y-3">
+          <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
             <div v-if="resumo.vencendoEm30Dias > 0" class="bg-red-900/20 border border-red-900 rounded-lg p-4">
               <p class="text-red-400 font-medium">{{ resumo.vencendoEm30Dias }} lote(s) vencendo em 30 dias</p>
               <p class="text-red-300 text-sm mt-1">Verificar validade e priorizar saída (FEFO)</p>
             </div>
+
             <div v-if="resumo.estoqueCritico > 0" class="bg-orange-900/20 border border-orange-900 rounded-lg p-4">
               <p class="text-orange-400 font-medium">{{ resumo.estoqueCritico }} produto(s) com estoque baixo</p>
-              <p class="text-orange-300 text-sm mt-1">Solicitar reposição de estoque</p>
+              <p class="text-orange-300 text-sm mt-1 mb-3">Solicitar reposição de estoque</p>
+
+              <div class="space-y-2">
+                <div
+                  v-for="produto in produtosEstoqueCritico"
+                  :key="produto.id"
+                  class="flex items-center justify-between bg-orange-950/40 border border-orange-900/50 rounded-md px-3 py-2"
+                >
+                  <span class="text-sm text-orange-100 font-medium">{{ produto.nome }}</span>
+                  <span class="text-xs text-orange-300">
+                    {{ produto.quantidade }} / {{ produto.estoque_minimo }} {{ produto.unidade_medida || '' }}
+                  </span>
+                </div>
+              </div>
             </div>
+
             <div v-if="resumo.vencendoEm30Dias === 0 && resumo.estoqueCritico === 0" class="bg-green-900/20 border border-green-900 rounded-lg p-4">
               <p class="text-green-400 font-medium">✓ Nenhum alerta crítico</p>
               <p class="text-green-300 text-sm mt-1">Tudo está funcionando perfeitamente</p>
@@ -217,12 +232,13 @@ import { PackagePlus, Package, AlertTriangle, TrendingDown, TrendingUp, PieChart
 import api from '@/servicos/api'
 import Chart from 'chart.js/auto'
 
-const carregando         = ref(true)
-const graficoLinha       = ref(null)
-const graficoPizza       = ref(null)
-const movimentosRecentes = ref([])
-const topProdutos        = ref([])
-const semDadosPizza      = ref(false)
+const carregando            = ref(true)
+const graficoLinha          = ref(null)
+const graficoPizza          = ref(null)
+const movimentosRecentes    = ref([])
+const topProdutos           = ref([])
+const produtosEstoqueCritico = ref([])
+const semDadosPizza         = ref(false)
 
 const resumo = ref({
   totalProdutos:    0,
@@ -250,11 +266,12 @@ async function carregarDashboard() {
 
   try {
     const resposta = await api.get('/dashboard')
-    resumo.value             = resposta.data.resumo
-    movimentosRecentes.value = resposta.data.movimentosRecentes || []
-    topProdutos.value        = resposta.data.topProdutos || []
-    dadosEvolucao            = resposta.data.evolucaoEstoque || []
-    dadosDistribuicao        = resposta.data.distribuicaoCategorias || []
+    resumo.value                 = resposta.data.resumo
+    movimentosRecentes.value     = resposta.data.movimentosRecentes || []
+    topProdutos.value            = resposta.data.topProdutos || []
+    produtosEstoqueCritico.value = resposta.data.produtosEstoqueCritico || []
+    dadosEvolucao                = resposta.data.evolucaoEstoque || []
+    dadosDistribuicao            = resposta.data.distribuicaoCategorias || []
   } catch (erro) {
     console.error('Erro ao carregar dashboard:', erro)
   } finally {

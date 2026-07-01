@@ -16,9 +16,18 @@ class DashboardController extends Controller
         $totalLotes = Lote::count();
         $totalItens = ItemLote::count();
 
-        $estoqueCritico = ItemLote::whereColumn('quantidade', '<=', 'estoque_minimo')
+        $produtosEstoqueCritico = ItemLote::whereColumn('quantidade', '<=', 'estoque_minimo')
             ->where('estoque_minimo', '>', 0)
-            ->count();
+            ->get()
+            ->map(fn($i) => [
+                'id'             => $i->id_item,
+                'nome'           => $i->nome,
+                'quantidade'     => $i->quantidade,
+                'estoque_minimo' => $i->estoque_minimo,
+                'unidade_medida' => $i->unidade_medida,
+            ]);
+
+        $estoqueCritico = $produtosEstoqueCritico->count();
 
         $vencendoEm30Dias = ItemLote::whereNotNull('data_validade')
             ->whereBetween('data_validade', [$hoje, $em30dias])
@@ -107,6 +116,7 @@ class DashboardController extends Controller
                 'vencendoEm30Dias' => $vencendoEm30Dias,
                 'totalCategorias'  => $totalCategorias,
             ],
+            'produtosEstoqueCritico' => $produtosEstoqueCritico,
             'movimentosRecentes'     => $movimentosRecentes,
             'evolucaoEstoque'        => $evolucao,
             'distribuicaoCategorias' => $distribuicao,

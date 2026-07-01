@@ -1,12 +1,12 @@
 <template>
-  <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50" @click.self="$emit('fechar')">
+ <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-lg">
 
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-lg font-bold text-white">
           {{ ehEdicao ? 'Editar Lote' : 'Novo Lote' }}
         </h2>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-white">
+        <button @click="tentarFechar" class="text-slate-400 hover:text-white">
           <X :size="20" />
         </button>
       </div>
@@ -39,7 +39,7 @@
         </div>
 
         <div class="flex justify-end gap-3">
-          <button type="button" @click="$emit('fechar')" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-800 transition">
+          <button type="button" @click="tentarFechar" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-800 transition">
             Cancelar
           </button>
           <button type="submit" :disabled="salvando" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
@@ -66,11 +66,31 @@ const ehEdicao = computed(() => !!props.lote)
 const salvando = ref(false)
 const erro     = ref('')
 
+const numeroOriginal      = props.lote?.numero_lote  || ''
+const dataEntradaOriginal = props.lote?.data_entrada || new Date().toISOString().split('T')[0]
+const descricaoOriginal   = props.lote?.descricao    || ''
+
 const formulario = ref({
-  numero:       props.lote?.numero_lote  || '',
-  data_entrada: props.lote?.data_entrada || new Date().toISOString().split('T')[0],
-  descricao:    props.lote?.descricao    || '',
+  numero:       numeroOriginal,
+  data_entrada: dataEntradaOriginal,
+  descricao:    descricaoOriginal,
 })
+
+const temAlteracoes = computed(() => {
+  return (
+    formulario.value.numero       !== numeroOriginal ||
+    formulario.value.data_entrada !== dataEntradaOriginal ||
+    formulario.value.descricao    !== descricaoOriginal
+  )
+})
+
+function tentarFechar() {
+  if (temAlteracoes.value) {
+    const confirmar = window.confirm('Você tem informações não salvas. Deseja realmente descartar e fechar?')
+    if (!confirmar) return
+  }
+  emit('fechar')
+}
 
 async function salvar() {
   erro.value     = ''

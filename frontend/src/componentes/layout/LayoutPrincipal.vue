@@ -309,9 +309,11 @@ const itensDoMenu = computed(() => {
     { nome: 'Relatórios',     rota: '/relatorios',    icone: FileText        },
     { nome: 'Rel. Avançados', rota: '/rel-avancados', icone: BarChart3       },
     { nome: 'Import/Export',  rota: '/importexport',  icone: Download        },
-    { nome: 'Log',            rota: '/log',           icone: Shield          },
   ]
-  if (autenticacao.ehAdmin) menus.push({ nome: 'Usuários', rota: '/usuarios', icone: Users })
+  if (autenticacao.ehAdmin) {
+    menus.push({ nome: 'Log',      rota: '/log',      icone: Shield })
+    menus.push({ nome: 'Usuários', rota: '/usuarios', icone: Users  })
+  }
   return menus
 })
 

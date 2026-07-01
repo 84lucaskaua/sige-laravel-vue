@@ -16,8 +16,9 @@ class PerfilController extends Controller
         $usuario = Auth::user();
 
         $request->validate([
-            'nome'  => 'required|string|max:255',
-            'foto'  => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'nome'         => 'required|string|max:255',
+            'foto'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'remover_foto' => 'nullable|boolean',
         ]);
 
         $usuario->name = $request->nome;
@@ -30,6 +31,12 @@ class PerfilController extends Controller
 
             $caminho = $request->file('foto')->store('fotos', 'public');
             $usuario->foto_url = $caminho;
+        } elseif ($request->boolean('remover_foto')) {
+            // Remove a foto sem enviar uma nova
+            if ($usuario->foto_url) {
+                Storage::disk('public')->delete($usuario->foto_url);
+            }
+            $usuario->foto_url = null;
         }
 
         $usuario->save();

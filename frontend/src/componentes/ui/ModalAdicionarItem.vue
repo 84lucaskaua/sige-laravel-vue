@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50" @click.self="$emit('fechar')">
+  <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
 
       <div class="flex justify-between items-center mb-6">
@@ -7,7 +7,7 @@
           <h2 class="text-lg font-bold text-white">Adicionar Item ao Lote {{ lote?.numero_lote }}</h2>
           <p class="text-slate-400 text-xs mt-0.5">Preencha as informações do produto para adicionar ao lote.</p>
         </div>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-white">
+        <button @click="tentarFechar" class="text-slate-400 hover:text-white">
           <X :size="20" />
         </button>
       </div>
@@ -101,7 +101,7 @@
         </div>
 
         <div class="flex justify-end gap-3">
-          <button type="button" @click="$emit('fechar')"
+          <button type="button" @click="tentarFechar"
             class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-800 transition">
             Cancelar
           </button>
@@ -117,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import api from '@/servicos/api'
 
@@ -141,6 +141,28 @@ const form = ref({
   prioridade_abc: '',
   categoria:      '',
 })
+
+const temAlteracoes = computed(() => {
+  return !!(
+    form.value.sku ||
+    form.value.nome ||
+    form.value.quantidade ||
+    form.value.estoque_minimo ||
+    form.value.data_validade ||
+    form.value.fornecedor ||
+    form.value.localizacao ||
+    form.value.prioridade_abc ||
+    form.value.categoria
+  )
+})
+
+function tentarFechar() {
+  if (temAlteracoes.value) {
+    const confirmar = window.confirm('Você tem informações não salvas. Deseja realmente descartar e fechar?')
+    if (!confirmar) return
+  }
+  emit('fechar')
+}
 
 async function salvar() {
   erro.value     = ''
