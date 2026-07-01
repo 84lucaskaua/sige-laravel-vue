@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50" @click.self="$emit('fechar')">
+  <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6">
 
       <!-- Cabeçalho -->
