@@ -51,7 +51,6 @@
             <th class="px-4 py-3">Lotes</th>
             <th class="px-4 py-3">Status Validade</th>
             <th class="px-4 py-3">Status Estoque</th>
-            <th class="px-4 py-3">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -84,16 +83,6 @@
                 {{ estoqueBaixo(item) ? '↓ Baixo' : 'OK' }}
               </span>
             </td>
-            <td class="px-4 py-3">
-              <button
-                v-if="autenticacao.ehAdmin"
-                @click="desativarProduto(item)"
-                class="text-red-400 hover:text-red-300 transition-colors"
-                title="Excluir"
-              >
-                🗑
-              </button>
-            </td>
           </tr>
         </tbody>
       </table>
@@ -120,10 +109,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 
-const autenticacao       = useAutenticacaoStore()
 const produtos           = ref([])
 const carregando         = ref(false)
 const termoDeBusca       = ref('')
@@ -205,16 +192,6 @@ async function carregarProdutos() {
 function buscarComAtraso() {
   clearTimeout(temporizadorBusca)
   temporizadorBusca = setTimeout(carregarProdutos, 400)
-}
-
-async function desativarProduto(item) {
-  if (!confirm(`Tem certeza que deseja remover "${item.nome}"?`)) return
-  try {
-    await api.delete(`/produtos/${item.id_item}`)
-    produtos.value = produtos.value.filter(i => i.id_item !== item.id_item)
-  } catch {
-    alert('Não foi possível remover o produto.')
-  }
 }
 
 onMounted(carregarProdutos)
