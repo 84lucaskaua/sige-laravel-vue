@@ -29,9 +29,22 @@ class DashboardController extends Controller
 
         $estoqueCritico = $produtosEstoqueCritico->count();
 
-        $vencendoEm30Dias = ItemLote::whereNotNull('data_validade')
+        $produtosVencendo = ItemLote::with('lote')
+            ->whereNotNull('data_validade')
             ->whereBetween('data_validade', [$hoje, $em30dias])
-            ->count();
+            ->orderBy('data_validade')
+            ->get()
+            ->map(fn($i) => [
+                'id'             => $i->id_item,
+                'nome'           => $i->nome,
+                'lote'           => $i->lote?->numero_lote,
+                'data_validade'  => $i->data_validade,
+                'dias_restantes' => Carbon::today()->diffInDays(Carbon::parse($i->data_validade), false),
+                'quantidade'     => $i->quantidade,
+                'unidade_medida' => $i->unidade_medida,
+            ]);
+
+        $vencendoEm30Dias = $produtosVencendo->count();
 
         $totalCategorias = ItemLote::whereNotNull('categoria')
             ->where('categoria', '!=', '')
@@ -117,6 +130,7 @@ class DashboardController extends Controller
                 'totalCategorias'  => $totalCategorias,
             ],
             'produtosEstoqueCritico' => $produtosEstoqueCritico,
+            'produtosVencendo'       => $produtosVencendo,
             'movimentosRecentes'     => $movimentosRecentes,
             'evolucaoEstoque'        => $evolucao,
             'distribuicaoCategorias' => $distribuicao,

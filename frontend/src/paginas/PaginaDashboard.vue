@@ -79,8 +79,27 @@
           </h2>
           <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
             <div v-if="resumo.vencendoEm30Dias > 0" class="bg-red-900/20 border border-red-900 rounded-lg p-4">
-              <p class="text-red-400 font-medium">{{ resumo.vencendoEm30Dias }} lote(s) vencendo em 30 dias</p>
-              <p class="text-red-300 text-sm mt-1">Verificar validade e priorizar saída (FEFO)</p>
+              <p class="text-red-400 font-medium">{{ resumo.vencendoEm30Dias }} produto(s) vencendo em 30 dias</p>
+              <p class="text-red-300 text-sm mt-1 mb-3">Verificar validade e priorizar saída (FEFO)</p>
+
+              <div class="space-y-2">
+                <div
+                  v-for="produto in produtosVencendo"
+                  :key="produto.id"
+                  class="flex items-center justify-between bg-red-950/40 border border-red-900/50 rounded-md px-3 py-2"
+                >
+                  <div class="flex flex-col">
+                    <span class="text-sm text-red-100 font-medium">{{ produto.nome }}</span>
+                    <span class="text-xs text-red-300">Lote: {{ produto.lote || '—' }}</span>
+                  </div>
+                  <div class="flex flex-col items-end">
+                    <span class="text-xs text-red-300">{{ formatarDataSimples(produto.data_validade) }}</span>
+                    <span class="text-xs font-semibold" :class="produto.dias_restantes <= 7 ? 'text-red-400' : 'text-amber-400'">
+                      {{ produto.dias_restantes <= 0 ? 'Vence hoje' : `${produto.dias_restantes} dia(s)` }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div v-if="resumo.estoqueCritico > 0" class="bg-orange-900/20 border border-orange-900 rounded-lg p-4">
@@ -238,6 +257,7 @@ const graficoPizza          = ref(null)
 const movimentosRecentes    = ref([])
 const topProdutos           = ref([])
 const produtosEstoqueCritico = ref([])
+const produtosVencendo      = ref([])
 const semDadosPizza         = ref(false)
 
 const resumo = ref({
@@ -259,6 +279,13 @@ function formatarData(data) {
   })
 }
 
+function formatarDataSimples(data) {
+  if (!data) return '—'
+  return new Date(data).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  })
+}
+
 async function carregarDashboard() {
   carregando.value = true
   let dadosEvolucao = []
@@ -270,6 +297,7 @@ async function carregarDashboard() {
     movimentosRecentes.value     = resposta.data.movimentosRecentes || []
     topProdutos.value            = resposta.data.topProdutos || []
     produtosEstoqueCritico.value = resposta.data.produtosEstoqueCritico || []
+    produtosVencendo.value       = resposta.data.produtosVencendo || []
     dadosEvolucao                = resposta.data.evolucaoEstoque || []
     dadosDistribuicao            = resposta.data.distribuicaoCategorias || []
   } catch (erro) {
