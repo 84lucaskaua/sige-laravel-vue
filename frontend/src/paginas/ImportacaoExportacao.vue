@@ -2,35 +2,35 @@
   <div class="p-6 space-y-6">
     <!-- Header -->
     <div>
-      <h1 class="text-2xl font-bold text-white">Importação e Exportação</h1>
-      <p class="text-gray-400 text-sm mt-1">Gerencie importação de dados e exportação de relatórios</p>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Importação e Exportação</h1>
+      <p class="text-slate-500 dark:text-gray-400 text-sm mt-1">Gerencie importação de dados e exportação de relatórios</p>
     </div>
 
     <!-- Cards de Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <div v-for="card in statsCards" :key="card.label"
-        class="bg-[#1e1e2e] border border-gray-700 rounded-lg p-4 flex items-center gap-4">
+        class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 flex items-center gap-4">
         <div :class="card.bg" class="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl">
           <i :class="card.icon"></i>
         </div>
         <div>
-          <p class="text-gray-400 text-sm">{{ card.label }}</p>
-          <p class="text-white text-2xl font-bold">{{ stats[card.key] ?? 0 }}</p>
+          <p class="text-slate-500 dark:text-gray-400 text-sm">{{ card.label }}</p>
+          <p class="text-slate-900 dark:text-white text-2xl font-bold">{{ stats[card.key] ?? 0 }}</p>
         </div>
       </div>
     </div>
 
     <!-- Exportar -->
-    <div class="bg-[#1a1a2e] border border-gray-700 rounded-xl p-6">
-      <h2 class="text-green-400 font-semibold text-lg mb-4 flex items-center gap-2">
+    <div class="bg-slate-50 dark:bg-[#1a1a2e] border border-slate-200 dark:border-gray-700 rounded-xl p-6">
+      <h2 class="text-green-600 dark:text-green-400 font-semibold text-lg mb-4 flex items-center gap-2">
         <i class="fas fa-download"></i> Exportar Dados
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Backup JSON -->
-        <div class="bg-[#1e1e2e] border border-gray-700 rounded-lg p-4 space-y-3">
+        <div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
           <div>
-            <p class="text-white font-semibold">Backup Completo</p>
-            <p class="text-gray-400 text-sm">Exporta todos os dados do sistema em formato JSON</p>
+            <p class="text-slate-900 dark:text-white font-semibold">Backup Completo</p>
+            <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta todos os dados do sistema em formato JSON</p>
           </div>
           <button @click="exportar('backup')" :disabled="loadingExport.backup"
             class="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
@@ -40,10 +40,10 @@
         </div>
 
         <!-- Produtos CSV -->
-        <div class="bg-[#1e1e2e] border border-gray-700 rounded-lg p-4 space-y-3">
+        <div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
           <div>
-            <p class="text-white font-semibold">Produtos (CSV)</p>
-            <p class="text-gray-400 text-sm">Exporta cadastro de produtos com estoque atual</p>
+            <p class="text-slate-900 dark:text-white font-semibold">Produtos (CSV)</p>
+            <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta cadastro de produtos com estoque atual</p>
           </div>
           <button @click="exportar('produtos-csv')" :disabled="loadingExport.produtos"
             class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
@@ -53,10 +53,10 @@
         </div>
 
         <!-- Movimentações CSV -->
-        <div class="bg-[#1e1e2e] border border-gray-700 rounded-lg p-4 space-y-3">
+        <div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
           <div>
-            <p class="text-white font-semibold">Movimentações (CSV)</p>
-            <p class="text-gray-400 text-sm">Exporta histórico de entradas e saídas</p>
+            <p class="text-slate-900 dark:text-white font-semibold">Movimentações (CSV)</p>
+            <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta histórico de entradas e saídas</p>
           </div>
           <button @click="exportar('movimentacoes-csv')" :disabled="loadingExport.movimentacoes"
             class="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
@@ -68,33 +68,33 @@
     </div>
 
     <!-- Importar -->
-    <div class="bg-[#1a1a2e] border border-gray-700 rounded-xl p-6">
-      <h2 class="text-blue-400 font-semibold text-lg mb-4 flex items-center gap-2">
+    <div class="bg-slate-50 dark:bg-[#1a1a2e] border border-slate-200 dark:border-gray-700 rounded-xl p-6">
+      <h2 class="text-blue-600 dark:text-blue-400 font-semibold text-lg mb-4 flex items-center gap-2">
         <i class="fas fa-upload"></i> Importar Dados
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
         <!-- Importar Excel -->
-        <div class="bg-[#1e1e2e] border border-gray-700 rounded-lg p-4 space-y-3">
+        <div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
           <div>
-            <p class="text-white font-semibold">Planilha Excel (.xlsx)</p>
-            <p class="text-gray-400 text-sm">
+            <p class="text-slate-900 dark:text-white font-semibold">Planilha Excel (.xlsx)</p>
+            <p class="text-slate-500 dark:text-gray-400 text-sm">
               Importa produtos do almoxarifado. Mesmo produto com validade diferente gera novo lote.
             </p>
           </div>
           <div class="space-y-2">
-            <label class="text-gray-400 text-xs">Selecione o arquivo Excel</label>
-            <label class="flex items-center gap-2 bg-[#2a2a3e] border border-gray-600 rounded-lg px-3 py-2 cursor-pointer hover:border-blue-500 transition">
-              <i class="fas fa-folder-open text-gray-400"></i>
-              <span class="text-gray-300 text-sm truncate">
+            <label class="text-slate-500 dark:text-gray-400 text-xs">Selecione o arquivo Excel</label>
+            <label class="flex items-center gap-2 bg-slate-100 dark:bg-[#2a2a3e] border border-slate-300 dark:border-gray-600 rounded-lg px-3 py-2 cursor-pointer hover:border-blue-500 transition">
+              <i class="fas fa-folder-open text-slate-400 dark:text-gray-400"></i>
+              <span class="text-slate-600 dark:text-gray-300 text-sm truncate">
                 {{ arquivoExcel ? arquivoExcel.name : 'Nenhum arquivo escolhido' }}
               </span>
               <input type="file" accept=".xlsx,.xls" class="hidden" @change="onArquivoExcel" />
             </label>
 
             <!-- Preview das colunas esperadas -->
-            <div class="bg-[#0f1a2e] border border-blue-900 rounded-lg px-3 py-2 text-xs text-blue-300 space-y-1">
-              <p class="font-semibold text-blue-400">Colunas lidas da planilha:</p>
+            <div class="bg-blue-50 dark:bg-[#0f1a2e] border border-blue-200 dark:border-blue-900 rounded-lg px-3 py-2 text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              <p class="font-semibold text-blue-700 dark:text-blue-400">Colunas lidas da planilha:</p>
               <p>CÓDIGO · DESCRIÇÃO · UNIDADE · SALDO · VALIDADE</p>
             </div>
 
@@ -108,21 +108,21 @@
         </div>
 
         <!-- Restaurar Backup -->
-        <div class="bg-[#1e1e2e] border border-gray-700 rounded-lg p-4 space-y-3">
+        <div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
           <div>
-            <p class="text-white font-semibold">Restaurar Backup</p>
-            <p class="text-gray-400 text-sm">Restaura backup completo do sistema (JSON)</p>
+            <p class="text-slate-900 dark:text-white font-semibold">Restaurar Backup</p>
+            <p class="text-slate-500 dark:text-gray-400 text-sm">Restaura backup completo do sistema (JSON)</p>
           </div>
           <div class="space-y-2">
-            <label class="text-gray-400 text-xs">Selecione o arquivo JSON</label>
-            <label class="flex items-center gap-2 bg-[#2a2a3e] border border-gray-600 rounded-lg px-3 py-2 cursor-pointer hover:border-red-500 transition">
-              <i class="fas fa-folder-open text-gray-400"></i>
-              <span class="text-gray-300 text-sm truncate">
+            <label class="text-slate-500 dark:text-gray-400 text-xs">Selecione o arquivo JSON</label>
+            <label class="flex items-center gap-2 bg-slate-100 dark:bg-[#2a2a3e] border border-slate-300 dark:border-gray-600 rounded-lg px-3 py-2 cursor-pointer hover:border-red-500 transition">
+              <i class="fas fa-folder-open text-slate-400 dark:text-gray-400"></i>
+              <span class="text-slate-600 dark:text-gray-300 text-sm truncate">
                 {{ arquivoJSON ? arquivoJSON.name : 'Nenhum arquivo escolhido' }}
               </span>
               <input type="file" accept=".json" class="hidden" @change="onArquivoJSON" />
             </label>
-            <div class="bg-red-900/40 border border-red-700 rounded-lg px-3 py-2 flex items-center gap-2 text-red-400 text-xs">
+            <div class="bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-700 rounded-lg px-3 py-2 flex items-center gap-2 text-red-600 dark:text-red-400 text-xs">
               <i class="fas fa-triangle-exclamation"></i>
               Substitui todos os dados atuais
             </div>
@@ -136,11 +136,11 @@
         </div>
 
         <!-- Info formato -->
-        <div class="bg-[#1a2744] border border-blue-800 rounded-lg p-4 space-y-3">
-          <p class="text-blue-300 font-semibold flex items-center gap-2">
+        <div class="bg-blue-50 dark:bg-[#1a2744] border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3">
+          <p class="text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-2">
             <i class="fas fa-circle-info"></i> Como funciona a importação
           </p>
-          <ul class="text-blue-200 text-xs space-y-2">
+          <ul class="text-blue-600 dark:text-blue-200 text-xs space-y-2">
             <li>✅ Lê a planilha do almoxarifado diretamente</li>
             <li>✅ Ignora linhas de agrupamento (LETRA A, LETRA B...)</li>
             <li>✅ Converte validade serial do Excel automaticamente</li>
@@ -153,22 +153,22 @@
     </div>
 
     <!-- Resultado da importação -->
-    <div v-if="resultadoImport" class="bg-[#1a2e1a] border border-green-700 rounded-xl p-5 space-y-2">
-      <p class="text-green-400 font-semibold flex items-center gap-2">
+    <div v-if="resultadoImport" class="bg-green-50 dark:bg-[#1a2e1a] border border-green-300 dark:border-green-700 rounded-xl p-5 space-y-2">
+      <p class="text-green-700 dark:text-green-400 font-semibold flex items-center gap-2">
         <i class="fas fa-check-circle"></i> {{ resultadoImport.message }}
       </p>
       <div class="grid grid-cols-3 gap-4 mt-2">
         <div class="text-center">
-          <p class="text-2xl font-bold text-white">{{ resultadoImport.produtos_novos }}</p>
-          <p class="text-gray-400 text-xs">Produtos criados</p>
+          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ resultadoImport.produtos_novos }}</p>
+          <p class="text-slate-500 dark:text-gray-400 text-xs">Produtos criados</p>
         </div>
         <div class="text-center">
-          <p class="text-2xl font-bold text-white">{{ resultadoImport.lotes_criados }}</p>
-          <p class="text-gray-400 text-xs">Lotes criados</p>
+          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ resultadoImport.lotes_criados }}</p>
+          <p class="text-slate-500 dark:text-gray-400 text-xs">Lotes criados</p>
         </div>
         <div class="text-center">
-          <p class="text-2xl font-bold text-white">{{ resultadoImport.ignorados }}</p>
-          <p class="text-gray-400 text-xs">Linhas ignoradas</p>
+          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ resultadoImport.ignorados }}</p>
+          <p class="text-slate-500 dark:text-gray-400 text-xs">Linhas ignoradas</p>
         </div>
       </div>
     </div>
@@ -185,14 +185,14 @@
 
     <!-- Modal confirmação restaurar -->
     <div v-if="modalRestaurar" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-      <div class="bg-[#1e1e2e] border border-red-700 rounded-xl p-6 max-w-sm w-full mx-4 space-y-4">
-        <p class="text-white font-semibold text-lg">⚠️ Atenção!</p>
-        <p class="text-gray-300 text-sm">
-          Esta ação irá <strong class="text-red-400">apagar todos os dados atuais</strong> e substituir pelo backup selecionado. Essa ação não pode ser desfeita.
+      <div class="bg-white dark:bg-[#1e1e2e] border border-red-300 dark:border-red-700 rounded-xl p-6 max-w-sm w-full mx-4 space-y-4">
+        <p class="text-slate-900 dark:text-white font-semibold text-lg">⚠️ Atenção!</p>
+        <p class="text-slate-600 dark:text-gray-300 text-sm">
+          Esta ação irá <strong class="text-red-600 dark:text-red-400">apagar todos os dados atuais</strong> e substituir pelo backup selecionado. Essa ação não pode ser desfeita.
         </p>
         <div class="flex gap-3">
           <button @click="modalRestaurar = false"
-            class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg transition">
+            class="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-900 dark:text-white py-2 rounded-lg transition">
             Cancelar
           </button>
           <button @click="restaurarBackup"

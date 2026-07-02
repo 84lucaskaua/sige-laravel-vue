@@ -375,7 +375,7 @@ const tabAtiva            = ref(null)
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 
 // ===== Controle de PIN por SESSÃO (até logout) =====
-const PIN_CORRETO = '8401'
+
 
 const modalPinAberto    = ref(false)
 const pinDigitado       = ref('')
@@ -394,8 +394,11 @@ function aoClicarTab(idLote) {
   modalPinAberto.value = true
 }
 
-function verificarPin() {
-  if (pinDigitado.value === PIN_CORRETO) {
+async function verificarPin() {
+  erroPin.value = ''
+  try {
+    await api.post('/perfil/verificar-pin', { pin: pinDigitado.value })
+
     pinValido.value = true
     sessionStorage.setItem('lotes_pin_valido', 'true')
     if (loteAlvoPendente.value !== null) {
@@ -403,10 +406,9 @@ function verificarPin() {
     }
     modalPinAberto.value = false
     pinDigitado.value = ''
-    erroPin.value = ''
     loteAlvoPendente.value = null
-  } else {
-    erroPin.value = 'PIN incorreto. Tente novamente.'
+  } catch (e) {
+    erroPin.value = e.response?.data?.message || 'PIN incorreto. Tente novamente.'
     pinDigitado.value = ''
   }
 }

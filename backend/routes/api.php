@@ -38,6 +38,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/perfil',       [PerfilController::class, 'atualizar']);
     Route::post('/perfil',      [PerfilController::class, 'atualizar']);
     Route::put('/perfil/senha', [PerfilController::class, 'alterarSenha']);
+       Route::put('/perfil/pin',   [PerfilController::class, 'definirPin']);
+    Route::post('/perfil/verificar-pin', [PerfilController::class, 'verificarPin']);
 
     Route::get('/produtos',         [ProdutoController::class, 'index']);
     Route::delete('/produtos/{id}', [ProdutoController::class, 'destroy']);

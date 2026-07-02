@@ -1,11 +1,11 @@
 <template>
-  <div class="p-6 min-h-screen bg-black text-white">
+  <div class="p-6 min-h-screen bg-white dark:bg-black text-slate-900 dark:text-white">
 
     <!-- Cabeçalho -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-white">Gerenciamento de Usuários</h1>
-        <p class="text-sm text-slate-400">Cadastre e gerencie usuários do sistema</p>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Gerenciamento de Usuários</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Cadastre e gerencie usuários do sistema</p>
       </div>
       <button
         @click="abrirModalNovoUsuario"
@@ -18,34 +18,34 @@
 
     <!-- Busca -->
     <div class="relative mb-6">
-      <Search :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+      <Search :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
       <input
         v-model="busca"
         type="text"
         placeholder="Buscar por nome ou email..."
-        class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-slate-500 outline-none focus:border-blue-500 transition"
+        class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition"
       />
     </div>
 
     <!-- Carregando -->
-    <div v-if="carregando" class="text-center py-12 text-slate-400">
+    <div v-if="carregando" class="text-center py-12 text-slate-500 dark:text-slate-400">
       Carregando usuários...
     </div>
 
     <!-- Sem usuários -->
-    <div v-else-if="usuariosFiltrados.length === 0" class="rounded-xl bg-slate-900 border border-slate-800 p-16 text-center">
-      <UserX class="mx-auto mb-4 text-slate-600" :size="48" />
-      <h2 class="text-xl font-bold text-white mb-2">Nenhum usuário encontrado</h2>
-      <p class="text-slate-400">
+    <div v-else-if="usuariosFiltrados.length === 0" class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-16 text-center">
+      <UserX class="mx-auto mb-4 text-slate-400 dark:text-slate-600" :size="48" />
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Nenhum usuário encontrado</h2>
+      <p class="text-slate-500 dark:text-slate-400">
         {{ busca ? 'Tente buscar por outro nome ou email.' : 'Crie o primeiro usuário do sistema.' }}
       </p>
     </div>
 
     <!-- Tabela de usuários -->
-    <div v-else class="rounded-xl bg-slate-900 border border-slate-800 overflow-hidden mb-6">
+    <div v-else class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden mb-6">
       <table class="w-full text-sm">
         <thead>
-          <tr class="text-slate-400 border-b border-slate-800">
+          <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
             <th class="text-left px-6 py-4 font-medium">Nome</th>
             <th class="text-left px-6 py-4 font-medium">Email</th>
             <th class="text-left px-6 py-4 font-medium">Tipo</th>
@@ -53,21 +53,21 @@
             <th class="text-right px-6 py-4 font-medium">Ações</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-800">
-          <tr v-for="usuario in usuariosFiltrados" :key="usuario.id" class="hover:bg-slate-800/50 transition">
-            <td class="px-6 py-4 text-white font-medium">{{ usuario.name }}</td>
-            <td class="px-6 py-4 text-slate-400">{{ usuario.email }}</td>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          <tr v-for="usuario in usuariosFiltrados" :key="usuario.id" class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition">
+            <td class="px-6 py-4 text-slate-900 dark:text-white font-medium">{{ usuario.name }}</td>
+            <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ usuario.email }}</td>
             <td class="px-6 py-4">
               <span :class="corDoPerfil[usuario.perfil]" class="px-3 py-1 rounded-md text-xs font-semibold">
                 {{ nomeDoPerfil[usuario.perfil] || usuario.perfil }}
               </span>
             </td>
-            <td class="px-6 py-4 text-slate-400">{{ formatarData(usuario.created_at) }}</td>
+            <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ formatarData(usuario.created_at) }}</td>
             <td class="px-6 py-4">
               <div class="flex items-center justify-end gap-2">
                 <button
                   @click="abrirModalEdicao(usuario)"
-                  class="p-2 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition"
+                  class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition"
                   title="Editar"
                 >
                   <Pencil :size="16" />
@@ -75,7 +75,7 @@
                 <button
                   @click="excluirUsuario(usuario)"
                   :disabled="usuario.id === autenticacao.usuario?.id"
-                  class="p-2 rounded-lg border border-red-800 bg-red-900/30 text-red-400 hover:bg-red-900/50 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                  class="p-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Excluir"
                 >
                   <Trash2 :size="16" />
@@ -89,13 +89,13 @@
 
     <!-- Cards de totais -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div class="rounded-xl bg-slate-900 border border-slate-800 p-5">
-        <p class="text-sm text-slate-400 mb-2">Total de Usuários</p>
-        <p class="text-3xl font-bold text-white">{{ usuarios.length }}</p>
+      <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">Total de Usuários</p>
+        <p class="text-3xl font-bold text-slate-900 dark:text-white">{{ usuarios.length }}</p>
       </div>
-      <div class="rounded-xl bg-slate-900 border border-slate-800 p-5">
-        <p class="text-sm text-slate-400 mb-2">Administradores</p>
-        <p class="text-3xl font-bold text-blue-500">{{ totalAdministradores }}</p>
+      <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">Administradores</p>
+        <p class="text-3xl font-bold text-blue-600 dark:text-blue-500">{{ totalAdministradores }}</p>
       </div>
     </div>
 
@@ -128,8 +128,8 @@ const usuarioSelecionado = ref(null)
 
 const corDoPerfil = {
   root:         'bg-blue-600 text-white',
-  operador:     'bg-slate-700 text-slate-200',
-  visualizador: 'bg-slate-700 text-slate-200',
+  operador:     'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200',
+  visualizador: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200',
 }
 
 const nomeDoPerfil = {

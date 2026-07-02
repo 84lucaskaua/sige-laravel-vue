@@ -79,4 +79,59 @@ class PerfilController extends Controller
             'mensagem' => 'Senha alterada com sucesso!',
         ]);
     }
+    public function definirPin(Request $request)
+    {
+        /** @var User $usuario */
+        $usuario = Auth::user();
+
+        $request->validate([
+            'pin_atual'             => 'nullable|string',
+            'novo_pin'              => 'required|string|size:4|regex:/^[0-9]{4}$/',
+            'novo_pin_confirmation' => 'required|same:novo_pin',
+        ]);
+
+        // Se o usuário já tem um PIN, exige o PIN atual para trocar
+        if ($usuario->pin) {
+            if (!$request->pin_atual || !Hash::check($request->pin_atual, $usuario->pin)) {
+                return response()->json([
+                    'message' => 'PIN atual incorreto.',
+                ], 422);
+            }
+        }
+
+        $usuario->pin = $request->novo_pin;
+        $usuario->save();
+
+        return response()->json([
+            'mensagem' => 'PIN definido com sucesso!',
+        ]);
+    }
+
+    public function verificarPin(Request $request)
+    {
+        /** @var User $usuario */
+        $usuario = Auth::user();
+
+        $request->validate([
+            'pin' => 'required|string|size:4',
+        ]);
+
+        if (!$usuario->pin) {
+            return response()->json([
+                'valido'  => false,
+                'message' => 'Você ainda não definiu um PIN. Acesse seu perfil para criar um.',
+            ], 422);
+        }
+
+        if (!Hash::check($request->pin, $usuario->pin)) {
+            return response()->json([
+                'valido'  => false,
+                'message' => 'PIN incorreto.',
+            ], 422);
+        }
+
+        return response()->json([
+            'valido' => true,
+        ]);
+    }
 }

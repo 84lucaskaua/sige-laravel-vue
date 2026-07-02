@@ -1,22 +1,22 @@
 <template>
-  <div class="flex h-screen bg-black">
+  <div class="flex h-screen bg-white dark:bg-black">
 
     <!-- ===== SIDEBAR ===== -->
-    <aside class="bg-slate-900 border-slate-800 border-r flex flex-col transition-all duration-300"
+    <aside class="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 border-r flex flex-col transition-all duration-300"
       :class="expandido ? 'w-64' : 'w-16'">
 
       <!-- Logo -->
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between min-h-[65px]">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between min-h-[65px]">
         <div v-if="expandido" class="flex items-center gap-3">
           <img :src="logo" alt="Senac" class="h-8" />
           <div>
-            <h1 class="text-base font-bold text-white">SIGE</h1>
-            <p class="text-xs text-slate-400">Sistema de Estoque</p>
+            <h1 class="text-base font-bold text-slate-900 dark:text-white">SIGE</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Sistema de Estoque</p>
           </div>
         </div>
         <button
           @click="expandido = !expandido"
-          class="transition p-1 rounded-lg ml-auto text-slate-400 hover:text-white hover:bg-slate-800"
+          class="transition p-1 rounded-lg ml-auto text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <Menu v-if="!expandido" :size="20" />
           <X v-else :size="20" />
@@ -24,20 +24,20 @@
       </div>
 
       <!-- Usuário -->
-      <div v-if="expandido" class="px-4 py-4 border-b border-slate-800">
+      <div v-if="expandido" class="px-4 py-4 border-b border-slate-200 dark:border-slate-800">
         <div class="flex items-center gap-3 mb-3">
           <div class="w-9 h-9 rounded-full bg-blue-600 overflow-hidden flex items-center justify-center text-sm font-bold text-white shrink-0">
             <img v-if="usuario?.foto_url" :src="usuario.foto_url" class="w-full h-full object-cover" />
             <span v-else>{{ iniciaisDoUsuario }}</span>
           </div>
           <div>
-            <p class="text-sm font-medium text-white">{{ usuario?.name }}</p>
-            <p class="text-xs capitalize text-slate-400">{{ usuario?.perfil }}</p>
+            <p class="text-sm font-medium text-slate-900 dark:text-white">{{ usuario?.name }}</p>
+            <p class="text-xs capitalize text-slate-500 dark:text-slate-400">{{ usuario?.perfil }}</p>
           </div>
         </div>
         <RouterLink
           to="/perfil"
-          class="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg transition text-slate-400 hover:text-white hover:bg-slate-800"
+          class="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <Settings :size="14" />
           Editar Perfil
@@ -45,7 +45,7 @@
       </div>
 
       <!-- Avatar colapsado -->
-      <div v-else class="flex justify-center py-4 border-b border-slate-800">
+      <div v-else class="flex justify-center py-4 border-b border-slate-200 dark:border-slate-800">
         <div class="w-8 h-8 rounded-full bg-blue-600 overflow-hidden flex items-center justify-center text-xs font-bold text-white">
           <img v-if="usuario?.foto_url" :src="usuario.foto_url" class="w-full h-full object-cover" />
           <span v-else>{{ iniciaisDoUsuario }}</span>
@@ -61,7 +61,7 @@
               :title="!expandido ? item.nome : ''"
               :class="[
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm',
-                'text-slate-400 hover:bg-slate-800 hover:text-white',
+                'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
                 !expandido && 'justify-center'
               ]"
               active-class="bg-blue-600 !text-white font-medium hover:bg-blue-600"
@@ -74,7 +74,22 @@
       </nav>
 
       <!-- Rodapé -->
-      <div class="p-2 border-t border-slate-800 space-y-0.5">
+      <div class="p-2 border-t border-slate-200 dark:border-slate-800 space-y-0.5">
+
+        <!-- Tema -->
+        <button
+          @click="tema.toggleTema"
+          :title="!expandido ? (tema.temaClaro ? 'Modo Escuro' : 'Modo Claro') : ''"
+          :class="[
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm',
+            'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+            !expandido && 'justify-center'
+          ]"
+        >
+          <Sun v-if="tema.temaClaro" :size="18" class="shrink-0" />
+          <Moon v-else :size="18" class="shrink-0" />
+          <span v-if="expandido">{{ tema.temaClaro ? 'Modo Escuro' : 'Modo Claro' }}</span>
+        </button>
 
         <!-- Notificações -->
         <button
@@ -82,7 +97,7 @@
           :title="!expandido ? 'Notificações' : ''"
           :class="[
             'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm',
-            'text-slate-400 hover:bg-slate-800 hover:text-white',
+            'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
             !expandido && 'justify-center'
           ]"
         >
@@ -102,7 +117,7 @@
           :title="!expandido ? 'Atalhos' : ''"
           :class="[
             'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm',
-            'text-slate-400 hover:bg-slate-800 hover:text-white',
+            'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
             !expandido && 'justify-center'
           ]"
         >
@@ -115,7 +130,7 @@
           @click="sair"
           :title="!expandido ? 'Sair' : ''"
           :class="[
-            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-900/20 hover:text-red-300 transition text-sm',
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-300 transition text-sm',
             !expandido && 'justify-center'
           ]"
         >
@@ -130,53 +145,53 @@
     <transition name="slide">
       <div
         v-if="painelAberto"
-        class="fixed right-0 top-0 h-full w-96 border-l z-50 flex flex-col shadow-2xl bg-slate-900 border-slate-800"
+        class="fixed right-0 top-0 h-full w-96 border-l z-50 flex flex-col shadow-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
       >
-        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <h2 class="font-bold text-base text-white">Notificações</h2>
-          <button @click="painelAberto = false" class="transition text-slate-400 hover:text-white">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+          <h2 class="font-bold text-base text-slate-900 dark:text-white">Notificações</h2>
+          <button @click="painelAberto = false" class="transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
             <X :size="18" />
           </button>
         </div>
 
-        <div class="flex border-b border-slate-800">
+        <div class="flex border-b border-slate-200 dark:border-slate-800">
           <button
             @click="aba = 'todas'"
-            :class="['flex-1 py-2.5 text-sm font-medium transition', aba === 'todas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800']"
+            :class="['flex-1 py-2.5 text-sm font-medium transition', aba === 'todas' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800']"
           >Todas ({{ notificacoes.length }})</button>
           <button
             @click="aba = 'nao_lidas'"
-            :class="['flex-1 py-2.5 text-sm font-medium transition', aba === 'nao_lidas' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800']"
+            :class="['flex-1 py-2.5 text-sm font-medium transition', aba === 'nao_lidas' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800']"
           >Não Lidas ({{ totalNaoLidas }})</button>
         </div>
 
         <div class="flex-1 overflow-y-auto">
-          <div v-if="carregando" class="flex items-center justify-center h-40 text-sm text-slate-400">Carregando...</div>
+          <div v-if="carregando" class="flex items-center justify-center h-40 text-sm text-slate-500 dark:text-slate-400">Carregando...</div>
           <div v-else-if="notificacoesFiltradas.length === 0" class="flex flex-col items-center justify-center h-64 gap-3">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-slate-800">
-              <Info :size="22" class="text-slate-500" />
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+              <Info :size="22" class="text-slate-400 dark:text-slate-500" />
             </div>
-            <p class="font-medium text-sm text-white">Nenhuma notificação</p>
-            <p class="text-xs text-slate-500">Você não tem notificações no momento</p>
+            <p class="font-medium text-sm text-slate-900 dark:text-white">Nenhuma notificação</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500">Você não tem notificações no momento</p>
           </div>
-          <div v-else class="divide-y divide-slate-800">
+          <div v-else class="divide-y divide-slate-200 dark:divide-slate-800">
             <div
               v-for="notif in notificacoesFiltradas"
               :key="notif.id"
               @click="marcarLida(notif)"
-              :class="['px-5 py-4 cursor-pointer transition hover:bg-slate-800/60', !notif.lida && 'border-l-2 border-blue-500']"
+              :class="['px-5 py-4 cursor-pointer transition hover:bg-slate-100 dark:hover:bg-slate-800/60', !notif.lida && 'border-l-2 border-blue-500']"
             >
               <div class="flex items-start gap-3">
                 <div :class="[
                   'w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5',
-                  notif.tipo === 'vencimento' ? 'bg-orange-900/40' : 'bg-red-900/40'
+                  notif.tipo === 'vencimento' ? 'bg-orange-100 dark:bg-orange-900/40' : 'bg-red-100 dark:bg-red-900/40'
                 ]">
-                  <AlertTriangle :size="16" :class="notif.tipo === 'vencimento' ? 'text-orange-400' : 'text-red-400'" />
+                  <AlertTriangle :size="16" :class="notif.tipo === 'vencimento' ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'" />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium leading-snug text-white">{{ notif.titulo }}</p>
-                  <p class="text-xs mt-0.5 leading-relaxed text-slate-400">{{ notif.descricao }}</p>
-                  <p class="text-xs mt-1.5 text-slate-600">{{ notif.tempo }}</p>
+                  <p class="text-sm font-medium leading-snug text-slate-900 dark:text-white">{{ notif.titulo }}</p>
+                  <p class="text-xs mt-0.5 leading-relaxed text-slate-500 dark:text-slate-400">{{ notif.descricao }}</p>
+                  <p class="text-xs mt-1.5 text-slate-400 dark:text-slate-600">{{ notif.tempo }}</p>
                 </div>
                 <div v-if="!notif.lida" class="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2"></div>
               </div>
@@ -184,8 +199,8 @@
           </div>
         </div>
 
-        <div v-if="notificacoes.length > 0" class="px-5 py-3 border-t border-slate-800">
-          <button @click="marcarTodasLidas" class="text-xs text-blue-400 hover:text-blue-300 transition">
+        <div v-if="notificacoes.length > 0" class="px-5 py-3 border-t border-slate-200 dark:border-slate-800">
+          <button @click="marcarTodasLidas" class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition">
             Marcar todas como lidas
           </button>
         </div>
@@ -198,19 +213,19 @@
     <transition name="slide">
       <div
         v-if="painelAtalhosAberto"
-        class="fixed right-0 top-0 h-full w-96 border-l z-50 flex flex-col shadow-2xl bg-slate-900 border-slate-800"
+        class="fixed right-0 top-0 h-full w-96 border-l z-50 flex flex-col shadow-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
       >
-        <div class="flex items-start justify-between px-5 py-4 border-b border-slate-800">
+        <div class="flex items-start justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-600/20">
-              <Keyboard :size="18" class="text-blue-400" />
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-100 dark:bg-blue-600/20">
+              <Keyboard :size="18" class="text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h2 class="font-bold text-base text-white">Atalhos de Teclado</h2>
-              <p class="text-xs text-slate-400">Acelere seu trabalho com atalhos de teclado</p>
+              <h2 class="font-bold text-base text-slate-900 dark:text-white">Atalhos de Teclado</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Acelere seu trabalho com atalhos de teclado</p>
             </div>
           </div>
-          <button @click="painelAtalhosAberto = false" class="transition mt-1 text-slate-400 hover:text-white">
+          <button @click="painelAtalhosAberto = false" class="transition mt-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
             <X :size="18" />
           </button>
         </div>
@@ -218,42 +233,42 @@
         <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5">
 
           <div v-for="(grupo, label) in gruposAtalhos" :key="label">
-            <p class="text-xs font-semibold uppercase tracking-wider mb-2 text-slate-500">{{ label }}</p>
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2 text-slate-400 dark:text-slate-500">{{ label }}</p>
             <div class="space-y-1">
               <div
                 v-for="atalho in grupo"
                 :key="atalho.acao"
-                class="flex items-center justify-between rounded-lg px-3 py-2.5 bg-slate-800"
+                class="flex items-center justify-between rounded-lg px-3 py-2.5 bg-slate-100 dark:bg-slate-800"
               >
-                <span class="text-sm text-slate-300">{{ atalho.acao }}</span>
+                <span class="text-sm text-slate-600 dark:text-slate-300">{{ atalho.acao }}</span>
                 <div class="flex items-center gap-1">
                   <kbd
                     v-for="tecla in atalho.teclas"
                     :key="tecla"
-                    class="px-2 py-0.5 border rounded text-xs font-mono bg-slate-700 border-slate-600 text-white"
+                    class="px-2 py-0.5 border rounded text-xs font-mono bg-slate-200 border-slate-300 text-slate-900 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   >{{ tecla }}</kbd>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="border rounded-lg px-4 py-3 bg-blue-600/20 border-blue-600/40">
+          <div class="border rounded-lg px-4 py-3 bg-blue-100 dark:bg-blue-600/20 border-blue-300 dark:border-blue-600/40">
             <div class="flex items-center gap-2 mb-1">
               <span class="text-base">💡</span>
-              <span class="text-blue-400 text-sm font-semibold">Dica Profissional</span>
+              <span class="text-blue-600 dark:text-blue-400 text-sm font-semibold">Dica Profissional</span>
             </div>
-            <p class="text-xs leading-relaxed text-slate-300">
-              Use <kbd class="px-1.5 py-0.5 border rounded text-xs font-mono bg-slate-700 border-slate-600 text-white">Ctrl+K</kbd> para acessar a busca global rapidamente de qualquer lugar do sistema.
+            <p class="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+              Use <kbd class="px-1.5 py-0.5 border rounded text-xs font-mono bg-slate-200 border-slate-300 text-slate-900 dark:bg-slate-700 dark:border-slate-600 dark:text-white">Ctrl+K</kbd> para acessar a busca global rapidamente de qualquer lugar do sistema.
             </p>
           </div>
 
         </div>
 
-        <div class="px-5 py-3 border-t border-slate-800 flex items-center justify-between">
-          <span class="text-xs text-slate-500">{{ totalAtalhos }} atalhos disponíveis</span>
+        <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <span class="text-xs text-slate-400 dark:text-slate-500">{{ totalAtalhos }} atalhos disponíveis</span>
           <div class="flex items-center gap-2">
-            <kbd class="px-2 py-0.5 border rounded text-xs font-mono bg-slate-700 border-slate-600 text-white">ESC</kbd>
-            <button @click="painelAtalhosAberto = false" class="text-sm transition text-slate-300 hover:text-white">Fechar</button>
+            <kbd class="px-2 py-0.5 border rounded text-xs font-mono bg-slate-200 border-slate-300 text-slate-900 dark:bg-slate-700 dark:border-slate-600 dark:text-white">ESC</kbd>
+            <button @click="painelAtalhosAberto = false" class="text-sm transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">Fechar</button>
           </div>
         </div>
       </div>
@@ -270,20 +285,23 @@
 </template>
 
 <script setup>
+
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import {
   LayoutDashboard, PackagePlus, Package, Trash2,
   History, FileText, BarChart3, Download, Shield,
   Users, Settings, LogOut, Menu, X, Bell, Keyboard,
-  AlertTriangle, Info
+  AlertTriangle, Info, Sun, Moon
 } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
+import { useTemaStore } from '@/servicos/tema.store'
 import logoSenac from '@/componentes/img/Senac_logo.svg.png'
 import api from '@/servicos/api'
 
 const router              = useRouter()
 const autenticacao        = useAutenticacaoStore()
+const tema                = useTemaStore()
 const logo                = logoSenac
 const expandido           = ref(true)
 const painelAberto        = ref(false)
@@ -442,6 +460,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyboard)
 })
+
 </script>
 
 <style scoped>

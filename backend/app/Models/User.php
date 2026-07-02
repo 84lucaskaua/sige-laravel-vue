@@ -16,15 +16,18 @@ class User extends Authenticatable
     'password',
     'perfil',
     'foto_url',
+    'pin',
 ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'pin',
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'pin' => 'hashed',
     ];
-}
+ }
