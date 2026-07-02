@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
+import { perfilPodeAcessarRota } from '@/servicos/permissoes'
 
 const PaginaLogin               = () => import('@/paginas/PaginaLogin.vue')
 const PaginaDashboard           = () => import('@/paginas/PaginaDashboard.vue')
@@ -55,8 +56,18 @@ const router = createRouter({
 
 router.beforeEach((rotaDestino) => {
   const autenticacao = useAutenticacaoStore()
+
   if (rotaDestino.meta.requerLogin && !autenticacao.estaLogado) return { name: 'login' }
   if (rotaDestino.meta.requerPerfil && autenticacao.perfil !== rotaDestino.meta.requerPerfil) return { name: 'dashboard' }
+
+  // Bloqueia qualquer rota fora da lista de permissões do perfil, mesmo digitando a URL direto
+  if (
+    rotaDestino.name &&
+    !perfilPodeAcessarRota(autenticacao.perfil, rotaDestino.name)
+  ) {
+    return { name: 'dashboard' }
+  }
+
   if (rotaDestino.name === 'login' && autenticacao.estaLogado) return { name: 'dashboard' }
 })
 

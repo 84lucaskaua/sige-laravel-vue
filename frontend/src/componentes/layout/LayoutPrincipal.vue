@@ -296,6 +296,7 @@ import {
 } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import { useTemaStore } from '@/servicos/tema.store'
+import { perfilPodeAcessarRota } from '@/servicos/permissoes'
 import logoSenac from '@/componentes/img/Senac_logo.svg.png'
 import api from '@/servicos/api'
 
@@ -319,20 +320,26 @@ const iniciaisDoUsuario = computed(() => {
 
 const itensDoMenu = computed(() => {
   const menus = [
-    { nome: 'Dashboard',      rota: '/dashboard',     icone: LayoutDashboard },
-    { nome: 'Lotes',          rota: '/lotes',         icone: PackagePlus     },
-    { nome: 'Produtos',       rota: '/produtos',      icone: Package         },
-    { nome: 'Perdas',         rota: '/perdas',        icone: Trash2          },
-    { nome: 'Histórico',      rota: '/historico',     icone: History         },
-    { nome: 'Relatórios',     rota: '/relatorios',    icone: FileText        },
-    { nome: 'Rel. Avançados', rota: '/rel-avancados', icone: BarChart3       },
-    { nome: 'Import/Export',  rota: '/importexport',  icone: Download        },
+    { nome: 'Dashboard',      rota: '/dashboard',     nomeRota: 'dashboard',     icone: LayoutDashboard },
+    { nome: 'Lotes',          rota: '/lotes',         nomeRota: 'lotes',         icone: PackagePlus     },
+    { nome: 'Produtos',       rota: '/produtos',      nomeRota: 'produtos',      icone: Package         },
+    { nome: 'Perdas',         rota: '/perdas',        nomeRota: 'perdas',        icone: Trash2          },
+    { nome: 'Histórico',      rota: '/historico',     nomeRota: 'historico',     icone: History         },
+    { nome: 'Relatórios',     rota: '/relatorios',    nomeRota: 'relatorios',    icone: FileText        },
+    { nome: 'Rel. Avançados', rota: '/rel-avancados', nomeRota: 'rel-avancados', icone: BarChart3       },
+    { nome: 'Import/Export',  rota: '/importexport',  nomeRota: 'importexport',  icone: Download        },
   ]
+
+  const menusFiltrados = menus.filter(item =>
+    perfilPodeAcessarRota(autenticacao.perfil, item.nomeRota)
+  )
+
   if (autenticacao.ehAdmin) {
-    menus.push({ nome: 'Log',      rota: '/log',      icone: Shield })
-    menus.push({ nome: 'Usuários', rota: '/usuarios', icone: Users  })
+    menusFiltrados.push({ nome: 'Log',      rota: '/log',      nomeRota: 'log',      icone: Shield })
+    menusFiltrados.push({ nome: 'Usuários', rota: '/usuarios', nomeRota: 'usuarios', icone: Users  })
   }
-  return menus
+
+  return menusFiltrados
 })
 
 // ===== ATALHOS =====
@@ -432,18 +439,23 @@ async function sair() {
   router.push('/login')
 }
 
+function irPara(nomeRota, caminho) {
+  if (!perfilPodeAcessarRota(autenticacao.perfil, nomeRota)) return
+  router.push(caminho)
+}
+
 function handleKeyboard(e) {
   const alt   = e.altKey
   const shift = e.shiftKey
   const key   = e.key.toLowerCase()
 
   if (e.ctrlKey && key === 'k')  { e.preventDefault() }
-  if (alt && key === 'd')   { e.preventDefault(); router.push('/dashboard') }
-  if (alt && key === 'l')   { e.preventDefault(); router.push('/lotes') }
-  if (alt && key === 'p')   { e.preventDefault(); router.push('/produtos') }
-  if (alt && key === 'h')   { e.preventDefault(); router.push('/historico') }
-  if (alt && key === 'r')   { e.preventDefault(); router.push('/rel-avancados') }
-  if (alt && key === 'a')   { e.preventDefault(); router.push('/log') }
+  if (alt && key === 'd')   { e.preventDefault(); irPara('dashboard',     '/dashboard')     }
+  if (alt && key === 'l')   { e.preventDefault(); irPara('lotes',        '/lotes')         }
+  if (alt && key === 'p')   { e.preventDefault(); irPara('produtos',     '/produtos')      }
+  if (alt && key === 'h')   { e.preventDefault(); irPara('historico',    '/historico')     }
+  if (alt && key === 'r')   { e.preventDefault(); irPara('rel-avancados','/rel-avancados') }
+  if (alt && key === 'a')   { e.preventDefault(); irPara('log',          '/log')           }
   if (alt && key === 'n')   { e.preventDefault(); abrirNotificacoes() }
   if (shift && e.key === '?') { e.preventDefault(); painelAtalhosAberto.value = true }
   if (e.key === 'Escape') {
