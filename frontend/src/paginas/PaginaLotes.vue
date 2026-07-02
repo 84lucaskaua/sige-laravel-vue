@@ -1,11 +1,11 @@
 <template>
-  <div class="p-6 min-h-screen bg-black text-white">
+  <div class="p-6 min-h-screen bg-white dark:bg-black text-slate-900 dark:text-white">
 
     <!-- Cabeçalho -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-white">Lotes</h1>
-        <p class="text-sm text-slate-400">Gerenciamento de lotes por tabs</p>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Lotes</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Gerenciamento de lotes por tabs</p>
       </div>
       <button
         v-if="autenticacao.podeCadastrar"
@@ -18,15 +18,15 @@
     </div>
 
     <!-- Carregando -->
-    <div v-if="carregando" class="text-center py-12 text-slate-400">
+    <div v-if="carregando" class="text-center py-12 text-slate-500 dark:text-slate-400">
       Carregando lotes...
     </div>
 
     <!-- Sem lotes -->
-    <div v-else-if="lotes.length === 0" class="rounded-xl bg-slate-900 border border-slate-800 p-16 text-center">
-      <PackageMinus class="mx-auto mb-4 text-slate-600" :size="48" />
-      <h2 class="text-xl font-bold text-white mb-2">Nenhum lote cadastrado</h2>
-      <p class="text-slate-400 mb-6">Crie seu primeiro lote para começar a gerenciar os itens.</p>
+    <div v-else-if="lotes.length === 0" class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-16 text-center">
+      <PackageMinus class="mx-auto mb-4 text-slate-400 dark:text-slate-600" :size="48" />
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Nenhum lote cadastrado</h2>
+      <p class="text-slate-500 dark:text-slate-400 mb-6">Crie seu primeiro lote para começar a gerenciar os itens.</p>
       <button
         @click="iniciarCriacaoLote"
         class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
@@ -37,25 +37,25 @@
     </div>
 
     <!-- TABS DE LOTES -->
-    <div v-else class="rounded-xl bg-slate-900 border border-slate-800">
+    <div v-else class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
 
       <!-- Abas -->
-      <div class="flex items-center gap-1 px-4 pt-4 border-b border-slate-800 overflow-x-auto">
+      <div class="flex items-center gap-1 px-4 pt-4 border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
         <button
           v-for="lote in lotes"
           :key="lote.id_lote"
           @click="aoClicarTab(lote.id_lote)"
           :class="tabAtiva === lote.id_lote
-            ? 'bg-slate-700 text-white border-b-2 border-blue-500'
-            : 'text-slate-400 hover:text-white hover:bg-slate-800'"
+            ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border-b-2 border-blue-500'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'"
           class="px-4 py-2 rounded-t-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5"
         >
-          <Lock v-if="!pinValido" :size="12" class="text-slate-500" />
+          <Lock v-if="!pinValido" :size="12" class="text-slate-400 dark:text-slate-500" />
           {{ lote.numero_lote }}
         </button>
 
         <!-- Indicador de sessão liberada -->
-        <span v-if="pinValido" class="ml-auto mr-2 flex items-center gap-1 text-xs text-green-400 whitespace-nowrap">
+        <span v-if="pinValido" class="ml-auto mr-2 flex items-center gap-1 text-xs text-green-600 dark:text-green-400 whitespace-nowrap">
           <ShieldCheck :size="14" />
           Liberado
         </span>
@@ -67,8 +67,8 @@
         <!-- Cabeçalho do lote -->
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h2 class="text-xl font-bold text-white">{{ loteAtivo.numero_lote }}</h2>
-            <div class="flex items-center gap-4 mt-1 text-slate-400 text-sm">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ loteAtivo.numero_lote }}</h2>
+            <div class="flex items-center gap-4 mt-1 text-slate-500 dark:text-slate-400 text-sm">
               <span class="flex items-center gap-1">
                 <Calendar :size="14" />
                 Criado em: {{ formatarData(loteAtivo.data_entrada) }}
@@ -89,7 +89,7 @@
             </button>
             <button
               @click="iniciarExclusaoLote"
-              class="flex items-center gap-2 border border-red-700 text-red-400 px-4 py-2 rounded-lg hover:bg-red-900/20 transition text-sm font-medium"
+              class="flex items-center gap-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition text-sm font-medium"
             >
               <Trash2 :size="16" />
               Excluir Lote
@@ -99,14 +99,14 @@
 
         <!-- Sem itens -->
         <div v-if="!loteAtivo.itens || loteAtivo.itens.length === 0" class="text-center py-16">
-          <Package class="mx-auto mb-3 text-slate-600" :size="40" />
-          <p class="text-slate-500">Nenhum item neste lote</p>
+          <Package class="mx-auto mb-3 text-slate-400 dark:text-slate-600" :size="40" />
+          <p class="text-slate-500 dark:text-slate-500">Nenhum item neste lote</p>
         </div>
 
         <!-- Tabela de itens -->
         <table v-else class="w-full text-sm">
           <thead>
-            <tr class="text-slate-400 border-b border-slate-800">
+            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <th class="text-left pb-3 font-medium">SKU</th>
               <th class="text-left pb-3 font-medium">Nome</th>
               <th class="text-left pb-3 font-medium">Qtd</th>
@@ -117,29 +117,29 @@
               <th class="text-left pb-3 font-medium">Ações</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-800">
+          <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
             <tr
               v-for="item in loteAtivo.itens"
               :key="item.id_item"
-              class="hover:bg-slate-800/50 transition cursor-pointer"
+              class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer"
               @click="itemSelecionado = item; modalDetalhesAberto = true"
             >
-              <td class="py-3 text-slate-400">{{ item.sku || '—' }}</td>
-              <td class="py-3 text-white font-medium">{{ item.nome || '—' }}</td>
+              <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.sku || '—' }}</td>
+              <td class="py-3 text-slate-900 dark:text-white font-medium">{{ item.nome || '—' }}</td>
 
               <td class="py-3">
-                <span :class="item.quantidade === 0 ? 'text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-400 font-semibold' : 'text-green-400 font-semibold'">
+                <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
                   {{ item.quantidade }} {{ item.unidade_medida }}
                 </span>
               </td>
 
-              <td class="py-3 text-slate-300">
+              <td class="py-3 text-slate-600 dark:text-slate-300">
                 <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
-                <span v-else class="text-slate-500">—</span>
+                <span v-else class="text-slate-400 dark:text-slate-500">—</span>
               </td>
 
-              <td class="py-3 text-slate-400">{{ item.fornecedor || '—' }}</td>
-              <td class="py-3 text-slate-400">{{ item.localizacao || '—' }}</td>
+              <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.fornecedor || '—' }}</td>
+              <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
 
               <td class="py-3">
                 <div class="flex items-center gap-1 flex-wrap">
@@ -170,19 +170,19 @@
               <td class="py-3" @click.stop>
                 <div class="flex items-center gap-3">
                   <button @click="itemSelecionado = item; modalEditarAberto = true"
-                    class="text-blue-400 hover:text-blue-300 transition" title="Editar">
+                    class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar">
                     <Pencil :size="16" />
                   </button>
                   <button @click="itemSelecionado = item; modalBaixaAberto = true"
-                    class="text-yellow-400 hover:text-yellow-300 transition" title="Baixa de estoque">
+                    class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque">
                     <PackageOpen :size="16" />
                   </button>
                   <button @click="itemSelecionado = item; modalEntradaAberto = true"
-                    class="text-green-400 hover:text-green-300 transition" title="Entrada de estoque">
+                    class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque">
                     <PackagePlus :size="16" />
                   </button>
                   <button @click="itemSelecionado = item; modalExcluirAberto = true"
-                    class="text-red-400 hover:text-red-300 transition" title="Excluir">
+                    class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir">
                     <Trash2 :size="16" />
                   </button>
                 </div>
@@ -195,29 +195,29 @@
 
       <!-- Aba selecionada mas ainda não liberada (aguardando PIN) -->
       <div v-else-if="loteAtivo && !pinValido" class="p-16 text-center">
-        <Lock class="mx-auto mb-3 text-slate-600" :size="40" />
+        <Lock class="mx-auto mb-3 text-slate-400 dark:text-slate-600" :size="40" />
         <p class="text-slate-500">Digite o PIN para acessar este lote</p>
       </div>
     </div>
 
     <!-- ===== MODAL PIN (acesso à aba) ===== -->
     <div v-if="modalPinAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
         <div class="flex justify-between items-start mb-5">
           <div class="flex items-center gap-2">
-            <Lock class="text-blue-400" :size="20" />
+            <Lock class="text-blue-600 dark:text-blue-400" :size="20" />
             <div>
-              <h2 class="text-white font-bold">Verificação de PIN</h2>
-              <p class="text-slate-400 text-xs">Necessário para acessar os lotes</p>
+              <h2 class="text-slate-900 dark:text-white font-bold">Verificação de PIN</h2>
+              <p class="text-slate-500 dark:text-slate-400 text-xs">Necessário para acessar os lotes</p>
             </div>
           </div>
-          <button @click="cancelarPin" class="text-slate-400 hover:text-white">
+          <button @click="cancelarPin" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
             <X :size="18" />
           </button>
         </div>
 
         <div class="mb-6">
-          <label class="block text-sm text-slate-400 mb-2">PIN de Segurança</label>
+          <label class="block text-sm text-slate-500 dark:text-slate-400 mb-2">PIN de Segurança</label>
           <input
             v-model="pinDigitado"
             type="password"
@@ -226,18 +226,18 @@
             pattern="[0-9]*"
             placeholder="• • • •"
             autofocus
-            class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.6em] outline-none focus:border-blue-500 transition placeholder-slate-600"
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.6em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
             @input="pinDigitado = pinDigitado.replace(/\D/g, '')"
             @keyup.enter="verificarPin"
           />
-          <p v-if="erroPin" class="text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
-          <p class="text-slate-500 text-xs mt-3 text-center">
+          <p v-if="erroPin" class="text-red-600 dark:text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
+          <p class="text-slate-500 dark:text-slate-500 text-xs mt-3 text-center">
             Após confirmado, o acesso fica liberado enquanto você estiver ativo. Após {{ TIMEOUT_INATIVIDADE_MINUTOS }} min sem uso, será solicitado novamente.
           </p>
         </div>
 
         <div class="flex gap-3">
-          <button @click="cancelarPin" class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition">
+          <button @click="cancelarPin" class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
             Cancelar
           </button>
           <button @click="verificarPin" :disabled="pinDigitado.length < 4"
@@ -250,28 +250,28 @@
 
     <!-- ===== MODAL CONFIRMAÇÃO EXCLUSÃO DE LOTE ===== -->
     <div v-if="modalExcluirLoteAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
         <div class="flex justify-between items-start mb-5">
           <div class="flex items-center gap-2">
-            <Shield class="text-red-400" :size="20" />
+            <Shield class="text-red-600 dark:text-red-400" :size="20" />
             <div>
-              <h2 class="text-white font-bold">Excluir Lote</h2>
-              <p class="text-slate-400 text-xs">Esta ação não pode ser desfeita</p>
+              <h2 class="text-slate-900 dark:text-white font-bold">Excluir Lote</h2>
+              <p class="text-slate-500 dark:text-slate-400 text-xs">Esta ação não pode ser desfeita</p>
             </div>
           </div>
-          <button @click="modalExcluirLoteAberto = false" class="text-slate-400 hover:text-white">
+          <button @click="modalExcluirLoteAberto = false" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
             <X :size="18" />
           </button>
         </div>
 
-        <div class="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6">
-          <p class="text-slate-300 text-sm">
-            Você está excluindo o lote <strong class="text-white">{{ loteAtivo?.numero_lote }}</strong>. Esta ação não pode ser desfeita.
+        <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+          <p class="text-slate-600 dark:text-slate-300 text-sm">
+            Você está excluindo o lote <strong class="text-slate-900 dark:text-white">{{ loteAtivo?.numero_lote }}</strong>. Esta ação não pode ser desfeita.
           </p>
         </div>
 
         <div class="flex gap-3">
-          <button @click="modalExcluirLoteAberto = false" class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition">
+          <button @click="modalExcluirLoteAberto = false" class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
             Cancelar
           </button>
           <button @click="excluirLote" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium">

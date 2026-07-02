@@ -2,47 +2,47 @@
   <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
 
     <!-- ===== ETAPA 1: CONFIRMAÇÃO ===== -->
-    <div v-if="etapa === 1" class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6">
+    <div v-if="etapa === 1" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
 
       <div class="flex justify-between items-start mb-5">
         <div class="flex items-center gap-2">
-          <Shield class="text-yellow-400" :size="20" />
+          <Shield class="text-yellow-600 dark:text-yellow-400" :size="20" />
           <div>
-            <h2 class="text-white font-bold">Confirmação de Segurança</h2>
-            <p class="text-slate-400 text-xs">Esta ação requer confirmação em 2 etapas</p>
+            <h2 class="text-slate-900 dark:text-white font-bold">Confirmação de Segurança</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-xs">Esta ação requer confirmação em 2 etapas</p>
           </div>
         </div>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-white">
+        <button @click="$emit('fechar')" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
           <X :size="18" />
         </button>
       </div>
 
-      <div class="bg-green-900/30 border border-green-700 rounded-lg p-4 mb-3">
+      <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4 mb-3">
         <div class="flex items-center gap-2 mb-1">
-          <Shield class="text-green-400" :size="16" />
-          <span class="text-white font-medium text-sm">Entrada de Estoque</span>
+          <Shield class="text-green-600 dark:text-green-400" :size="16" />
+          <span class="text-slate-900 dark:text-white font-medium text-sm">Entrada de Estoque</span>
         </div>
-        <p class="text-slate-300 text-sm">
+        <p class="text-slate-600 dark:text-slate-300 text-sm">
           Você está adicionando
-          <strong class="text-white">{{ form.quantidade || '?' }} unidades</strong>
-          do produto <strong class="text-white">"{{ item.nome }}"</strong>.
+          <strong class="text-slate-900 dark:text-white">{{ form.quantidade || '?' }} unidades</strong>
+          do produto <strong class="text-slate-900 dark:text-white">"{{ item.nome }}"</strong>.
           O estoque será atualizado de
-          <strong class="text-white">{{ item.quantidade }}</strong> para
-          <strong class="text-white">{{ item.quantidade + (form.quantidade || 0) }}</strong>.
+          <strong class="text-slate-900 dark:text-white">{{ item.quantidade }}</strong> para
+          <strong class="text-slate-900 dark:text-white">{{ item.quantidade + (form.quantidade || 0) }}</strong>.
         </p>
       </div>
 
-      <div class="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-6">
+      <div class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-6">
         <div class="flex items-center gap-2 mb-1">
-          <Lock :size="15" class="text-slate-400" />
-          <span class="text-white font-medium text-sm">Etapa 1 de 2: Confirmação</span>
+          <Lock :size="15" class="text-slate-500 dark:text-slate-400" />
+          <span class="text-slate-900 dark:text-white font-medium text-sm">Etapa 1 de 2: Confirmação</span>
         </div>
-        <p class="text-slate-400 text-sm">Você está prestes a realizar uma ação que afeta o sistema. Confirme para prosseguir para a etapa de verificação PIN.</p>
+        <p class="text-slate-500 dark:text-slate-400 text-sm">Você está prestes a realizar uma ação que afeta o sistema. Confirme para prosseguir para a etapa de verificação PIN.</p>
       </div>
 
       <div class="flex gap-3">
         <button @click="$emit('fechar')"
-          class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition text-sm">
+          class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">
           Cancelar
         </button>
         <button @click="etapa = 2"
@@ -53,23 +53,23 @@
     </div>
 
     <!-- ===== ETAPA 2: PIN ===== -->
-    <div v-else-if="etapa === 2" class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6">
+    <div v-else-if="etapa === 2" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
 
       <div class="flex justify-between items-start mb-5">
         <div class="flex items-center gap-2">
-          <Lock class="text-blue-400" :size="20" />
+          <Lock class="text-blue-600 dark:text-blue-400" :size="20" />
           <div>
-            <h2 class="text-white font-bold">Verificação de PIN</h2>
-            <p class="text-slate-400 text-xs">Etapa 2 de 2: Digite o PIN de segurança</p>
+            <h2 class="text-slate-900 dark:text-white font-bold">Verificação de PIN</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-xs">Etapa 2 de 2: Digite o PIN de segurança</p>
           </div>
         </div>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-white">
+        <button @click="$emit('fechar')" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
           <X :size="18" />
         </button>
       </div>
 
       <div class="mb-6">
-        <label class="block text-sm text-slate-400 mb-2">PIN de Segurança</label>
+        <label class="block text-sm text-slate-500 dark:text-slate-400 mb-2">PIN de Segurança</label>
         <input
           ref="inputPin"
           v-model="pinDigitado"
@@ -79,19 +79,19 @@
           pattern="[0-9]*"
           placeholder="• • • •"
           autofocus
-          class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.6em] outline-none focus:border-blue-500 transition placeholder-slate-600"
+          class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.6em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
           @input="pinDigitado = pinDigitado.replace(/\D/g, '')"
           @keyup.enter="verificarPin"
         />
-        <p v-if="erroPin" class="text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
-        <p v-if="tentativas > 0 && !erroPin" class="text-yellow-400 text-xs mt-2 text-center">
+        <p v-if="erroPin" class="text-red-600 dark:text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
+        <p v-if="tentativas > 0 && !erroPin" class="text-yellow-600 dark:text-yellow-400 text-xs mt-2 text-center">
           Tentativas restantes: {{ 3 - tentativas }}
         </p>
       </div>
 
       <div class="flex gap-3">
         <button @click="etapa = 1; pinDigitado = ''; erroPin = ''"
-          class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition text-sm">
+          class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">
           Voltar
         </button>
         <button @click="verificarPin" :disabled="pinDigitado.length < 4 || salvando"
@@ -102,24 +102,24 @@
     </div>
 
     <!-- ===== ETAPA 0: FORMULÁRIO DE ENTRADA ===== -->
-    <div v-else class="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md">
+    <div v-else class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-md">
 
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h2 class="text-lg font-bold text-white">Entrada de Estoque</h2>
-          <p class="text-slate-400 text-xs mt-0.5">Registre a entrada de produtos no estoque.</p>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white">Entrada de Estoque</h2>
+          <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Registre a entrada de produtos no estoque.</p>
         </div>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-white">
+        <button @click="$emit('fechar')" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
           <X :size="20" />
         </button>
       </div>
 
       <!-- Info do produto -->
-      <div class="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-6">
-        <p class="text-slate-400 text-xs mb-1">Produto</p>
-        <p class="text-white font-bold text-base">{{ item.nome }}</p>
-        <p class="text-slate-400 text-xs mt-2">Estoque disponível</p>
-        <p class="text-white font-bold text-xl">{{ item.quantidade }} {{ item.unidade_medida }}</p>
+      <div class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-6">
+        <p class="text-slate-500 dark:text-slate-400 text-xs mb-1">Produto</p>
+        <p class="text-slate-900 dark:text-white font-bold text-base">{{ item.nome }}</p>
+        <p class="text-slate-500 dark:text-slate-400 text-xs mt-2">Estoque disponível</p>
+        <p class="text-slate-900 dark:text-white font-bold text-xl">{{ item.quantidade }} {{ item.unidade_medida }}</p>
       </div>
 
       <form @submit.prevent="abrirConfirmacao">
@@ -146,13 +146,13 @@
           />
         </div>
 
-        <div v-if="erro" class="mb-4 p-3 bg-red-900/30 border border-red-700 rounded text-red-400 text-sm">
+        <div v-if="erro" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">
           {{ erro }}
         </div>
 
         <div class="flex justify-end gap-3">
           <button type="button" @click="$emit('fechar')"
-            class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-800 transition">
+            class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
             Cancelar
           </button>
           <button type="submit"
@@ -237,16 +237,16 @@ async function verificarPin() {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   margin-bottom: 0.25rem;
 }
 .campo {
   width: 100%;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--input);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
-  color: #f1f5f9;
+  color: var(--foreground);
   outline: none;
   resize: none;
 }

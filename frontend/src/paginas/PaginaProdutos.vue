@@ -1,19 +1,19 @@
 <template>
-  <div class="p-6">
+  <div class="p-6 bg-white dark:bg-black min-h-screen">
 
     <!-- Cabeçalho -->
     <div class="flex justify-between items-center mb-1">
-      <h1 class="text-2xl font-bold text-white">Produtos</h1>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Produtos</h1>
     </div>
-    <p class="text-slate-400 text-sm mb-6">Visão geral de todos os produtos e seus lotes</p>
+    <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Visão geral de todos os produtos e seus lotes</p>
 
     <!-- Filtros -->
-    <div class="bg-slate-800 rounded-xl p-4 mb-6 flex flex-col gap-3">
+    <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl p-4 mb-6 flex flex-col gap-3">
       <input
         v-model="termoDeBusca"
         type="text"
         placeholder="🔍 Buscar por nome ou SKU..."
-        class="w-full bg-slate-700 text-white placeholder-slate-400 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+        class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-slate-500"
         @input="buscarComAtraso"
       />
       <button
@@ -22,7 +22,7 @@
           'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors w-fit',
           filtroBaixo
             ? 'bg-orange-500 text-white'
-            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
         ]"
       >
         ⬇ Estoque Baixo
@@ -30,20 +30,20 @@
     </div>
 
     <!-- Carregando -->
-    <div v-if="carregando" class="text-center py-12 text-slate-400">
+    <div v-if="carregando" class="text-center py-12 text-slate-500 dark:text-slate-400">
       Carregando produtos...
     </div>
 
     <!-- Vazio -->
-    <div v-else-if="produtosFiltrados.length === 0" class="text-center py-12 text-slate-400">
+    <div v-else-if="produtosFiltrados.length === 0" class="text-center py-12 text-slate-500 dark:text-slate-400">
       Nenhum produto encontrado.
     </div>
 
     <!-- Tabela -->
-    <div v-else class="bg-slate-800 rounded-xl overflow-hidden">
+    <div v-else class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl overflow-hidden">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-slate-700 text-slate-400 text-left">
+          <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-left">
             <th class="px-4 py-3">SKU</th>
             <th class="px-4 py-3">Nome do Produto</th>
             <th class="px-4 py-3">Quantidade Total</th>
@@ -57,14 +57,14 @@
           <tr
             v-for="item in produtosFiltrados"
             :key="item.id_item"
-            class="border-b border-slate-700 hover:bg-slate-700/50 transition-colors"
+            class="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
           >
-            <td class="px-4 py-3 text-slate-300 font-mono text-xs">{{ item.sku ?? '—' }}</td>
-            <td class="px-4 py-3 text-white font-medium">{{ item.nome }}</td>
-            <td class="px-4 py-3" :class="estoqueBaixo(item) ? 'text-orange-400 font-bold' : 'text-white'">
+            <td class="px-4 py-3 text-slate-600 dark:text-slate-300 font-mono text-xs">{{ item.sku ?? '—' }}</td>
+            <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ item.nome }}</td>
+            <td class="px-4 py-3" :class="estoqueBaixo(item) ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-slate-900 dark:text-white'">
               {{ item.quantidade }} {{ item.unidade_medida }}
             </td>
-            <td class="px-4 py-3 text-slate-300">{{ formatarData(item.data_validade) }}</td>
+            <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ formatarData(item.data_validade) }}</td>
             <td class="px-4 py-3">
               <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded font-medium">
                 {{ item.lote?.numero_lote ?? 'Lote ' + item.id_lote }}
@@ -77,8 +77,8 @@
             </td>
             <td class="px-4 py-3">
               <span :class="estoqueBaixo(item)
-                ? 'bg-orange-500/20 text-orange-400 px-2 py-1 rounded text-xs font-semibold'
-                : 'bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-semibold'"
+                ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 px-2 py-1 rounded text-xs font-semibold'
+                : 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-semibold'"
               >
                 {{ estoqueBaixo(item) ? '↓ Baixo' : 'OK' }}
               </span>
@@ -90,17 +90,17 @@
 
     <!-- Rodapé -->
     <div class="grid grid-cols-3 gap-4 mt-6">
-      <div class="bg-slate-800 rounded-xl p-4">
-        <p class="text-slate-400 text-xs mb-1">Total de Produtos Únicos</p>
-        <p class="text-white text-2xl font-bold">{{ produtos.length }}</p>
+      <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl p-4">
+        <p class="text-slate-500 dark:text-slate-400 text-xs mb-1">Total de Produtos Únicos</p>
+        <p class="text-slate-900 dark:text-white text-2xl font-bold">{{ produtos.length }}</p>
       </div>
-      <div class="bg-slate-800 rounded-xl p-4">
-        <p class="text-slate-400 text-xs mb-1">Produtos Vencendo</p>
-        <p class="text-orange-400 text-2xl font-bold">{{ totalVencendo }}</p>
+      <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl p-4">
+        <p class="text-slate-500 dark:text-slate-400 text-xs mb-1">Produtos Vencendo</p>
+        <p class="text-orange-600 dark:text-orange-400 text-2xl font-bold">{{ totalVencendo }}</p>
       </div>
-      <div class="bg-slate-800 rounded-xl p-4">
-        <p class="text-slate-400 text-xs mb-1">Produtos Vencidos</p>
-        <p class="text-red-400 text-2xl font-bold">{{ totalVencidos }}</p>
+      <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl p-4">
+        <p class="text-slate-500 dark:text-slate-400 text-xs mb-1">Produtos Vencidos</p>
+        <p class="text-red-600 dark:text-red-400 text-2xl font-bold">{{ totalVencidos }}</p>
       </div>
     </div>
 
@@ -137,10 +137,10 @@ const labelValidade = (item) => {
 const badgeValidade = (item) => {
   const dias = diasParaVencer(item.data_validade)
   const base = 'px-2 py-1 rounded text-xs font-semibold'
-  if (dias === null) return `${base} text-slate-400`
-  if (dias < 0)     return `${base} bg-red-500/20 text-red-400`
-  if (dias <= 30)   return `${base} bg-orange-500/20 text-orange-400`
-  return `${base} bg-green-500/20 text-green-400`
+  if (dias === null) return `${base} text-slate-500 dark:text-slate-400`
+  if (dias < 0)     return `${base} bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400`
+  if (dias <= 30)   return `${base} bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400`
+  return `${base} bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400`
 }
 
 const formatarData = (data) => {

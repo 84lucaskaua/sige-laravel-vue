@@ -1,10 +1,10 @@
 <template>
-  <div class="p-6 min-h-screen bg-black text-white">
+  <div class="p-6 min-h-screen bg-white dark:bg-black text-slate-900 dark:text-white">
     <!-- Cabeçalho -->
     <div class="flex items-start justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-white">Histórico de Movimentações</h1>
-        <p class="text-sm text-slate-400">Visualize todas as entradas e saídas de estoque</p>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Histórico de Movimentações</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Visualize todas as entradas e saídas de estoque</p>
       </div>
       <div class="flex gap-2">
         <button @click="exportarCSV" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
@@ -20,43 +20,43 @@
     </div>
 
     <!-- Filtros -->
-    <div class="rounded-xl bg-slate-900 border border-slate-800 p-5 mb-4">
+    <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 mb-4">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium text-white mb-2">Buscar Produto</label>
+          <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Buscar Produto</label>
           <div class="relative">
-            <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input v-model="filtros.busca" type="text" placeholder="Nome ou SKU do produto..."
-              class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500 transition" />
+              class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition" />
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-white mb-2">Tipo</label>
+          <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Tipo</label>
           <div class="relative">
             <button @click="dropdownTipoAberto = !dropdownTipoAberto; dropdownLoteAberto = false"
-              class="w-full flex items-center justify-between bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 transition">
+              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition">
               {{ filtros.tipo }} <ChevronDown :size="16" class="text-slate-400" />
             </button>
-            <div v-if="dropdownTipoAberto" class="absolute z-10 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-lg overflow-hidden">
+            <div v-if="dropdownTipoAberto" class="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
               <div v-for="opcao in opcoesTipo" :key="opcao" @click="selecionarTipo(opcao)"
                 class="flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition"
-                :class="filtros.tipo === opcao ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'">
+                :class="filtros.tipo === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'">
                 {{ opcao }} <Check v-if="filtros.tipo === opcao" :size="16" />
               </div>
             </div>
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-white mb-2">Lote</label>
+          <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Lote</label>
           <div class="relative">
             <button @click="dropdownLoteAberto = !dropdownLoteAberto; dropdownTipoAberto = false"
-              class="w-full flex items-center justify-between bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 transition">
+              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition">
               {{ filtros.lote }} <ChevronDown :size="16" class="text-slate-400" />
             </button>
-            <div v-if="dropdownLoteAberto" class="absolute z-10 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-lg overflow-hidden max-h-56 overflow-y-auto">
+            <div v-if="dropdownLoteAberto" class="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden max-h-56 overflow-y-auto">
               <div v-for="opcao in opcoesLote" :key="opcao" @click="selecionarLote(opcao)"
                 class="flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition"
-                :class="filtros.lote === opcao ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'">
+                :class="filtros.lote === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'">
                 {{ opcao }} <Check v-if="filtros.lote === opcao" :size="16" />
               </div>
             </div>
@@ -65,34 +65,34 @@
       </div>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
         <div>
-          <label class="block text-sm font-medium text-white mb-2">Data Inicial</label>
+          <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Data Inicial</label>
           <input v-model="filtros.dataInicial" type="date"
-            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 transition [color-scheme:dark]" />
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-white mb-2">Data Final</label>
+          <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Data Final</label>
           <input v-model="filtros.dataFinal" type="date"
-            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 transition [color-scheme:dark]" />
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]" />
         </div>
         <div class="md:col-span-2 flex items-end">
           <button @click="limparFiltros"
-            class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-medium py-2 rounded-lg transition">
+            class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-medium py-2 rounded-lg transition">
             Limpar Filtros
           </button>
         </div>
       </div>
-      <p class="text-slate-400 text-sm mt-4">{{ movimentacoesFiltradas.length }} movimentação(ões) encontrada(s)</p>
+      <p class="text-slate-500 dark:text-slate-400 text-sm mt-4">{{ movimentacoesFiltradas.length }} movimentação(ões) encontrada(s)</p>
     </div>
 
     <!-- Tabela -->
-    <div class="rounded-xl bg-slate-900 border border-slate-800 min-h-[200px]">
+    <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 min-h-[200px]">
       <div v-if="movimentacoesFiltradas.length === 0" class="text-center py-16">
-        <PackageMinus class="mx-auto mb-3 text-slate-600" :size="40" />
-        <p class="text-slate-500">Nenhuma movimentação encontrada</p>
+        <PackageMinus class="mx-auto mb-3 text-slate-400 dark:text-slate-600" :size="40" />
+        <p class="text-slate-400 dark:text-slate-500">Nenhuma movimentação encontrada</p>
       </div>
       <table v-else class="w-full text-sm">
         <thead>
-          <tr class="text-slate-400 border-b border-slate-800">
+          <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
             <th class="text-left px-4 py-3 font-medium">Data</th>
             <th class="text-left px-4 py-3 font-medium">Produto</th>
             <th class="text-left px-4 py-3 font-medium">SKU</th>
@@ -104,26 +104,26 @@
             <th v-if="ehRoot" class="text-center px-4 py-3 font-medium">Ações</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-800">
-          <tr v-for="mov in movimentacoesFiltradas" :key="mov.id" class="hover:bg-slate-800/50 transition">
-            <td class="px-4 py-3 text-slate-300 whitespace-nowrap">{{ formatarDataHora(mov.data) }}</td>
-            <td class="px-4 py-3 text-white font-medium">{{ mov.produto }}</td>
-            <td class="px-4 py-3 text-slate-400">{{ mov.sku }}</td>
-            <td class="px-4 py-3 text-slate-400">{{ mov.lote }}</td>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          <tr v-for="mov in movimentacoesFiltradas" :key="mov.id" class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition">
+            <td class="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ formatarDataHora(mov.data) }}</td>
+            <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ mov.produto }}</td>
+            <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.sku }}</td>
+            <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.lote }}</td>
             <td class="px-4 py-3">
               <span class="px-2 py-0.5 rounded text-xs font-bold"
                 :class="mov.tipo === 'Entrada' ? 'bg-green-700 text-white' : 'bg-red-600 text-white'">
                 {{ mov.tipo }}
               </span>
             </td>
-            <td class="px-4 py-3 text-right font-semibold" :class="mov.tipo === 'Entrada' ? 'text-green-400' : 'text-red-400'">
+            <td class="px-4 py-3 text-right font-semibold" :class="mov.tipo === 'Entrada' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
               {{ mov.tipo === 'Entrada' ? '+' : '-' }}{{ mov.quantidade }}
             </td>
-            <td class="px-4 py-3 text-slate-400">{{ mov.motivo }}</td>
-            <td class="px-4 py-3 text-slate-400">{{ mov.usuario }}</td>
+            <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.motivo }}</td>
+            <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.usuario }}</td>
             <td v-if="ehRoot" class="px-4 py-3 text-center">
               <button @click="confirmarExclusao(mov)"
-                class="text-slate-500 hover:text-red-400 transition"
+                class="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition"
                 title="Excluir movimentação">
                 <Trash2 :size="15" />
               </button>
@@ -135,20 +135,20 @@
 
     <!-- Modal de Confirmação de Exclusão -->
     <div v-if="movParaExcluir" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-sm p-6">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-sm p-6">
         <div class="flex items-center gap-3 mb-4">
-          <Trash2 class="text-red-400" :size="20" />
-          <h2 class="text-white font-bold">Excluir Movimentação</h2>
+          <Trash2 class="text-red-600 dark:text-red-400" :size="20" />
+          <h2 class="text-slate-900 dark:text-white font-bold">Excluir Movimentação</h2>
         </div>
-        <p class="text-slate-400 text-sm mb-6">
+        <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">
           Tem certeza que deseja excluir a movimentação de
-          <strong class="text-white">{{ movParaExcluir.produto }}</strong>
-          em <strong class="text-white">{{ formatarDataHora(movParaExcluir.data) }}</strong>?
+          <strong class="text-slate-900 dark:text-white">{{ movParaExcluir.produto }}</strong>
+          em <strong class="text-slate-900 dark:text-white">{{ formatarDataHora(movParaExcluir.data) }}</strong>?
           Esta ação não pode ser desfeita.
         </p>
         <div class="flex gap-3">
           <button @click="movParaExcluir = null"
-            class="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition text-sm">
+            class="flex-1 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">
             Cancelar
           </button>
           <button @click="excluir" :disabled="excluindo"

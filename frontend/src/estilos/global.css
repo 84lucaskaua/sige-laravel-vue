@@ -7,6 +7,7 @@
 @tailwind utilities;
 
 /* ===== Modo claro (padrão) ===== */
+/* ===== Modo claro (padrão) ===== */
 :root {
   --background: #f9fafb;
   --foreground: #111827;
@@ -38,8 +39,8 @@
   --foreground: #f9fafb;
   --card: #18181b;
   --card-foreground: #f9fafb;
-  --border: #27272a;
-  --input: #27272a;
+  --border: #334155;
+  --input: #1e293b;
   --primary: #3b82f6;
   --primary-foreground: #f9fafb;
   --secondary: #27272a;
