@@ -1,63 +1,63 @@
 <template>
   <div class="p-6 flex justify-center">
-    <div class="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-md">
 
-      <div class="flex items-center justify-between p-5 border-b border-slate-800">
+      <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h1 class="text-lg font-bold text-white">Editar Perfil</h1>
-          <p class="text-xs text-slate-400 mt-0.5">Atualize suas informações pessoais e configurações de conta</p>
+          <h1 class="text-lg font-bold text-slate-900 dark:text-white">Editar Perfil</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Atualize suas informações pessoais e configurações de conta</p>
         </div>
       </div>
 
       <div class="p-5 space-y-5">
 
-        <div v-if="sucesso" class="p-3 rounded-lg bg-green-900/40 border border-green-700 text-green-300 text-sm">{{ sucesso }}</div>
-        <div v-if="erro" class="p-3 rounded-lg bg-red-900/40 border border-red-700 text-red-300 text-sm">{{ erro }}</div>
+        <div v-if="sucesso" class="p-3 rounded-lg bg-green-50 dark:bg-green-900/40 border border-green-200 dark:border-green-700 text-green-600 dark:text-green-300 text-sm">{{ sucesso }}</div>
+        <div v-if="erro" class="p-3 rounded-lg bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-700 text-red-600 dark:text-red-300 text-sm">{{ erro }}</div>
 
         <div class="flex flex-col items-center gap-3">
           <div class="relative">
-            <div class="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden">
+            <div class="w-20 h-20 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
               <img v-if="imagemPreview" :src="imagemPreview" class="w-full h-full object-cover" />
-              <UserRound v-else :size="36" class="text-slate-400" />
+              <UserRound v-else :size="36" class="text-slate-500 dark:text-slate-400" />
             </div>
             <label class="absolute bottom-0 right-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition">
               <Camera :size="13" class="text-white" />
               <input type="file" accept="image/*" class="hidden" @change="onFotoChange" />
             </label>
           </div>
-          <button v-if="imagemPreview" type="button" @click="removerImagem" class="text-xs bg-red-900/40 hover:bg-red-900/60 text-red-400 px-4 py-1.5 rounded-lg transition">
+          <button v-if="imagemPreview" type="button" @click="removerImagem" class="text-xs bg-red-50 hover:bg-red-100 dark:bg-red-900/40 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 px-4 py-1.5 rounded-lg transition">
             Remover Foto
           </button>
         </div>
 
         <div>
-          <label class="flex items-center gap-1.5 text-sm text-slate-300 font-medium mb-1">
+          <label class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 font-medium mb-1">
             <UserRound :size="14" /> Nome
           </label>
-          <input v-model="form.nome" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+          <input v-model="form.nome" type="text" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500" />
         </div>
 
         <div>
-          <label class="flex items-center gap-1.5 text-sm text-slate-300 font-medium mb-1">
+          <label class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 font-medium mb-1">
             <Mail :size="14" /> Email
           </label>
-          <input :value="usuario && usuario.email" disabled class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2 text-slate-500 text-sm cursor-not-allowed" />
-          <p class="text-xs text-blue-400 mt-1">O email não pode ser alterado</p>
+          <input :value="usuario && usuario.email" disabled class="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-400 dark:text-slate-500 text-sm cursor-not-allowed" />
+          <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">O email não pode ser alterado</p>
         </div>
 
-        <div class="border-t border-slate-800 pt-4">
-          <label class="flex items-center gap-1.5 text-sm text-slate-300 font-medium mb-3">
+        <div class="border-t border-slate-200 dark:border-slate-800 pt-4">
+          <label class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 font-medium mb-3">
             <Lock :size="14" /> Alterar Senha (opcional)
           </label>
           <div class="space-y-3">
-            <input v-model="senhas.atual" type="password" placeholder="Digite sua senha atual" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-600" />
-            <input v-model="senhas.nova" type="password" placeholder="Mínimo 6 caracteres" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-600" />
-            <input v-model="senhas.confirmacao" type="password" placeholder="Digite a senha novamente" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-600" />
+            <input v-model="senhas.atual" type="password" placeholder="Digite sua senha atual" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-400 dark:placeholder-slate-600" />
+            <input v-model="senhas.nova" type="password" placeholder="Mínimo 6 caracteres" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-400 dark:placeholder-slate-600" />
+            <input v-model="senhas.confirmacao" type="password" placeholder="Digite a senha novamente" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-400 dark:placeholder-slate-600" />
           </div>
         </div>
 
         <div class="flex gap-3 pt-2">
-          <button type="button" @click="$router.back()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium py-2 rounded-lg transition">Cancelar</button>
+          <button type="button" @click="$router.back()" class="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-medium py-2 rounded-lg transition">Cancelar</button>
           <button type="button" @click="salvar" :disabled="salvando" class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition">
             {{ salvando ? 'Salvando...' : 'Salvar Alterações' }}
           </button>
