@@ -1,12 +1,12 @@
 <template>
- <div class="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+  <div class="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-lg">
 
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-lg font-bold text-slate-900 dark:text-white">
           {{ ehEdicao ? 'Editar Lote' : 'Novo Lote' }}
         </h2>
-        <button @click="tentarFechar" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="tentarFechar">
           <X :size="20" />
         </button>
       </div>
@@ -39,7 +39,7 @@
         </div>
 
         <div class="flex justify-end gap-3">
-          <button type="button" @click="tentarFechar" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <button type="button" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition" @click="tentarFechar">
             Cancelar
           </button>
           <button type="submit" :disabled="salvando" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
@@ -122,7 +122,22 @@ async function salvar() {
   padding: 0.5rem 0.75rem;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
-  @apply bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500;
+}
+.campo {
+  background-color: rgb(241 245 249);
+  border: 1px solid rgb(203 213 225);
+  color: rgb(15 23 42);
+}
+.dark .campo {
+  background-color: rgb(30 41 59);
+  border-color: rgb(71 85 105);
+  color: rgb(255 255 255);
+}
+.campo::placeholder {
+  color: rgb(148 163 184);
+}
+.dark .campo::placeholder {
+  color: rgb(100 116 139);
 }
 .campo:focus {
   border-color: #3b82f6;

@@ -8,7 +8,7 @@
           <h2 class="text-slate-900 dark:text-white font-bold text-lg">Detalhes do Produto</h2>
           <p class="text-sky-600 dark:text-sky-400 text-xs mt-0.5">Visualize informações completas e histórico de movimentações do produto.</p>
         </div>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="$emit('fechar')">
           <X :size="18" />
         </button>
       </div>
@@ -31,16 +31,26 @@
         </div>
         <div>
           <p class="text-sky-600 dark:text-sky-400 text-xs mb-1">Status</p>
-          <span v-if="item.data_validade && estaVencido(item.data_validade)"
-            class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">Vencido</span>
-          <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)"
-            class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">Vencendo</span>
-          <span v-else-if="item.quantidade === 0"
-            class="px-2 py-0.5 rounded text-xs font-bold bg-red-800 text-white">Sem Estoque</span>
-          <span v-else-if="item.quantidade <= item.estoque_minimo"
-            class="px-2 py-0.5 rounded text-xs font-bold bg-orange-600 text-white">Crítico</span>
-          <span v-else
-            class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">Normal</span>
+          <span
+            v-if="item.data_validade && estaVencido(item.data_validade)"
+            class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white"
+          >Vencido</span>
+          <span
+            v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)"
+            class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white"
+          >Vencendo</span>
+          <span
+            v-else-if="item.quantidade === 0"
+            class="px-2 py-0.5 rounded text-xs font-bold bg-red-800 text-white"
+          >Sem Estoque</span>
+          <span
+            v-else-if="item.quantidade <= item.estoque_minimo"
+            class="px-2 py-0.5 rounded text-xs font-bold bg-orange-600 text-white"
+          >Crítico</span>
+          <span
+            v-else
+            class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white"
+          >Normal</span>
         </div>
         <div>
           <p class="text-sky-600 dark:text-sky-400 text-xs mb-1">Quantidade</p>
@@ -63,29 +73,29 @@
       <!-- Botões de ação -->
       <div class="flex gap-2 mb-6 flex-wrap">
         <button
-          @click="$emit('editar', item)"
           class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+          @click="$emit('editar', item)"
         >
           <Pencil :size="15" />
           Editar Produto
         </button>
         <button
-          @click="$emit('baixa', item)"
           class="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm font-medium"
+          @click="$emit('baixa', item)"
         >
           <PackageOpen :size="15" />
           Registrar Baixa
         </button>
         <button
-          @click="$emit('entrada', item)"
           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+          @click="$emit('entrada', item)"
         >
           <PackagePlus :size="15" />
           Registrar Entrada
         </button>
         <button
-          @click="$emit('excluir', item)"
           class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+          @click="$emit('excluir', item)"
         >
           <Trash2 :size="15" />
           Excluir
@@ -126,8 +136,10 @@
                   {{ mov.tipo === 'entrada' ? 'Entrada' : 'Saída' }}
                 </span>
               </td>
-              <td class="py-2"
-                :class="mov.tipo === 'entrada' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+              <td
+                class="py-2"
+                :class="mov.tipo === 'entrada' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+              >
                 {{ mov.tipo === 'entrada' ? '+' : '' }}{{ mov.quantidade }}
               </td>
               <td class="py-2 text-slate-500 dark:text-slate-400">{{ mov.motivo || '—' }}</td>

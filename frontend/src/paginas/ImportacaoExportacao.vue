@@ -8,8 +8,11 @@
 
     <!-- Cards de Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div v-for="card in statsCards" :key="card.label"
-        class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 flex items-center gap-4">
+      <div
+        v-for="card in statsCards"
+        :key="card.label"
+        class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 flex items-center gap-4"
+      >
         <div :class="card.bg" class="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl">
           <i :class="card.icon"></i>
         </div>
@@ -32,8 +35,11 @@
             <p class="text-slate-900 dark:text-white font-semibold">Backup Completo</p>
             <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta todos os dados do sistema em formato JSON</p>
           </div>
-          <button @click="exportar('backup')" :disabled="loadingExport.backup"
-            class="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
+          <button
+            :disabled="loadingExport.backup"
+            class="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
+            @click="exportar('backup')"
+          >
             <i :class="loadingExport.backup ? 'fas fa-spinner fa-spin' : 'fas fa-database'"></i>
             Exportar Tudo
           </button>
@@ -45,8 +51,11 @@
             <p class="text-slate-900 dark:text-white font-semibold">Produtos (CSV)</p>
             <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta cadastro de produtos com estoque atual</p>
           </div>
-          <button @click="exportar('produtos-csv')" :disabled="loadingExport.produtos"
-            class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
+          <button
+            :disabled="loadingExport.produtos"
+            class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
+            @click="exportar('produtos-csv')"
+          >
             <i :class="loadingExport.produtos ? 'fas fa-spinner fa-spin' : 'fas fa-file-csv'"></i>
             Exportar CSV
           </button>
@@ -58,8 +67,11 @@
             <p class="text-slate-900 dark:text-white font-semibold">Movimentações (CSV)</p>
             <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta histórico de entradas e saídas</p>
           </div>
-          <button @click="exportar('movimentacoes-csv')" :disabled="loadingExport.movimentacoes"
-            class="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
+          <button
+            :disabled="loadingExport.movimentacoes"
+            class="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
+            @click="exportar('movimentacoes-csv')"
+          >
             <i :class="loadingExport.movimentacoes ? 'fas fa-spinner fa-spin' : 'fas fa-sync'"></i>
             Exportar CSV
           </button>
@@ -98,9 +110,11 @@
               <p>CÓDIGO · DESCRIÇÃO · UNIDADE · SALDO · VALIDADE</p>
             </div>
 
-            <button @click="importarExcel"
+            <button
               :disabled="!arquivoExcel || loadingImport.excel"
-              class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
+              class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
+              @click="importarExcel"
+            >
               <i :class="loadingImport.excel ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'"></i>
               {{ loadingImport.excel ? 'Importando...' : 'Importar Planilha' }}
             </button>
@@ -126,9 +140,11 @@
               <i class="fas fa-triangle-exclamation"></i>
               Substitui todos os dados atuais
             </div>
-            <button @click="confirmarRestaurar"
+            <button
               :disabled="!arquivoJSON || loadingImport.backup"
-              class="w-full bg-red-700 hover:bg-red-800 disabled:opacity-40 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition">
+              class="w-full bg-red-700 hover:bg-red-800 disabled:opacity-40 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
+              @click="confirmarRestaurar"
+            >
               <i :class="loadingImport.backup ? 'fas fa-spinner fa-spin' : 'fas fa-undo'"></i>
               {{ loadingImport.backup ? 'Restaurando...' : 'Restaurar' }}
             </button>
@@ -175,9 +191,11 @@
 
     <!-- Toast -->
     <transition name="fade">
-      <div v-if="toast.show"
+      <div
+        v-if="toast.show"
         :class="['fixed bottom-6 right-6 z-50 px-5 py-3 rounded-lg shadow-lg text-white flex items-center gap-3 text-sm',
-          toast.type === 'success' ? 'bg-green-700' : 'bg-red-700']">
+          toast.type === 'success' ? 'bg-green-700' : 'bg-red-700']"
+      >
         <i :class="toast.type === 'success' ? 'fas fa-check-circle' : 'fas fa-circle-xmark'"></i>
         {{ toast.message }}
       </div>
@@ -191,12 +209,16 @@
           Esta ação irá <strong class="text-red-600 dark:text-red-400">apagar todos os dados atuais</strong> e substituir pelo backup selecionado. Essa ação não pode ser desfeita.
         </p>
         <div class="flex gap-3">
-          <button @click="modalRestaurar = false"
-            class="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-900 dark:text-white py-2 rounded-lg transition">
+          <button
+            class="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-900 dark:text-white py-2 rounded-lg transition"
+            @click="modalRestaurar = false"
+          >
             Cancelar
           </button>
-          <button @click="restaurarBackup"
-            class="flex-1 bg-red-700 hover:bg-red-800 text-white py-2 rounded-lg transition">
+          <button
+            class="flex-1 bg-red-700 hover:bg-red-800 text-white py-2 rounded-lg transition"
+            @click="restaurarBackup"
+          >
             Confirmar
           </button>
         </div>

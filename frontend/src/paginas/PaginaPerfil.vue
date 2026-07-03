@@ -25,7 +25,7 @@
               <input type="file" accept="image/*" class="hidden" @change="onFotoChange" />
             </label>
           </div>
-          <button v-if="imagemPreview" type="button" @click="removerImagem" class="text-xs bg-red-50 hover:bg-red-100 dark:bg-red-900/40 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 px-4 py-1.5 rounded-lg transition">
+          <button v-if="imagemPreview" type="button" class="text-xs bg-red-50 hover:bg-red-100 dark:bg-red-900/40 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 px-4 py-1.5 rounded-lg transition" @click="removerImagem">
             Remover Foto
           </button>
         </div>
@@ -57,8 +57,8 @@
         </div>
 
         <div class="flex gap-3 pt-2">
-          <button type="button" @click="$router.back()" class="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-medium py-2 rounded-lg transition">Cancelar</button>
-          <button type="button" @click="salvar" :disabled="salvando" class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition">
+          <button type="button" class="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white text-sm font-medium py-2 rounded-lg transition" @click="$router.back()">Cancelar</button>
+          <button type="button" :disabled="salvando" class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition" @click="salvar">
             {{ salvando ? 'Salvando...' : 'Salvar Alterações' }}
           </button>
         </div>

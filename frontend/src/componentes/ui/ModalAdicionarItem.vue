@@ -7,7 +7,7 @@
           <h2 class="text-lg font-bold text-slate-900 dark:text-white">Adicionar Item ao Lote {{ lote?.numero_lote }}</h2>
           <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Preencha as informações do produto para adicionar ao lote.</p>
         </div>
-        <button @click="tentarFechar" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="tentarFechar">
           <X :size="20" />
         </button>
       </div>
@@ -101,12 +101,18 @@
         </div>
 
         <div class="flex justify-end gap-3">
-          <button type="button" @click="tentarFechar"
-            class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <button
+            type="button"
+            class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            @click="tentarFechar"
+          >
             Cancelar
           </button>
-          <button type="submit" :disabled="salvando"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
+          <button
+            type="submit"
+            :disabled="salvando"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+          >
             {{ salvando ? 'Adicionando...' : 'Adicionar' }}
           </button>
         </div>
