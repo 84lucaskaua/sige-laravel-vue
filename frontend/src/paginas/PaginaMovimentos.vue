@@ -26,7 +26,7 @@
       </select>
       <input v-model="filtroDataInicio" type="date" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
       <input v-model="filtroDataFim" type="date" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-      <button @click="limparFiltros" class="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">
+      <button class="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition" @click="limparFiltros">
         Limpar
       </button>
     </div>

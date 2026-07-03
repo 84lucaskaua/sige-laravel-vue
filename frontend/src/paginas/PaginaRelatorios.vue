@@ -19,14 +19,20 @@
         <div>
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Lote</label>
           <div class="relative">
-            <button @click="dropdownLoteAberto = !dropdownLoteAberto"
-              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+            <button
+              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white"
+              @click="dropdownLoteAberto = !dropdownLoteAberto"
+            >
               {{ filtros.lote }} <ChevronDown :size="16" class="text-slate-400" />
             </button>
             <div v-if="dropdownLoteAberto" class="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden max-h-56 overflow-y-auto">
-              <div v-for="opcao in opcoesLote" :key="opcao" @click="filtros.lote = opcao; dropdownLoteAberto = false"
+              <div
+                v-for="opcao in opcoesLote"
+                :key="opcao"
                 class="flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition"
-                :class="filtros.lote === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'">
+                :class="filtros.lote === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'"
+                @click="filtros.lote = opcao; dropdownLoteAberto = false"
+              >
                 {{ opcao }} <Check v-if="filtros.lote === opcao" :size="16" />
               </div>
             </div>
@@ -37,14 +43,20 @@
         <div>
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Vencimento em até</label>
           <div class="relative">
-            <button @click="dropdownVencAberto = !dropdownVencAberto"
-              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+            <button
+              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white"
+              @click="dropdownVencAberto = !dropdownVencAberto"
+            >
               {{ filtros.vencimento }} <ChevronDown :size="16" class="text-slate-400" />
             </button>
             <div v-if="dropdownVencAberto" class="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
-              <div v-for="opcao in opcoesVencimento" :key="opcao" @click="filtros.vencimento = opcao; dropdownVencAberto = false"
+              <div
+                v-for="opcao in opcoesVencimento"
+                :key="opcao"
                 class="flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition"
-                :class="filtros.vencimento === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'">
+                :class="filtros.vencimento === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'"
+                @click="filtros.vencimento = opcao; dropdownVencAberto = false"
+              >
                 {{ opcao }} <Check v-if="filtros.vencimento === opcao" :size="16" />
               </div>
             </div>
@@ -56,8 +68,12 @@
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Buscar</label>
           <div class="relative">
             <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-            <input v-model="filtros.busca" type="text" placeholder="SKU, produto, fornecedor..."
-              class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition" />
+            <input
+              v-model="filtros.busca"
+              type="text"
+              placeholder="SKU, produto, fornecedor..."
+              class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition"
+            />
           </div>
         </div>
       </div>
@@ -65,29 +81,37 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Data Inicial</label>
-          <input v-model="filtros.dataInicial" type="date"
-            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]" />
+          <input
+            v-model="filtros.dataInicial"
+            type="date"
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]"
+          />
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Data Final</label>
-          <input v-model="filtros.dataFinal" type="date"
-            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]" />
+          <input
+            v-model="filtros.dataFinal"
+            type="date"
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]"
+          />
         </div>
       </div>
 
       <div class="flex items-center justify-between">
-        <button @click="limparFiltros"
-          class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+        <button
+          class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+          @click="limparFiltros"
+        >
           Limpar Filtros
         </button>
         <div class="flex gap-2">
-          <button @click="exportarCSV" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          <button class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition" @click="exportarCSV">
             <Download :size="16" /> Exportar CSV
           </button>
-          <button @click="exportarExcel" class="flex items-center gap-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          <button class="flex items-center gap-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition" @click="exportarExcel">
             <FileSpreadsheet :size="16" /> Exportar Excel{{ selecionados.size ? ` (${selecionados.size})` : '' }}
           </button>
-          <button @click="exportarPDF" class="flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          <button class="flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition" @click="exportarPDF">
             <FileText :size="16" /> Exportar PDF
           </button>
         </div>
@@ -119,8 +143,11 @@
             — {{ selecionados.size }} selecionado(s)
           </span>
         </h2>
-        <button v-if="selecionados.size" @click="limparSelecao"
-          class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white underline">
+        <button
+          v-if="selecionados.size"
+          class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white underline"
+          @click="limparSelecao"
+        >
           Limpar seleção
         </button>
       </div>
@@ -135,8 +162,12 @@
         <thead>
           <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
             <th class="text-left px-4 py-3 font-medium w-10">
-              <input type="checkbox" :checked="todosSelecionados" @change="alternarTodos"
-                class="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
+              <input
+                type="checkbox"
+                :checked="todosSelecionados"
+                class="w-4 h-4 rounded accent-blue-600 cursor-pointer"
+                @change="alternarTodos"
+              />
             </th>
             <th class="text-left px-4 py-3 font-medium">Lote</th>
             <th class="text-left px-4 py-3 font-medium">SKU</th>
@@ -149,13 +180,19 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-          <tr v-for="item in itensFiltrados" :key="item.id_item"
+          <tr
+            v-for="item in itensFiltrados"
+            :key="item.id_item"
             class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition"
-            :class="selecionados.has(item.id_item) ? 'bg-blue-50 dark:bg-blue-950/40' : ''">
+            :class="selecionados.has(item.id_item) ? 'bg-blue-50 dark:bg-blue-950/40' : ''"
+          >
             <td class="px-4 py-3">
-              <input type="checkbox" :checked="selecionados.has(item.id_item)"
+              <input
+                type="checkbox"
+                :checked="selecionados.has(item.id_item)"
+                class="w-4 h-4 rounded accent-blue-600 cursor-pointer"
                 @change="alternarSelecao(item.id_item)"
-                class="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
+              />
             </td>
             <td class="px-4 py-3">
               <span class="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded">
@@ -169,8 +206,7 @@
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ item.fornecedor || '—' }}</td>
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
             <td class="px-4 py-3">
-              <span class="px-2 py-0.5 rounded text-xs font-bold"
-                :class="statusClasse(item)">
+              <span class="px-2 py-0.5 rounded text-xs font-bold" :class="statusClasse(item)">
                 {{ statusTexto(item) }}
               </span>
             </td>

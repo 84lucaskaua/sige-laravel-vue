@@ -7,6 +7,7 @@ use App\Models\Produto;
 use App\Models\Lote;
 use App\Models\ItemLote;
 use App\Models\Movimentacao;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Carbon\Carbon;
@@ -180,7 +181,7 @@ class ImportacaoExportacaoController extends Controller
                         'observacao'        => 'Importação via planilha Excel',
                         'id_lote'           => $lote->id_lote,
                         'id_item'           => null,
-                        'id_usuario'        => auth()->id(),
+                        'id_usuario'        => Auth::id(),
                     ]);
 
                     $produto->increment('estoque_atual', $quantidade);
@@ -204,7 +205,7 @@ class ImportacaoExportacaoController extends Controller
     }
 
     // ─── Converte validade do Excel para Y-m-d ─────────────────
-    private function converterValidade($valor): ?string
+    private function converterValidade(mixed $valor): ?string
     {
         if (is_null($valor) || $valor === '' || $valor === 0) return null;
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Helpers\AuditHelper;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class UsuarioController extends Controller
@@ -37,7 +38,7 @@ class UsuarioController extends Controller
         return response()->json($usuario, 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         $usuario = User::findOrFail($id);
 
@@ -65,11 +66,11 @@ class UsuarioController extends Controller
         return response()->json($usuario);
     }
 
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $usuario = User::findOrFail($id);
 
-        if ($usuario->id === auth()->id()) {
+        if ($usuario->id === Auth::id()) {
             return response()->json(['mensagem' => 'Você não pode excluir o próprio usuário.'], 422);
         }
 

@@ -9,8 +9,8 @@
       </div>
       <button
         v-if="autenticacao.podeCadastrar"
-        @click="iniciarCriacaoLote"
         class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+        @click="iniciarCriacaoLote"
       >
         <Plus :size="18" />
         Novo Lote
@@ -28,8 +28,8 @@
       <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Nenhum lote cadastrado</h2>
       <p class="text-slate-500 dark:text-slate-400 mb-6">Crie seu primeiro lote para começar a gerenciar os itens.</p>
       <button
-        @click="iniciarCriacaoLote"
         class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+        @click="iniciarCriacaoLote"
       >
         <Plus :size="18" />
         Criar Primeiro Lote
@@ -44,11 +44,11 @@
         <button
           v-for="lote in lotes"
           :key="lote.id_lote"
-          @click="aoClicarTab(lote.id_lote)"
           :class="tabAtiva === lote.id_lote
             ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border-b-2 border-blue-500'
             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'"
           class="px-4 py-2 rounded-t-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5"
+          @click="aoClicarTab(lote.id_lote)"
         >
           <Lock v-if="!pinValido" :size="12" class="text-slate-400 dark:text-slate-500" />
           {{ lote.numero_lote }}
@@ -81,15 +81,15 @@
           </div>
           <div class="flex items-center gap-2">
             <button
-              @click="iniciarAdicaoItem"
               class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+              @click="iniciarAdicaoItem"
             >
               <Plus :size="16" />
               Adicionar Item
             </button>
             <button
-              @click="iniciarExclusaoLote"
               class="flex items-center gap-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition text-sm font-medium"
+              @click="iniciarExclusaoLote"
             >
               <Trash2 :size="16" />
               Excluir Lote
@@ -143,46 +143,37 @@
 
               <td class="py-3">
                 <div class="flex items-center gap-1 flex-wrap">
-                 <span v-if="item.data_validade && estaVencido(item.data_validade)"
-  class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
-  Vencido
-</span>
-<span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)"
-  class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
-  Vencendo
-</span>
-<span v-else
-  class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-  OK
-</span>
+                  <span v-if="item.data_validade && estaVencido(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
+                    Vencido
+                  </span>
+                  <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
+                    Vencendo
+                  </span>
+                  <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+                    OK
+                  </span>
 
-<span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo"
-  class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
-  Crítico
-</span>
-<span v-else
-  class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-  OK
-</span>
+                  <span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo" class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
+                    Crítico
+                  </span>
+                  <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+                    OK
+                  </span>
                 </div>
               </td>
 
               <td class="py-3" @click.stop>
                 <div class="flex items-center gap-3">
-                  <button @click="itemSelecionado = item; modalEditarAberto = true"
-                    class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar">
+                  <button class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar" @click="itemSelecionado = item; modalEditarAberto = true">
                     <Pencil :size="16" />
                   </button>
-                  <button @click="itemSelecionado = item; modalBaixaAberto = true"
-                    class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque">
+                  <button class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque" @click="itemSelecionado = item; modalBaixaAberto = true">
                     <PackageOpen :size="16" />
                   </button>
-                  <button @click="itemSelecionado = item; modalEntradaAberto = true"
-                    class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque">
+                  <button class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque" @click="itemSelecionado = item; modalEntradaAberto = true">
                     <PackagePlus :size="16" />
                   </button>
-                  <button @click="itemSelecionado = item; modalExcluirAberto = true"
-                    class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir">
+                  <button class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir" @click="itemSelecionado = item; modalExcluirAberto = true">
                     <Trash2 :size="16" />
                   </button>
                 </div>
@@ -211,7 +202,7 @@
               <p class="text-slate-500 dark:text-slate-400 text-xs">Necessário para acessar os lotes</p>
             </div>
           </div>
-          <button @click="cancelarPin" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="cancelarPin">
             <X :size="18" />
           </button>
         </div>
@@ -237,11 +228,14 @@
         </div>
 
         <div class="flex gap-3">
-          <button @click="cancelarPin" class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" @click="cancelarPin">
             Cancelar
           </button>
-          <button @click="verificarPin" :disabled="pinDigitado.length < 4"
-            class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium">
+          <button
+            class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium"
+            :disabled="pinDigitado.length < 4"
+            @click="verificarPin"
+          >
             Confirmar PIN
           </button>
         </div>
@@ -259,7 +253,7 @@
               <p class="text-slate-500 dark:text-slate-400 text-xs">Esta ação não pode ser desfeita</p>
             </div>
           </div>
-          <button @click="modalExcluirLoteAberto = false" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="modalExcluirLoteAberto = false">
             <X :size="18" />
           </button>
         </div>
@@ -271,10 +265,10 @@
         </div>
 
         <div class="flex gap-3">
-          <button @click="modalExcluirLoteAberto = false" class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" @click="modalExcluirLoteAberto = false">
             Cancelar
           </button>
-          <button @click="excluirLote" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium">
+          <button class="flex-1 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium" @click="excluirLote">
             Confirmar Exclusão
           </button>
         </div>
@@ -375,7 +369,6 @@ const tabAtiva            = ref(null)
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 
 // ===== Controle de PIN por SESSÃO (até logout) =====
-
 
 const modalPinAberto    = ref(false)
 const pinDigitado       = ref('')

@@ -25,7 +25,7 @@ class ProdutoController extends Controller
         return response()->json($query->get());
     }
 
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $item = ItemLote::findOrFail($id);
         $item->delete();

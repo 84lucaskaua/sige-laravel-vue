@@ -9,20 +9,28 @@
       </div>
       <div class="flex gap-2">
         <div class="relative">
-          <button @click="dropdownPeriodoAberto = !dropdownPeriodoAberto"
-            class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg">
+          <button
+            class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg"
+            @click="dropdownPeriodoAberto = !dropdownPeriodoAberto"
+          >
             <Calendar :size="16" /> {{ periodoLabel }} <ChevronDown :size="16" />
           </button>
           <div v-if="dropdownPeriodoAberto" class="absolute right-0 z-10 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
-            <div v-for="p in opcoesPeriodo" :key="p.dias" @click="selecionarPeriodo(p)"
+            <div
+              v-for="p in opcoesPeriodo"
+              :key="p.dias"
               class="px-3 py-2 text-sm cursor-pointer transition"
-              :class="periodo.dias === p.dias ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'">
+              :class="periodo.dias === p.dias ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'"
+              @click="selecionarPeriodo(p)"
+            >
               {{ p.label }}
             </div>
           </div>
         </div>
-        <button @click="exportar"
-          class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+        <button
+          class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+          @click="exportar"
+        >
           <Download :size="16" /> Exportar
         </button>
       </div>
@@ -30,14 +38,18 @@
 
     <!-- Abas -->
     <div class="flex gap-0 mb-6 border-b border-slate-200 dark:border-slate-800">
-      <button @click="aba = 'perdas'"
+      <button
         class="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition"
-        :class="aba === 'perdas' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        :class="aba === 'perdas' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+        @click="aba = 'perdas'"
+      >
         <TrendingDown :size="16" /> Relatório de Perdas
       </button>
-      <button @click="aba = 'abc'"
+      <button
         class="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition"
-        :class="aba === 'abc' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+        :class="aba === 'abc' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+        @click="aba = 'abc'"
+      >
         <PieChart :size="16" /> Análise ABC
       </button>
     </div>
@@ -87,9 +99,10 @@
             <div v-for="m in dadosPerdas.porMotivo" :key="m.motivo" class="flex items-center gap-4">
               <span class="text-slate-600 dark:text-slate-300 text-sm w-48 truncate">{{ m.motivo }}</span>
               <div class="flex-1 bg-slate-200 dark:bg-slate-800 rounded-full h-2">
-                <div class="bg-red-500 h-2 rounded-full"
-                  :style="{ width: totalUnidadesPerdas > 0 ? (m.total / totalUnidadesPerdas * 100) + '%' : '0%' }">
-                </div>
+                <div
+                  class="bg-red-500 h-2 rounded-full"
+                  :style="{ width: totalUnidadesPerdas > 0 ? (m.total / totalUnidadesPerdas * 100) + '%' : '0%' }"
+                ></div>
               </div>
               <span class="text-slate-500 dark:text-slate-400 text-sm w-24 text-right">{{ m.total }} unid.</span>
               <span class="text-slate-400 dark:text-slate-500 text-xs w-16 text-right">{{ m.ocorrencias }}x</span>
@@ -161,8 +174,7 @@
               <circle cx="100" cy="100" r="80" :fill="temaClaroSvg.fundo" />
               <template v-if="dadosAbc.resumo?.total > 0">
                 <!-- Fatias calculadas -->
-                <path v-for="(fatia, i) in fatiasPizza" :key="i"
-                  :d="fatia.d" :fill="fatia.cor" />
+                <path v-for="(fatia, i) in fatiasPizza" :key="i" :d="fatia.d" :fill="fatia.cor" />
               </template>
               <circle cx="100" cy="100" r="45" :fill="temaClaroSvg.centro" />
             </svg>
@@ -205,8 +217,10 @@
               </tr>
               <tr v-for="item in dadosAbc.itens" :key="item.id_item" class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition">
                 <td class="px-4 py-3">
-                  <span class="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold inline-flex"
-                    :class="item.classe === 'A' ? 'bg-green-600' : item.classe === 'B' ? 'bg-orange-500' : 'bg-red-600'">
+                  <span
+                    class="w-6 h-6 rounded inline-flex items-center justify-center text-white text-xs font-bold"
+                    :class="item.classe === 'A' ? 'bg-green-600' : item.classe === 'B' ? 'bg-orange-500' : 'bg-red-600'"
+                  >
                     {{ item.classe }}
                   </span>
                 </td>

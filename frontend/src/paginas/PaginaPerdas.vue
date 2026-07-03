@@ -58,8 +58,8 @@
             </p>
           </div>
           <button
-            @click="abrirModal(item)"
             class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition font-medium"
+            @click="abrirModal(item)"
           >
             <Trash2 :size="14" />
             Registrar Perda
@@ -107,7 +107,7 @@
       <div v-if="etapa === 0" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
         <div class="flex justify-between items-center mb-5">
           <h2 class="text-slate-900 dark:text-white font-bold">Registrar Perda</h2>
-          <button @click="fecharModal" class="text-slate-400 hover:text-slate-900 dark:hover:text-white"><X :size="18" /></button>
+          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="fecharModal"><X :size="18" /></button>
         </div>
 
         <div class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-4">
@@ -148,11 +148,11 @@
         <div v-if="erro" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">{{ erro }}</div>
 
         <div class="flex gap-3">
-          <button @click="fecharModal" class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">Cancelar</button>
+          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm" @click="fecharModal">Cancelar</button>
           <button
-            @click="abrirConfirmacao"
-            :disabled="!form.quantidade || !form.motivo"
             class="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-medium transition text-sm"
+            :disabled="!form.quantidade || !form.motivo"
+            @click="abrirConfirmacao"
           >
             Confirmar Perda
           </button>
@@ -169,7 +169,7 @@
               <p class="text-slate-500 dark:text-slate-400 text-xs">Esta ação requer confirmação em 2 etapas</p>
             </div>
           </div>
-          <button @click="fecharModal" class="text-slate-400 hover:text-slate-900 dark:hover:text-white"><X :size="18" /></button>
+          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="fecharModal"><X :size="18" /></button>
         </div>
 
         <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-3">
@@ -192,8 +192,8 @@
         </div>
 
         <div class="flex gap-3">
-          <button @click="etapa = 0" class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">Voltar</button>
-          <button @click="etapa = 2" class="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition text-sm">Confirmar e Prosseguir</button>
+          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm" @click="etapa = 0">Voltar</button>
+          <button class="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition text-sm" @click="etapa = 2">Confirmar e Prosseguir</button>
         </div>
       </div>
 
@@ -207,7 +207,7 @@
               <p class="text-slate-500 dark:text-slate-400 text-xs">Etapa 2 de 2: Digite o PIN de segurança</p>
             </div>
           </div>
-          <button @click="fecharModal" class="text-slate-400 hover:text-slate-900 dark:hover:text-white"><X :size="18" /></button>
+          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="fecharModal"><X :size="18" /></button>
         </div>
 
         <div class="mb-6">
@@ -226,11 +226,11 @@
         </div>
 
         <div class="flex gap-3">
-          <button @click="etapa = 1; pinDigitado = ''; erroPin = ''" class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">Voltar</button>
+          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm" @click="etapa = 1; pinDigitado = ''; erroPin = ''">Voltar</button>
           <button
-            @click="confirmarPerda"
-            :disabled="pinDigitado.length < 4 || salvando"
             class="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium transition text-sm"
+            :disabled="pinDigitado.length < 4 || salvando"
+            @click="confirmarPerda"
           >
             {{ salvando ? 'Confirmando...' : 'Confirmar PIN' }}
           </button>

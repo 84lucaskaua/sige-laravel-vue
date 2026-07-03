@@ -8,7 +8,7 @@
           <Trash2 class="text-red-600 dark:text-red-400" :size="20" />
           <h2 class="text-slate-900 dark:text-white font-bold">Confirmar Exclusão</h2>
         </div>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="$emit('fechar')">
           <X :size="18" />
         </button>
       </div>
@@ -41,14 +41,16 @@
       </div>
 
       <div class="flex justify-end gap-3">
-        <button @click="$emit('fechar')"
-          class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">
+        <button
+          class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm"
+          @click="$emit('fechar')"
+        >
           Cancelar
         </button>
         <button
-          @click="confirmar"
-          :disabled="confirmacaoTexto !== 'Confirmar Exclusão' || excluindo"
           class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition text-sm font-medium"
+          :disabled="confirmacaoTexto !== 'Confirmar Exclusão' || excluindo"
+          @click="confirmar"
         >
           {{ excluindo ? 'Excluindo...' : 'Excluir' }}
         </button>

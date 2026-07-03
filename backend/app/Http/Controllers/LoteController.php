@@ -33,7 +33,7 @@ class LoteController extends Controller
         return response()->json($lote, 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         $lote = Lote::findOrFail($id);
 
@@ -54,7 +54,7 @@ class LoteController extends Controller
         return response()->json($lote);
     }
 
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $lote = Lote::findOrFail($id);
 

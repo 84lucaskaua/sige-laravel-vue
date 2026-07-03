@@ -5,7 +5,7 @@
         <h2 class="text-lg font-bold text-white">
           {{ ehEdicao ? 'Editar Usuário' : 'Novo Usuário' }}
         </h2>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-white">
+        <button class="text-slate-400 hover:text-white" @click="$emit('fechar')">
           <X :size="20" />
         </button>
       </div>
@@ -72,7 +72,7 @@
         </div>
 
         <div class="flex justify-end gap-3">
-          <button type="button" @click="$emit('fechar')" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-800 transition">
+          <button type="button" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-800 transition" @click="$emit('fechar')">
             Cancelar
           </button>
           <button type="submit" :disabled="salvando || senhasDiferentes" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">

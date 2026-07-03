@@ -52,16 +52,16 @@
         <SearchIcon :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           v-model="search"
-          @input="fetchLogs()"
           type="text"
           placeholder="Buscar por usuário, ação, descrição..."
           :class="['w-full border rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500', temaClaro ? 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400' : 'bg-[#0f1117] border-gray-700 text-white placeholder-gray-500']"
+          @input="fetchLogs()"
         />
       </div>
       <select
         v-model="period"
-        @change="fetchLogs()"
         :class="['border rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500', temaClaro ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#0f1117] border-gray-700 text-white']"
+        @change="fetchLogs()"
       >
         <option value="7d">Últimos 7 dias</option>
         <option value="30d">Últimos 30 dias</option>
@@ -69,8 +69,8 @@
       </select>
       <select
         v-model="actionFilter"
-        @change="fetchLogs()"
         :class="['border rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500', temaClaro ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#0f1117] border-gray-700 text-white']"
+        @change="fetchLogs()"
       >
         <option value="all">Todas Ações</option>
         <option value="Login">Login</option>
@@ -80,8 +80,8 @@
         <option value="Exclusão">Exclusão</option>
       </select>
       <button
-        @click="exportCSV"
         :class="['flex items-center gap-2 border rounded-lg px-4 py-2 text-sm transition', temaClaro ? 'bg-gray-50 border-gray-300 text-gray-700 hover:border-blue-500' : 'bg-[#0f1117] border-gray-700 text-white hover:border-blue-500']"
+        @click="exportCSV"
       >
         <DownloadIcon :size="16" />
         Exportar
@@ -136,14 +136,14 @@
         <span>Página {{ pagination.current_page }} de {{ pagination.last_page }}</span>
         <div class="flex gap-2">
           <button
-            @click="changePage(pagination.current_page - 1)"
             :disabled="pagination.current_page === 1"
             :class="['px-3 py-1 rounded border transition disabled:opacity-30', temaClaro ? 'border-gray-300 hover:border-blue-500' : 'border-gray-700 hover:border-blue-500']"
+            @click="changePage(pagination.current_page - 1)"
           >Anterior</button>
           <button
-            @click="changePage(pagination.current_page + 1)"
             :disabled="pagination.current_page === pagination.last_page"
             :class="['px-3 py-1 rounded border transition disabled:opacity-30', temaClaro ? 'border-gray-300 hover:border-blue-500' : 'border-gray-700 hover:border-blue-500']"
+            @click="changePage(pagination.current_page + 1)"
           >Próximo</button>
         </div>
       </div>

@@ -12,7 +12,7 @@
             <p class="text-slate-500 dark:text-slate-400 text-xs">Esta ação requer confirmação em 2 etapas</p>
           </div>
         </div>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="$emit('fechar')">
           <X :size="18" />
         </button>
       </div>
@@ -41,12 +41,16 @@
       </div>
 
       <div class="flex gap-3">
-        <button @click="$emit('fechar')"
-          class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">
+        <button
+          class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm"
+          @click="$emit('fechar')"
+        >
           Cancelar
         </button>
-        <button @click="etapa = 2"
-          class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-medium text-sm">
+        <button
+          class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-medium text-sm"
+          @click="etapa = 2"
+        >
           Confirmar e Prosseguir
         </button>
       </div>
@@ -63,7 +67,7 @@
             <p class="text-slate-500 dark:text-slate-400 text-xs">Etapa 2 de 2: Digite o PIN de segurança</p>
           </div>
         </div>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="$emit('fechar')">
           <X :size="18" />
         </button>
       </div>
@@ -90,12 +94,17 @@
       </div>
 
       <div class="flex gap-3">
-        <button @click="etapa = 1; pinDigitado = ''; erroPin = ''"
-          class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">
+        <button
+          class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm"
+          @click="etapa = 1; pinDigitado = ''; erroPin = ''"
+        >
           Voltar
         </button>
-        <button @click="verificarPin" :disabled="pinDigitado.length < 4 || salvando"
-          class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium text-sm">
+        <button
+          class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium text-sm"
+          :disabled="pinDigitado.length < 4 || salvando"
+          @click="verificarPin"
+        >
           {{ salvando ? 'Confirmando...' : 'Confirmar PIN' }}
         </button>
       </div>
@@ -109,7 +118,7 @@
           <h2 class="text-lg font-bold text-slate-900 dark:text-white">Entrada de Estoque</h2>
           <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Registre a entrada de produtos no estoque.</p>
         </div>
-        <button @click="$emit('fechar')" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="$emit('fechar')">
           <X :size="20" />
         </button>
       </div>
@@ -151,13 +160,18 @@
         </div>
 
         <div class="flex justify-end gap-3">
-          <button type="button" @click="$emit('fechar')"
-            class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <button
+            type="button"
+            class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            @click="$emit('fechar')"
+          >
             Cancelar
           </button>
-          <button type="submit"
+          <button
+            type="submit"
             :disabled="!form.quantidade || form.quantidade < 1"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium">
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium"
+          >
             Confirmar Entrada
           </button>
         </div>
@@ -198,10 +212,6 @@ function abrirConfirmacao() {
   erroPin.value     = ''
   tentativas.value  = 0
   etapa.value       = 1
-}
-
-function fecharSeFora() {
-  if (etapa.value === 0) emit('fechar')
 }
 
 async function verificarPin() {

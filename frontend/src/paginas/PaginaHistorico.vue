@@ -7,13 +7,13 @@
         <p class="text-sm text-slate-500 dark:text-slate-400">Visualize todas as entradas e saídas de estoque</p>
       </div>
       <div class="flex gap-2">
-        <button @click="exportarCSV" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+        <button class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition" @click="exportarCSV">
           <Download :size="16" /> Exportar CSV
         </button>
-        <button @click="exportarExcel" class="flex items-center gap-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+        <button class="flex items-center gap-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition" @click="exportarExcel">
           <FileSpreadsheet :size="16" /> Exportar Excel
         </button>
-        <button @click="exportarPDF" class="flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+        <button class="flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition" @click="exportarPDF">
           <FileText :size="16" /> Exportar PDF
         </button>
       </div>
@@ -26,21 +26,31 @@
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Buscar Produto</label>
           <div class="relative">
             <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-            <input v-model="filtros.busca" type="text" placeholder="Nome ou SKU do produto..."
-              class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition" />
+            <input
+              v-model="filtros.busca"
+              type="text"
+              placeholder="Nome ou SKU do produto..."
+              class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition"
+            />
           </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Tipo</label>
           <div class="relative">
-            <button @click="dropdownTipoAberto = !dropdownTipoAberto; dropdownLoteAberto = false"
-              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition">
+            <button
+              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition"
+              @click="dropdownTipoAberto = !dropdownTipoAberto; dropdownLoteAberto = false"
+            >
               {{ filtros.tipo }} <ChevronDown :size="16" class="text-slate-400" />
             </button>
             <div v-if="dropdownTipoAberto" class="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
-              <div v-for="opcao in opcoesTipo" :key="opcao" @click="selecionarTipo(opcao)"
+              <div
+                v-for="opcao in opcoesTipo"
+                :key="opcao"
                 class="flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition"
-                :class="filtros.tipo === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'">
+                :class="filtros.tipo === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'"
+                @click="selecionarTipo(opcao)"
+              >
                 {{ opcao }} <Check v-if="filtros.tipo === opcao" :size="16" />
               </div>
             </div>
@@ -49,14 +59,20 @@
         <div>
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Lote</label>
           <div class="relative">
-            <button @click="dropdownLoteAberto = !dropdownLoteAberto; dropdownTipoAberto = false"
-              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition">
+            <button
+              class="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition"
+              @click="dropdownLoteAberto = !dropdownLoteAberto; dropdownTipoAberto = false"
+            >
               {{ filtros.lote }} <ChevronDown :size="16" class="text-slate-400" />
             </button>
             <div v-if="dropdownLoteAberto" class="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden max-h-56 overflow-y-auto">
-              <div v-for="opcao in opcoesLote" :key="opcao" @click="selecionarLote(opcao)"
+              <div
+                v-for="opcao in opcoesLote"
+                :key="opcao"
                 class="flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition"
-                :class="filtros.lote === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'">
+                :class="filtros.lote === opcao ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'"
+                @click="selecionarLote(opcao)"
+              >
                 {{ opcao }} <Check v-if="filtros.lote === opcao" :size="16" />
               </div>
             </div>
@@ -66,17 +82,25 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
         <div>
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Data Inicial</label>
-          <input v-model="filtros.dataInicial" type="date"
-            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]" />
+          <input
+            v-model="filtros.dataInicial"
+            type="date"
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]"
+          />
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Data Final</label>
-          <input v-model="filtros.dataFinal" type="date"
-            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]" />
+          <input
+            v-model="filtros.dataFinal"
+            type="date"
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 transition [color-scheme:light] dark:[color-scheme:dark]"
+          />
         </div>
         <div class="md:col-span-2 flex items-end">
-          <button @click="limparFiltros"
-            class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-medium py-2 rounded-lg transition">
+          <button
+            class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-medium py-2 rounded-lg transition"
+            @click="limparFiltros"
+          >
             Limpar Filtros
           </button>
         </div>
@@ -111,8 +135,10 @@
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.sku }}</td>
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.lote }}</td>
             <td class="px-4 py-3">
-              <span class="px-2 py-0.5 rounded text-xs font-bold"
-                :class="mov.tipo === 'Entrada' ? 'bg-green-700 text-white' : 'bg-red-600 text-white'">
+              <span
+                class="px-2 py-0.5 rounded text-xs font-bold"
+                :class="mov.tipo === 'Entrada' ? 'bg-green-700 text-white' : 'bg-red-600 text-white'"
+              >
                 {{ mov.tipo }}
               </span>
             </td>
@@ -122,9 +148,11 @@
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.motivo }}</td>
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.usuario }}</td>
             <td v-if="ehRoot" class="px-4 py-3 text-center">
-              <button @click="confirmarExclusao(mov)"
+              <button
                 class="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition"
-                title="Excluir movimentação">
+                title="Excluir movimentação"
+                @click="confirmarExclusao(mov)"
+              >
                 <Trash2 :size="15" />
               </button>
             </td>
@@ -147,12 +175,17 @@
           Esta ação não pode ser desfeita.
         </p>
         <div class="flex gap-3">
-          <button @click="movParaExcluir = null"
-            class="flex-1 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm">
+          <button
+            class="flex-1 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm"
+            @click="movParaExcluir = null"
+          >
             Cancelar
           </button>
-          <button @click="excluir" :disabled="excluindo"
-            class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-medium transition text-sm">
+          <button
+            class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-medium transition text-sm"
+            :disabled="excluindo"
+            @click="excluir"
+          >
             {{ excluindo ? 'Excluindo...' : 'Excluir' }}
           </button>
         </div>
