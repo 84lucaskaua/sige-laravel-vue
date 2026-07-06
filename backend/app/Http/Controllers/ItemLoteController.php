@@ -7,6 +7,7 @@ use App\Models\Movimentacao;
 use App\Services\AbcPriorityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class ItemLoteController extends Controller
 {
@@ -88,7 +89,12 @@ class ItemLoteController extends Controller
         $request->validate([
             'quantidade' => 'required|integer|min:1|max:' . $item->quantidade,
             'motivo'     => 'nullable|string|max:255',
+            'pin'        => 'required|string',
         ]);
+
+        if (!Hash::check($request->pin, Auth::user()->pin)) {
+            return response()->json(['message' => 'PIN incorreto.'], 403);
+        }
 
         $item->update([
             'quantidade' => $item->quantidade - $request->quantidade,
@@ -114,7 +120,12 @@ class ItemLoteController extends Controller
         $request->validate([
             'quantidade' => 'required|integer|min:1',
             'motivo'     => 'nullable|string|max:255',
+            'pin'        => 'required|string',
         ]);
+
+        if (!Hash::check($request->pin, Auth::user()->pin)) {
+            return response()->json(['message' => 'PIN incorreto.'], 403);
+        }
 
         $item = ItemLote::findOrFail($id);
         $item->quantidade += $request->quantidade;

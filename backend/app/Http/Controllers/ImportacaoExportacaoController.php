@@ -40,10 +40,10 @@ class ImportacaoExportacaoController extends Controller
 
     // ─── IMPORTAR EXCEL (.xlsx) ───────────────────────────────
     public function importarExcel(Request $request)
-{
-    $request->validate([
-        'arquivo' => 'required|file',
-    ]);
+    {
+        $request->validate([
+            'arquivo' => 'required|file',
+        ]);
 
         DB::beginTransaction();
         try {
@@ -131,34 +131,32 @@ class ImportacaoExportacaoController extends Controller
                     $produtosNovos++;
                 }
 
-                // Mesmo SKU + mesma data_validade → incrementa lote existente
-                $loteExistente = Lote::where('id_produto', $produto->id_produto)
-                    ->where('data_validade', $dataValidade)
-                    ->first();
-
-                if ($loteExistente) {
-                    $loteExistente->increment('quantidade', $quantidade);
-                    $produto->increment('estoque_atual', $quantidade);
-
-                    $item = ItemLote::where('id_lote', $loteExistente->id_lote)->first();
-                    if ($item) $item->increment('quantidade', $quantidade);
-                } else {
-                    // Novo lote
-                    $numeroLote = 'LOTE-' . strtoupper(substr(preg_replace('/[^A-Z0-9]/i', '', $sku), 0, 10))
-                        . '-' . now()->format('YmdHis')
-                        . '-' . rand(100, 999);
-
+                // Agrupa por VALIDADE: mesma validade → mesmo lote (vários produtos dentro)
+                // Validade diferente → novo lote
+                $lote = Lote::where('data_validade', $dataValidade)->first();
+                if (!$lote) {
+                    $numeroLote = 'LOTE-' . now()->format('Ymd') . '-' . rand(1000, 9999);
                     $lote = Lote::create([
                         'numero_lote'    => $numeroLote,
-                        'quantidade'     => $quantidade,
+                        'quantidade'     => 0,
                         'status'         => 'ativo',
                         'data_entrada'   => now()->toDateString(),
                         'data_validade'  => $dataValidade,
-                        'descricao'      => $descricao,
+                        'descricao'      => 'Importação em lote - validade ' . ($dataValidade ?? 'sem validade'),
                         'id_produto'     => $produto->id_produto,
                         'id_localizacao' => null,
                     ]);
+                    $lotesCriados++;
+                }
 
+                // Dentro do lote, verifica se o produto (SKU) já tem item cadastrado
+                $item = ItemLote::where('id_lote', $lote->id_lote)
+                    ->where('sku', $sku)
+                    ->first();
+
+                if ($item) {
+                    $item->increment('quantidade', $quantidade);
+                } else {
                     ItemLote::create([
                         'id_lote'           => $lote->id_lote,
                         'nome'              => $descricao,
@@ -173,20 +171,20 @@ class ImportacaoExportacaoController extends Controller
                         'prioridade_manual' => null,
                         'categoria'         => null,
                     ]);
-
-                    Movimentacao::create([
-                        'tipo'              => 'ENTRADA',
-                        'quantidade'        => $quantidade,
-                        'data_movimentacao' => now()->toDateString(),
-                        'observacao'        => 'Importação via planilha Excel',
-                        'id_lote'           => $lote->id_lote,
-                        'id_item'           => null,
-                        'id_usuario'        => Auth::id(),
-                    ]);
-
-                    $produto->increment('estoque_atual', $quantidade);
-                    $lotesCriados++;
                 }
+
+                $lote->increment('quantidade', $quantidade);
+                $produto->increment('estoque_atual', $quantidade);
+
+                Movimentacao::create([
+                    'tipo'              => 'ENTRADA',
+                    'quantidade'        => $quantidade,
+                    'data_movimentacao' => now()->toDateString(),
+                    'observacao'        => 'Importação via planilha Excel',
+                    'id_lote'           => $lote->id_lote,
+                    'id_item'           => null,
+                    'id_usuario'        => Auth::id(),
+                ]);
             }
 
             DB::commit();

@@ -199,8 +199,6 @@ const tentativas  = ref(0)
 const salvando    = ref(false)
 const erro        = ref('')
 
-const PIN_CORRETO = '8401'
-
 const form = ref({
   quantidade: null,
   motivo:     '',
@@ -215,12 +213,8 @@ function abrirConfirmacao() {
 }
 
 async function verificarPin() {
-  if (pinDigitado.value !== PIN_CORRETO) {
-    tentativas.value++
-    erroPin.value     = tentativas.value >= 3
-      ? 'PIN incorreto. Acesso bloqueado. Contate o administrador.'
-      : 'PIN incorreto. Tente novamente.'
-    pinDigitado.value = ''
+  if (tentativas.value >= 3) {
+    erroPin.value = 'PIN incorreto. Acesso bloqueado. Contate o administrador.'
     return
   }
 
@@ -230,12 +224,20 @@ async function verificarPin() {
     await api.patch(`/itens/${props.item.id_item}/entrada`, {
       quantidade: form.value.quantidade,
       motivo:     form.value.motivo,
+      pin:        pinDigitado.value,
     })
     emit('salvo')
   } catch (e) {
-    erro.value        = e.response?.data?.message || 'Erro ao registrar entrada.'
-    pinDigitado.value = ''
-    etapa.value       = 0
+    if (e.response?.status === 403) {
+      tentativas.value++
+      erroPin.value = tentativas.value >= 3
+        ? 'PIN incorreto. Acesso bloqueado. Contate o administrador.'
+        : 'PIN incorreto. Tente novamente.'
+      pinDigitado.value = ''
+    } else {
+      erro.value  = e.response?.data?.message || 'Erro ao registrar entrada.'
+      etapa.value = 0
+    }
   } finally {
     salvando.value = false
   }

@@ -26,6 +26,12 @@ api.interceptors.request.use((configuracao) => {
     configuracao.headers.Authorization = `Bearer ${token}`
   }
 
+  // Se for envio de arquivo (FormData), remove o Content-Type fixo
+  // para o axios/navegador definirem o boundary do multipart sozinhos
+  if (configuracao.data instanceof FormData) {
+    delete configuracao.headers['Content-Type']
+  }
+
   return configuracao
 })
 

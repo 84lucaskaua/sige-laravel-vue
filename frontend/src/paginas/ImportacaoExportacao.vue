@@ -295,9 +295,7 @@ async function importarExcel() {
   const form = new FormData()
   form.append('arquivo', arquivoExcel.value)
   try {
-    const { data } = await api.post('/importacao-exportacao/importar/excel', form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    const { data } = await api.post('/importacao-exportacao/importar/excel', form)
     resultadoImport.value = data
     showToast(data.message)
     arquivoExcel.value = null
