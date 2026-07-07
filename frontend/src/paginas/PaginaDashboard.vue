@@ -137,7 +137,7 @@
               <p class="text-sm text-slate-500 dark:text-slate-400">Últimos 30 dias</p>
             </div>
           </div>
-          <canvas ref="graficoLinha" height="220"></canvas>
+          <canvas ref="graficoLinha" height="300"></canvas>
         </div>
 
       </div>
@@ -293,6 +293,16 @@ function formatarDataSimples(data) {
   })
 }
 
+// Remove dias iniciais totalmente zerados (mantém 1 antes do primeiro dado real,
+// pra não achatar o gráfico inteiro por causa de dias sem movimento nenhum).
+function recortarDiasVazios(dados) {
+  const primeiroIndiceComDado = dados.findIndex(
+    d => (d.estoqueTotal || 0) > 0 || (d.entradas || 0) > 0 || (d.saidas || 0) > 0
+  )
+  if (primeiroIndiceComDado <= 1) return dados
+  return dados.slice(primeiroIndiceComDado - 1)
+}
+
 async function carregarDashboard() {
   carregando.value = true
   let dadosEvolucao = []
@@ -305,7 +315,7 @@ async function carregarDashboard() {
     topProdutos.value            = resposta.data.topProdutos || []
     produtosEstoqueCritico.value = resposta.data.produtosEstoqueCritico || []
     produtosVencendo.value       = resposta.data.produtosVencendo || []
-    dadosEvolucao                = resposta.data.evolucaoEstoque || []
+    dadosEvolucao                = recortarDiasVazios(resposta.data.evolucaoEstoque || [])
     dadosDistribuicao            = resposta.data.distribuicaoCategorias || []
   } catch (erro) {
     console.error('Erro ao carregar dashboard:', erro)
@@ -338,28 +348,100 @@ function montarGraficoLinha(dados) {
 
   const cores = coresDoTema()
 
+
+
   chartLinha = new Chart(graficoLinha.value, {
     type: 'line',
     data: {
       labels: dados.map(d => d.label),
       datasets: [
-        { label: 'Estoque Total', data: dados.map(d => d.estoqueTotal || 0), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', tension: 0.3, pointRadius: 2 },
-        { label: 'Entradas',     data: dados.map(d => d.entradas || 0),     borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', tension: 0.3, pointRadius: 2 },
-        { label: 'Saídas',       data: dados.map(d => d.saidas || 0),       borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)',   tension: 0.3, pointRadius: 2 },
+        {
+          label: 'Estoque Total',
+          data: dados.map(d => d.estoqueTotal || 0),
+          borderColor: '#3b82f6',
+          backgroundColor: '#3b82f6',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: temaClaro.value ? '#ffffff' : '#0f172a',
+          pointBorderColor: '#3b82f6',
+          pointBorderWidth: 2,
+          pointHoverBackgroundColor: '#3b82f6',
+          borderWidth: 2,
+        },
+        {
+          label: 'Entradas',
+          data: dados.map(d => d.entradas || 0),
+          borderColor: '#10b981',
+          backgroundColor: '#10b981',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: temaClaro.value ? '#ffffff' : '#0f172a',
+          pointBorderColor: '#10b981',
+          pointBorderWidth: 2,
+          pointHoverBackgroundColor: '#10b981',
+          borderWidth: 2,
+        },
+        {
+          label: 'Saídas',
+          data: dados.map(d => d.saidas || 0),
+          borderColor: '#ef4444',
+          backgroundColor: '#ef4444',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: temaClaro.value ? '#ffffff' : '#0f172a',
+          pointBorderColor: '#ef4444',
+          pointBorderWidth: 2,
+          pointHoverBackgroundColor: '#ef4444',
+          borderWidth: 2,
+        },
       ],
     },
     options: {
       responsive: true,
       animation: false,
-      plugins: { legend: { labels: { color: cores.texto, font: { size: 11 } } } },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: cores.texto, font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', padding: 16 },
+        },
+        tooltip: {
+          backgroundColor: temaClaro.value ? '#ffffff' : '#1e293b',
+          titleColor: temaClaro.value ? '#0f172a' : '#f1f5f9',
+          bodyColor: temaClaro.value ? '#334155' : '#cbd5e1',
+          borderColor: temaClaro.value ? '#e2e8f0' : '#334155',
+          borderWidth: 1,
+          padding: 10,
+          cornerRadius: 8,
+          usePointStyle: true,
+        },
+      },
       scales: {
-        x: { ticks: { color: cores.textoEixo, font: { size: 10 } }, grid: { color: cores.grid } },
-        y: { ticks: { color: cores.textoEixo, font: { size: 10 } }, grid: { color: cores.grid }, beginAtZero: true },
+        x: {
+          ticks: {
+            color: cores.textoEixo,
+            font: { size: 10 },
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 8,
+          },
+          grid: { color: cores.grid, borderDash: [4, 4] },
+        },
+        y: {
+          ticks: { color: cores.textoEixo, font: { size: 10 } },
+          grid: { color: cores.grid, borderDash: [4, 4] },
+          beginAtZero: true,
+        },
       },
     },
   })
 }
-
 function montarGraficoPizza(dados) {
   if (chartPizza) chartPizza.destroy()
 
