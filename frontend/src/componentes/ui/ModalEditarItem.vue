@@ -94,6 +94,14 @@
             <option value="Consumíveis">Consumíveis</option>
             <option value="Outros">Outros</option>
           </select>
+          <input
+            v-if="form.categoria === 'Outros'"
+            v-model="form.categoria_outros"
+            type="text"
+            required
+            class="campo mt-2"
+            placeholder="Digite a categoria"
+          />
         </div>
 
         <div v-if="erro" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">
@@ -135,24 +143,39 @@ const emit = defineEmits(['fechar', 'salvo'])
 const salvando = ref(false)
 const erro     = ref('')
 
+const categoriasPadrao = [
+  'Medicina', 'Enfermagem', 'Odontologia', 'Laboratório',
+  'Higiene e Antissepsia', 'Estética', 'Podologia',
+  'Equipamentos', 'Consumíveis',
+]
+
+const categoriaEhPadrao = categoriasPadrao.includes(props.item.categoria)
+
 const form = ref({
-  sku:            props.item.sku            || '',
-  nome:           props.item.nome           || '',
-  quantidade:     props.item.quantidade     ?? null,
-  unidade_medida: props.item.unidade_medida || 'UN',
-  estoque_minimo: props.item.estoque_minimo ?? 0,
-  data_validade:  props.item.data_validade  || '',
-  fornecedor:     props.item.fornecedor     || '',
-  localizacao:    props.item.localizacao    || '',
-  prioridade_abc: props.item.prioridade_abc || '',
-  categoria:      props.item.categoria      || '',
+  sku:              props.item.sku            || '',
+  nome:             props.item.nome           || '',
+  quantidade:       props.item.quantidade     ?? null,
+  unidade_medida:   props.item.unidade_medida || 'UN',
+  estoque_minimo:   props.item.estoque_minimo ?? 0,
+  data_validade:    props.item.data_validade  || '',
+  fornecedor:       props.item.fornecedor     || '',
+  localizacao:      props.item.localizacao    || '',
+  prioridade_abc:   props.item.prioridade_abc || '',
+  categoria:        categoriaEhPadrao || !props.item.categoria ? (props.item.categoria || '') : 'Outros',
+  categoria_outros: categoriaEhPadrao || !props.item.categoria ? '' : props.item.categoria,
 })
 
 async function salvar() {
   erro.value     = ''
   salvando.value = true
   try {
-    await api.put(`/itens/${props.item.id_item}`, form.value)
+    const dados = { ...form.value }
+    if (dados.categoria === 'Outros') {
+      dados.categoria = dados.categoria_outros
+    }
+    delete dados.categoria_outros
+
+    await api.put(`/itens/${props.item.id_item}`, dados)
     emit('salvo')
   } catch (e) {
     const erros = e.response?.data?.errors

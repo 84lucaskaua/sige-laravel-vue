@@ -129,11 +129,12 @@
           />
         </div>
 
-        <div class="mb-6">
+        <div class="mb-4">
           <label class="block text-sm text-slate-600 dark:text-slate-300 font-medium mb-1">Motivo *</label>
           <select
             v-model="form.motivo"
             class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-red-500"
+            @change="form.motivoOutro = ''"
           >
             <option value="">Selecione um motivo</option>
             <option value="Vencimento">Vencimento</option>
@@ -145,13 +146,24 @@
           </select>
         </div>
 
+        <div v-if="form.motivo === 'Outro'" class="mb-6">
+          <label class="block text-sm text-slate-600 dark:text-slate-300 font-medium mb-1">Especifique o motivo *</label>
+          <input
+            v-model="form.motivoOutro"
+            type="text"
+            maxlength="150"
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-red-500"
+            placeholder="Descreva o motivo da perda"
+          />
+        </div>
+
         <div v-if="erro" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">{{ erro }}</div>
 
         <div class="flex gap-3">
           <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm" @click="fecharModal">Cancelar</button>
           <button
             class="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-medium transition text-sm"
-            :disabled="!form.quantidade || !form.motivo"
+            :disabled="!form.quantidade || !form.motivo || (form.motivo === 'Outro' && !form.motivoOutro.trim())"
             @click="abrirConfirmacao"
           >
             Confirmar Perda
@@ -179,7 +191,8 @@
           </div>
           <p class="text-slate-600 dark:text-slate-300 text-sm">
             Confirmar perda de <strong class="text-slate-900 dark:text-white">{{ form.quantidade }} {{ itemSelecionado?.unidade_medida }}</strong>
-            de "<strong class="text-slate-900 dark:text-white">{{ itemSelecionado?.nome }}</strong>". Esta ação reduz o estoque e não pode ser desfeita.
+            de "<strong class="text-slate-900 dark:text-white">{{ itemSelecionado?.nome }}</strong>" por motivo de
+            "<strong class="text-slate-900 dark:text-white">{{ motivoExibicao }}</strong>". Esta ação reduz o estoque e não pode ser desfeita.
           </p>
         </div>
 
@@ -243,7 +256,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { AlertTriangle, Trash2, Calendar, X, Shield, Lock } from 'lucide-vue-next'
 import api from '@/servicos/api'
 
@@ -260,10 +273,13 @@ const etapa       = ref(0)
 const pinDigitado = ref('')
 const erroPin     = ref('')
 const tentativas  = ref(0)
-const PIN_CORRETO = '8401'
 
 const estatisticas = ref({ total: 0, unidades: 0, esteMes: 0 })
-const form = ref({ quantidade: null, motivo: '' })
+const form = ref({ quantidade: null, motivo: '', motivoOutro: '' })
+
+const motivoExibicao = computed(() =>
+  form.value.motivo === 'Outro' ? form.value.motivoOutro.trim() : form.value.motivo
+)
 
 const formatarData = (data) => {
   if (!data) return '—'
@@ -272,7 +288,7 @@ const formatarData = (data) => {
 
 function abrirModal(item) {
   itemSelecionado.value = item
-  form.value = { quantidade: null, motivo: '' }
+  form.value = { quantidade: null, motivo: '', motivoOutro: '' }
   erro.value = ''
   etapa.value = 0
   pinDigitado.value = ''
@@ -283,6 +299,7 @@ function abrirModal(item) {
 
 function abrirConfirmacao() {
   if (!form.value.quantidade || !form.value.motivo) return
+  if (form.value.motivo === 'Outro' && !form.value.motivoOutro.trim()) return
   pinDigitado.value = ''
   erroPin.value = ''
   tentativas.value = 0
@@ -290,12 +307,8 @@ function abrirConfirmacao() {
 }
 
 async function confirmarPerda() {
-  if (pinDigitado.value !== PIN_CORRETO) {
-    tentativas.value++
-    erroPin.value = tentativas.value >= 3
-      ? 'PIN incorreto. Acesso bloqueado.'
-      : 'PIN incorreto. Tente novamente.'
-    pinDigitado.value = ''
+  if (tentativas.value >= 3) {
+    erroPin.value = 'PIN incorreto. Acesso bloqueado.'
     return
   }
 
@@ -305,13 +318,22 @@ async function confirmarPerda() {
     await api.post('/perdas', {
       id_item:    itemSelecionado.value.id_item,
       quantidade: form.value.quantidade,
-      motivo:     form.value.motivo,
+      motivo:     motivoExibicao.value,
+      pin:        pinDigitado.value,
     })
     fecharModal()
     await Promise.all([carregarItens(), carregarPerdas(), carregarEstatisticas()])
   } catch (e) {
-    erro.value = e.response?.data?.message || 'Erro ao registrar perda.'
-    etapa.value = 0
+    if (e.response?.status === 403) {
+      tentativas.value++
+      erroPin.value = tentativas.value >= 3
+        ? 'PIN incorreto. Acesso bloqueado.'
+        : 'PIN incorreto. Tente novamente.'
+      pinDigitado.value = ''
+    } else {
+      erro.value = e.response?.data?.message || 'Erro ao registrar perda.'
+      etapa.value = 0
+    }
   } finally {
     salvando.value = false
   }
@@ -356,7 +378,7 @@ async function carregarEstatisticas() {
 }
 
 onMounted(() => {
-  carregarItens()
+  carregarItens() 
   carregarPerdas()
   carregarEstatisticas()
 })

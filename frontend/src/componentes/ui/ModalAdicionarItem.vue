@@ -94,6 +94,14 @@
             <option value="Consumíveis">Consumíveis</option>
             <option value="Outros">Outros</option>
           </select>
+          <input
+            v-if="form.categoria === 'Outros'"
+            v-model="form.categoria_outros"
+            type="text"
+            required
+            class="campo mt-2"
+            placeholder="Digite a categoria"
+          />
         </div>
 
         <div v-if="erro" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">
@@ -136,16 +144,17 @@ const salvando = ref(false)
 const erro     = ref('')
 
 const form = ref({
-  sku:            '',
-  nome:           '',
-  quantidade:     null,
-  unidade_medida: 'UN',
-  estoque_minimo: 0,
-  data_validade:  '',
-  fornecedor:     '',
-  localizacao:    '',
-  prioridade_abc: '',
-  categoria:      '',
+  sku:              '',
+  nome:             '',
+  quantidade:       null,
+  unidade_medida:   'UN',
+  estoque_minimo:   0,
+  data_validade:    '',
+  fornecedor:       '',
+  localizacao:      '',
+  prioridade_abc:   '',
+  categoria:        '',
+  categoria_outros: '',
 })
 
 const temAlteracoes = computed(() => {
@@ -158,7 +167,8 @@ const temAlteracoes = computed(() => {
     form.value.fornecedor ||
     form.value.localizacao ||
     form.value.prioridade_abc ||
-    form.value.categoria
+    form.value.categoria ||
+    form.value.categoria_outros
   )
 })
 
@@ -180,7 +190,13 @@ async function salvar() {
 
   salvando.value = true
   try {
-    await api.post(`/lotes/${props.lote.id_lote}/itens`, form.value)
+    const dados = { ...form.value }
+    if (dados.categoria === 'Outros') {
+      dados.categoria = dados.categoria_outros
+    }
+    delete dados.categoria_outros
+
+    await api.post(`/lotes/${props.lote.id_lote}/itens`, dados)
     emit('salvo')
   } catch (e) {
     const erros = e.response?.data?.errors
