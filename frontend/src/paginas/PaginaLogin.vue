@@ -43,7 +43,8 @@
   </div>
 </div>
 
-        <div v-if="mensagemErro" class="mb-4 p-3 rounded-lg text-sm bg-red-900 border border-red-700 text-red-200">
+        <div v-if="mensagemErro" class="mb-4 p-3 rounded-lg text-sm bg-red-900 border border-red-700 text-red-200 flex items-center gap-2">
+          <AlertCircle :size="16" class="shrink-0" />
           {{ mensagemErro }}
         </div>
 
@@ -62,7 +63,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Eye, EyeOff } from 'lucide-vue-next'
+import { Eye, EyeOff, AlertCircle } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import logoSenac from '@/componentes/img/Senac_logo.svg.png'
@@ -77,6 +78,13 @@ const mensagemErro = ref('')
 const router       = useRouter()
 const autenticacao = useAutenticacaoStore()
 
+const mensagensErroCredenciais = [
+  'Login ou senha incorretos. Que tal conferir com calma?',
+  'Essa combinação não bateu por aqui. Tente novamente.',
+  'Login ou senha incorretos — o estoque pode esperar mais um segundinho.',
+  'Não reconhecemos esses dados. Confira e tente de novo.',
+]
+
 async function fazerLogin() {
   mensagemErro.value = ''
   carregando.value   = true
@@ -86,8 +94,14 @@ async function fazerLogin() {
     router.push('/dashboard')
 
   } catch (erro) {
-    mensagemErro.value = erro.response?.data?.message
-      || 'Email ou senha incorretos.'
+    if (erro.response?.status === 401 || erro.response?.status === 422) {
+      const aleatoria = mensagensErroCredenciais[
+        Math.floor(Math.random() * mensagensErroCredenciais.length)
+      ]
+      mensagemErro.value = erro.response?.data?.message || aleatoria
+    } else {
+      mensagemErro.value = 'Não foi possível entrar agora. Tente novamente em instantes.'
+    }
 
   } finally {
     carregando.value = false

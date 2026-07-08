@@ -44,7 +44,12 @@ api.interceptors.response.use(
   // Resposta com erro
   (erro) => {
     // Se o backend retornou 401 (não autenticado), faz logout
-    if (erro.response?.status === 401) {
+       // Se o backend retornou 401 (não autenticado), faz logout
+    // Mas ignora se o 401 veio da própria tela de login (senha errada),
+    // pra não sobrescrever a mensagem de erro antes do usuário ver
+    const ehRotaDeLogin = erro.config?.url?.includes('/login')
+
+    if (erro.response?.status === 401 && !ehRotaDeLogin) {
       localStorage.removeItem('token')
       localStorage.removeItem('usuario')
       window.location.href = '/login'
