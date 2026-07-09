@@ -9,7 +9,7 @@
         <h2 class="text-lg font-bold text-gray-800">
           {{ ehEdicao ? 'Editar Produto' : 'Novo Produto' }}
         </h2>
-        <button @click="$emit('fechar')" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        <button class="text-gray-400 hover:text-gray-600 text-xl" @click="$emit('fechar')">✕</button>
       </div>
 
       <!-- Formulário -->
@@ -63,7 +63,7 @@
 
         <!-- Botões -->
         <div class="flex justify-end gap-3">
-          <button type="button" @click="$emit('fechar')" class="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-50">
+          <button type="button" class="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-50" @click="$emit('fechar')">
             Cancelar
           </button>
           <button type="submit" :disabled="salvando" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
@@ -167,8 +167,9 @@ onMounted(carregarCategorias)
   outline: none;
 }
 .campo-texto:focus {
-  ring: 2px;
+  outline: none;
   border-color: #3B82F6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 </style>
+  
