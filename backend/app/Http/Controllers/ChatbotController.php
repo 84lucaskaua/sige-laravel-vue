@@ -4,18 +4,302 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ChatbotController extends Controller
 {
+    private const MODELO = 'claude-sonnet-5';
+
     public function perguntar(Request $request)
     {
         $request->validate([
             'mensagem' => 'required|string|max:500',
         ]);
 
-        $pergunta = $this->normalizar($request->input('mensagem'));
+        $mensagemOriginal = trim($request->input('mensagem'));
 
-        // ---- Intenção: agradecimento / despedida ----
+        if (config('services.anthropic.api_key')) {
+            try {
+                $resposta = $this->perguntarComIA($mensagemOriginal);
+                if ($resposta !== null) {
+                    return $this->responder($resposta);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Chatbot IA falhou, usando fallback de regras', ['erro' => $e->getMessage()]);
+            }
+        }
+
+        // Fallback: motor de regras (sempre funciona, mesmo sem internet/API)
+        return $this->responderComRegras($mensagemOriginal);
+    }
+
+    // =========================================================
+    // ===================  MOTOR COM IA  =========================
+    // =========================================================
+
+    private function perguntarComIA(string $mensagem): ?string
+    {
+        $ferramentas = [
+            [
+                'name' => 'buscar_produto',
+                'description' => 'Busca a quantidade em estoque de um ou mais produtos específicos pelo nome. Use quando o usuário perguntar sobre um item em particular (ex: "quantas luvas temos", "cadê o álcool em gel", "tem máscara?").',
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'termo' => [
+                            'type' => 'string',
+                            'description' => 'O nome ou parte do nome do produto que o usuário quer consultar, já isolado da pergunta (ex: "luvas", "álcool em gel").',
+                        ],
+                    ],
+                    'required' => ['termo'],
+                ],
+            ],
+            [
+                'name' => 'listar_produtos',
+                'description' => 'Lista todos os produtos cadastrados no estoque. Use quando o usuário pedir uma visão geral de tudo que existe no estoque, sem especificar um item.',
+                'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
+            ],
+            [
+                'name' => 'consultar_vencimentos',
+                'description' => 'Lista os itens que estão vencendo ou já venceram nos próximos 7 dias. Use para perguntas sobre validade, vencimento, prazo de itens.',
+                'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
+            ],
+            [
+                'name' => 'consultar_estoque_critico',
+                'description' => 'Lista os itens cuja quantidade em estoque está no mínimo ou abaixo dele. Use para perguntas sobre estoque baixo, itens acabando, itens que precisam de reposição.',
+                'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
+            ],
+            [
+                'name' => 'consultar_perdas',
+                'description' => 'Lista as perdas de produtos registradas nos últimos 30 dias, com motivo e quantidade. Use para perguntas sobre desperdício, perdas, itens descartados ou estragados.',
+                'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
+            ],
+            [
+                'name' => 'consultar_movimentacoes',
+                'description' => 'Lista as últimas movimentações de entrada e saída de estoque. Use para perguntas sobre histórico recente, quem mexeu no estoque, últimas entradas/saídas.',
+                'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
+            ],
+        ];
+
+        $systemPrompt = <<<PROMPT
+Você é o assistente virtual do SIGE, um sistema de gestão de estoque para almoxarifado.
+Seu trabalho é responder perguntas dos usuários sobre estoque, validades, perdas e movimentações
+usando as ferramentas disponíveis para consultar dados reais do sistema.
+
+Regras importantes:
+- Sempre que a pergunta envolver dados reais do estoque (quantidade, validade, perdas, movimentações, lista de produtos), use a ferramenta apropriada. Nunca invente números.
+- Se a pergunta for só uma saudação, agradecimento, despedida ou pergunta sobre você mesmo, responda diretamente em texto, sem usar ferramentas, de forma breve e amigável.
+- Se a pergunta não tiver relação nenhuma com estoque e não for conversa casual (ex: perguntas sobre assuntos totalmente aleatórios), explique educadamente que você só pode ajudar com informações do estoque.
+- Formate listas de itens com marcadores "•", sempre incluindo nome, quantidade e unidade de medida quando disponíveis.
+- Seja direto e objetivo. Responda em português do Brasil, tom amigável mas profissional.
+- Nunca mencione nomes de ferramentas, tabelas do banco de dados ou detalhes técnicos internos na resposta ao usuário.
+PROMPT;
+
+        $messages = [
+            ['role' => 'user', 'content' => $mensagem],
+        ];
+
+        // Primeira chamada: Claude decide se precisa de ferramenta
+        $resposta = $this->chamarAnthropic($systemPrompt, $messages, $ferramentas);
+
+        if ($resposta === null) {
+            return null;
+        }
+
+        // Se não pediu ferramenta, a resposta em texto já é final
+        if ($resposta['stop_reason'] !== 'tool_use') {
+            return $this->extrairTexto($resposta);
+        }
+
+        // Executa TODAS as ferramentas solicitadas nesta rodada
+        $blocosDeUso = array_filter($resposta['content'], fn($b) => $b['type'] === 'tool_use');
+
+        $resultadosFerramentas = [];
+        foreach ($blocosDeUso as $bloco) {
+            $dados = $this->executarFerramenta($bloco['name'], $bloco['input'] ?? []);
+            $resultadosFerramentas[] = [
+                'type' => 'tool_result',
+                'tool_use_id' => $bloco['id'],
+                'content' => json_encode($dados, JSON_UNESCAPED_UNICODE),
+            ];
+        }
+
+        $messages[] = ['role' => 'assistant', 'content' => $resposta['content']];
+        $messages[] = ['role' => 'user', 'content' => $resultadosFerramentas];
+
+        // Segunda chamada: Claude formata a resposta final com os dados reais
+        $respostaFinal = $this->chamarAnthropic($systemPrompt, $messages, $ferramentas);
+
+        if ($respostaFinal === null) {
+            return null;
+        }
+
+        return $this->extrairTexto($respostaFinal);
+    }
+
+    private function chamarAnthropic(string $systemPrompt, array $messages, array $tools): ?array
+    {
+        $response = Http::withHeaders([
+                'x-api-key' => config('services.anthropic.api_key'),
+                'anthropic-version' => '2023-06-01',
+                'content-type' => 'application/json',
+            ])
+            ->timeout(15)
+            ->post('https://api.anthropic.com/v1/messages', [
+                'model' => self::MODELO,
+                'max_tokens' => 1024,
+                'system' => $systemPrompt,
+                'messages' => $messages,
+                'tools' => $tools,
+            ]);
+
+        if (!$response->successful()) {
+            Log::warning('Anthropic API retornou erro', ['status' => $response->status(), 'body' => $response->body()]);
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    private function extrairTexto(array $resposta): ?string
+    {
+        foreach ($resposta['content'] ?? [] as $bloco) {
+            if ($bloco['type'] === 'text') {
+                return trim($bloco['text']);
+            }
+        }
+        return null;
+    }
+
+    private function executarFerramenta(string $nome, array $input): array
+    {
+        return match ($nome) {
+            'buscar_produto' => $this->dadosBuscarProduto($input['termo'] ?? ''),
+            'listar_produtos' => $this->dadosListarProdutos(),
+            'consultar_vencimentos' => $this->dadosVencimentos(),
+            'consultar_estoque_critico' => $this->dadosEstoqueCritico(),
+            'consultar_perdas' => $this->dadosPerdas(),
+            'consultar_movimentacoes' => $this->dadosMovimentacoes(),
+            default => ['erro' => 'Ferramenta desconhecida'],
+        };
+    }
+
+    // =========================================================
+    // ============  FONTES DE DADOS (usadas por IA e regras)  ====
+    // =========================================================
+
+    private function dadosListarProdutos(): array
+    {
+        return DB::table('item_lote')
+            ->select('nome', 'quantidade', 'unidade_medida')
+            ->orderBy('nome')
+            ->limit(30)
+            ->get()
+            ->toArray();
+    }
+
+    private function dadosVencimentos(): array
+    {
+        return DB::table('item_lote')
+            ->whereNotNull('data_validade')
+            ->where('data_validade', '<=', now()->addDays(7))
+            ->orderBy('data_validade')
+            ->select('nome', 'quantidade', 'unidade_medida', 'data_validade')
+            ->limit(15)
+            ->get()
+            ->toArray();
+    }
+
+    private function dadosEstoqueCritico(): array
+    {
+        return DB::table('item_lote')
+            ->whereColumn('quantidade', '<=', 'estoque_minimo')
+            ->select('nome', 'quantidade', 'estoque_minimo', 'unidade_medida')
+            ->limit(15)
+            ->get()
+            ->toArray();
+    }
+
+    private function dadosPerdas(): array
+    {
+        return DB::table('perda')
+            ->join('lote', 'perda.id_lote', '=', 'lote.id_lote')
+            ->join('produto', 'lote.id_produto', '=', 'produto.id_produto')
+            ->where('perda.data_perda', '>=', now()->subDays(30))
+            ->select('produto.nome', 'perda.quantidade', 'perda.razao', 'perda.data_perda')
+            ->orderByDesc('perda.data_perda')
+            ->limit(15)
+            ->get()
+            ->toArray();
+    }
+
+    private function dadosMovimentacoes(): array
+    {
+        return DB::table('movimentacao')
+            ->join('item_lote', 'movimentacao.id_item', '=', 'item_lote.id_item')
+            ->select('item_lote.nome', 'movimentacao.tipo', 'movimentacao.quantidade', 'movimentacao.data_movimentacao')
+            ->orderByDesc('movimentacao.data_movimentacao')
+            ->limit(15)
+            ->get()
+            ->toArray();
+    }
+
+    private function dadosBuscarProduto(string $termo): array
+    {
+        if (strlen(trim($termo)) < 2) {
+            return [];
+        }
+
+        $itens = DB::table('item_lote')
+            ->where('nome', 'like', "%{$termo}%")
+            ->select('nome', 'quantidade', 'unidade_medida', 'estoque_minimo')
+            ->limit(10)
+            ->get();
+
+        if ($itens->isNotEmpty()) {
+            return $itens->toArray();
+        }
+
+        return $this->buscarProdutoFuzzy($termo)->toArray();
+    }
+
+    private function buscarProdutoFuzzy(string $termo)
+    {
+        $termoNorm = $this->singularizar($this->normalizar($termo));
+
+        $todos = DB::table('item_lote')
+            ->select('nome', 'quantidade', 'unidade_medida', 'estoque_minimo')
+            ->get();
+
+        $comDistancia = $todos->map(function ($item) use ($termoNorm) {
+            $nomeNorm = $this->singularizar($this->normalizar($item->nome));
+            $palavrasDoNome = explode(' ', $nomeNorm);
+            $distancia = min(array_map(
+                fn($palavra) => levenshtein($termoNorm, $palavra),
+                $palavrasDoNome
+            ));
+            $item->distancia = $distancia;
+            return $item;
+        });
+
+        $limiar = max(1, (int) floor(strlen($termoNorm) * 0.4));
+
+        return $comDistancia
+            ->filter(fn($item) => $item->distancia <= $limiar)
+            ->sortBy('distancia')
+            ->take(5)
+            ->values();
+    }
+
+    // =========================================================
+    // ===============  FALLBACK: MOTOR DE REGRAS  ================
+    // =========================================================
+
+    private function responderComRegras(string $mensagemOriginal)
+    {
+        $pergunta = $this->normalizar($mensagemOriginal);
+
         if ($this->contem($pergunta, [
             'obrigado', 'obrigada', 'valeu', 'vlw', 'brigado', 'brigada', 'thanks',
             'tchau', 'ate mais', 'ate logo', 'falou', 'flw',
@@ -23,85 +307,96 @@ class ChatbotController extends Controller
             return $this->responder('De nada! Qualquer coisa é só chamar. 😊');
         }
 
-        // ---- Intenção: saudação / small talk ----
         if ($this->contem($pergunta, [
             'oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'eae', 'e ai',
             'tudo bem', 'blz', 'beleza', 'salve', 'opa', 'fala',
             'como vc esta', 'como voce esta', 'como vc ta', 'como voce ta',
             'tudo certo', 'tudo joia', 'tudo tranquilo', 'suave',
             'quem e vc', 'quem e voce', 'o que vc faz', 'o que voce faz',
-            'o que vc e', 'o que voce e', 'pra que vc serve', 'para que voce serve',
-            'me ajuda', 'pode me ajudar', 'preciso de ajuda', 'socorro',
+            'me ajuda', 'pode me ajudar', 'preciso de ajuda',
             'o que vc sabe fazer', 'quais comandos', 'como funciona',
         ])) {
             return $this->responder('Oi! Posso te ajudar com informações sobre estoque, validades, perdas e movimentações. O que você quer saber?');
         }
 
-        // ---- Intenção: listar todos os produtos ----
         if ($this->contem($pergunta, [
             'quais sao os produtos', 'quais os produtos', 'liste os produtos',
             'listar produtos', 'lista de produtos', 'todos os produtos',
-            'qual e o produtos', 'quais produtos', 'me mostra os produtos',
-            'mostrar produtos', 'ver produtos', 'produtos cadastrados',
-            'quais itens', 'quais os itens', 'lista de itens', 'listar itens',
-            'todos os itens', 'itens cadastrados', 'o que tem no estoque',
-            'o que tem em estoque', 'o que ha no estoque', 'o que possui no estoque',
+            'quais produtos', 'me mostra os produtos', 'produtos cadastrados',
+            'quais itens', 'lista de itens', 'o que tem no estoque',
+            'o que tem em estoque',
         ])) {
-            return $this->listarProdutos();
+            $itens = $this->dadosListarProdutos();
+            if (empty($itens)) {
+                return $this->responder('Nenhum produto cadastrado no estoque ainda.');
+            }
+            $linhas = collect($itens)->map(fn($i) => "• {$i->nome} — {$i->quantidade} {$i->unidade_medida}")->implode("\n");
+            return $this->responder("Produtos no estoque:\n\n{$linhas}");
         }
 
-        // ---- Intenção: vencimentos / validade ----
         if ($this->contem($pergunta, [
-            'vence', 'vencendo', 'vencimento', 'vencimentos', 'validade', 'validades',
-            'expirando', 'expira', 'expiram', 'prazo', 'prazos',
-            'perto de vencer', 'proximo do vencimento', 'proximos do vencimento',
-            'proximo de vencer', 'proximos de vencer', 'venc', 'data de validade',
-            'o que ta vencendo', 'o que esta vencendo', 'algo vencendo',
-            'tem algo vencendo', 'vai vencer', 'vao vencer',
+            'vence', 'vencendo', 'vencimento', 'validade', 'expirando', 'expira',
+            'prazo', 'venc', 'vai vencer',
         ])) {
-            return $this->vencimentos();
+            $itens = $this->dadosVencimentos();
+            if (empty($itens)) {
+                return $this->responder('Nenhum item vencendo nos próximos 7 dias. 👍');
+            }
+            $linhas = collect($itens)->map(function ($i) {
+                $data = \Carbon\Carbon::parse($i->data_validade)->format('d/m/Y');
+                return "• {$i->nome} — {$i->quantidade} {$i->unidade_medida} (vence em {$data})";
+            })->implode("\n");
+            return $this->responder("Itens vencendo nos próximos 7 dias:\n\n{$linhas}");
         }
 
-        // ---- Intenção: estoque crítico / baixo ----
         if ($this->contem($pergunta, [
-            'critico', 'criticos', 'critica', 'criticas', 'acabando', 'acabou',
-            'minimo', 'minimos', 'baixo estoque', 'estoque baixo', 'estoque minimo',
-            'faltando', 'em falta', 'preciso repor', 'precisa repor', 'repor estoque',
-            'reposicao', 'zerado', 'zerados', 'zerando', 'no vermelho',
-            'o que esta faltando', 'o que ta faltando', 'quase acabando',
-            'quase zerado', 'precisa comprar', 'tem que comprar',
+            'critico', 'criticos', 'acabando', 'minimo', 'baixo estoque',
+            'estoque baixo', 'faltando', 'em falta', 'zerado', 'no vermelho',
         ])) {
-            return $this->estoqueCritico();
+            $itens = $this->dadosEstoqueCritico();
+            if (empty($itens)) {
+                return $this->responder('Nenhum item em estoque crítico no momento. 👍');
+            }
+            $linhas = collect($itens)->map(fn($i) => "• {$i->nome} — {$i->quantidade} {$i->unidade_medida} (mínimo: {$i->estoque_minimo})")->implode("\n");
+            return $this->responder("Itens com estoque crítico:\n\n{$linhas}");
         }
 
-        // ---- Intenção: perdas ----
-        if ($this->contem($pergunta, [
-            'perda', 'perdas', 'perdi', 'perdemos', 'descarte', 'descartado',
-            'descartados', 'jogado fora', 'jogamos fora', 'desperdicio',
-            'desperdicios', 'quebra', 'quebras', 'quebrado', 'estragou',
-            'estragado', 'vencidos que jogamos', 'o que foi perdido',
-            'o que perdemos', 'prejuizo',
-        ])) {
-            return $this->perdas();
+        if ($this->contem($pergunta, ['perda', 'perdas', 'perdi', 'descarte', 'desperdicio', 'quebra', 'estragou'])) {
+            $perdas = $this->dadosPerdas();
+            if (empty($perdas)) {
+                return $this->responder('Nenhuma perda registrada nos últimos 30 dias.');
+            }
+            $total = collect($perdas)->sum('quantidade');
+            $linhas = collect($perdas)->map(function ($p) {
+                $data = \Carbon\Carbon::parse($p->data_perda)->format('d/m/Y');
+                return "• {$p->nome} — {$p->quantidade} un ({$p->razao}, {$data})";
+            })->implode("\n");
+            return $this->responder("Perdas nos últimos 30 dias ({$total} unidades no total):\n\n{$linhas}");
         }
 
-        // ---- Intenção: movimentações / histórico ----
-        if ($this->contem($pergunta, [
-            'movimenta', 'movimentacao', 'movimentacoes', 'entrada', 'entradas',
-            'saida', 'saidas', 'ultima', 'ultimas', 'ultimo', 'ultimos',
-            'historico', 'log de estoque', 'o que mudou', 'o que aconteceu',
-            'o que rolou', 'novidades', 'atualizacoes recentes',
-            'quem mexeu', 'quem alterou', 'quem tirou', 'quem colocou',
-        ])) {
-            return $this->movimentacoes();
+        if ($this->contem($pergunta, ['movimenta', 'entrada', 'saida', 'ultima', 'historico', 'quem mexeu'])) {
+            $movs = $this->dadosMovimentacoes();
+            if (empty($movs)) {
+                return $this->responder('Nenhuma movimentação registrada ainda.');
+            }
+            $linhas = collect($movs)->map(function ($m) {
+                $data = \Carbon\Carbon::parse($m->data_movimentacao)->format('d/m/Y H:i');
+                return "• {$m->tipo} — {$m->nome} ({$m->quantidade} un, {$data})";
+            })->implode("\n");
+            return $this->responder("Últimas movimentações:\n\n{$linhas}");
         }
 
-        // ---- Intenção: quantidade/localização de produto específico ----
-        if (preg_match(
-            '/\b(quant[ao]s?|quantidade|estoque de|tem |tenho |temos|possui|possuimos|existe|existem|ha |disponivel|disponiveis|sobrou|sobrando|onde esta|onde estao|onde fica|localiza[cç][aã]o de|cade|achar|encontrar|procurando|procuro)\b/u',
-            $pergunta
-        )) {
-            return $this->buscarProduto($pergunta);
+        if (preg_match('/\b(quant[ao]s?|quantidade|estoque de|tem |tenho |temos|possui|existe|disponivel|onde esta|cade)\b/u', $pergunta)) {
+            $termo = $this->extrairTermoBusca($pergunta);
+            if (strlen($termo) < 2) {
+                return $this->responder('Qual produto você quer consultar?');
+            }
+            $itens = $this->dadosBuscarProduto($termo);
+            if (empty($itens)) {
+                return $this->responder("Não encontrei nenhum item parecido com \"{$termo}\".");
+            }
+            $linhas = collect($itens)->map(fn($i) => "• {$i->nome} — {$i->quantidade} {$i->unidade_medida} (mínimo: {$i->estoque_minimo})")->implode("\n");
+            return $this->responder("Encontrei:\n\n{$linhas}");
         }
 
         return $this->responder(
@@ -113,18 +408,38 @@ class ChatbotController extends Controller
         );
     }
 
-    private function normalizar(string $texto): string
+    private function extrairTermoBusca(string $pergunta): string
     {
-        $texto = mb_strtolower(trim($texto), 'UTF-8');
-        $texto = str_replace(
-            ['á','à','â','ã','ä','é','è','ê','ë','í','ì','î','ï','ó','ò','ô','õ','ö','ú','ù','û','ü','ç'],
-            ['a','a','a','a','a','e','e','e','e','i','i','i','i','o','o','o','o','o','u','u','u','u','c'],
-            $texto
-        );
-        // remove aspas (retas e curvas) antes de tudo
-        $texto = str_replace(['"', "'", '“', '”', '‘', '’'], '', $texto);
-        $texto = preg_replace('/\s+/', ' ', $texto);
-        return trim($texto);
+        $palavras = [
+            'quantas?', 'quantidade de', 'quantidade', 'estoque de', 'estoque',
+            'tenho', 'temos', 'tem', 'possui', 'existe', 'ha', 'disponivel',
+            'onde esta', 'onde estao', 'cade', 'de', 'do', 'da', 'no', 'na',
+            'o', 'a', 'os', 'as',
+        ];
+        $padrao = '/\b(' . implode('|', $palavras) . ')\b/u';
+        $termo = preg_replace($padrao, '', $pergunta);
+        $termo = str_replace('?', '', $termo);
+        return trim(preg_replace('/\s+/', ' ', $termo));
+    }
+
+    // =========================================================
+    // =======================  UTIL  =============================
+    // =========================================================
+
+   private function normalizar(string $texto): string
+{
+    $texto = mb_strtolower(trim($texto), 'UTF-8');
+    $texto = str_replace(
+        ['á','à','â','ã','ä','é','è','ê','ë','í','ì','î','ï','ó','ò','ô','õ','ö','ú','ù','û','ü','ç'],
+        ['a','a','a','a','a','e','e','e','e','i','i','i','i','o','o','o','o','o','u','u','u','u','c'],
+        $texto
+    );
+    $texto = str_replace(['"', "'", "\u{201C}", "\u{201D}", "\u{2018}", "\u{2019}"], '', $texto);
+    return trim(preg_replace('/\s+/', ' ', $texto));
+}
+    private function singularizar(string $texto): string
+    {
+        return preg_replace('/s\b/u', '', $texto);
     }
 
     private function contem(string $texto, array $palavras): bool
@@ -138,212 +453,5 @@ class ChatbotController extends Controller
     private function responder(string $texto)
     {
         return response()->json(['resposta' => $texto]);
-    }
-
-    private function listarProdutos()
-    {
-        $itens = DB::table('item_lote')
-            ->select('nome', 'quantidade', 'unidade_medida')
-            ->orderBy('nome')
-            ->limit(20)
-            ->get();
-
-        if ($itens->isEmpty()) {
-            return $this->responder('Nenhum produto cadastrado no estoque ainda.');
-        }
-
-        $linhas = $itens->map(function ($item) {
-            return "• {$item->nome} — {$item->quantidade} {$item->unidade_medida}";
-        })->implode("\n");
-
-        $aviso = $itens->count() >= 20 ? "\n\n(mostrando os primeiros 20)" : '';
-
-        return $this->responder("Produtos no estoque:\n\n{$linhas}{$aviso}");
-    }
-
-    private function vencimentos()
-    {
-        $itens = DB::table('item_lote')
-            ->whereNotNull('data_validade')
-            ->where('data_validade', '<=', now()->addDays(7))
-            ->orderBy('data_validade')
-            ->select('nome', 'quantidade', 'unidade_medida', 'data_validade')
-            ->limit(10)
-            ->get();
-
-        if ($itens->isEmpty()) {
-            return $this->responder('Nenhum item vencendo nos próximos 7 dias. 👍');
-        }
-
-        $linhas = $itens->map(function ($item) {
-            $data = \Carbon\Carbon::parse($item->data_validade)->format('d/m/Y');
-            return "• {$item->nome} — {$item->quantidade} {$item->unidade_medida} (vence em {$data})";
-        })->implode("\n");
-
-        return $this->responder("Itens vencendo nos próximos 7 dias:\n\n{$linhas}");
-    }
-
-    private function estoqueCritico()
-    {
-        $itens = DB::table('item_lote')
-            ->whereColumn('quantidade', '<=', 'estoque_minimo')
-            ->select('nome', 'quantidade', 'estoque_minimo', 'unidade_medida')
-            ->limit(10)
-            ->get();
-
-        if ($itens->isEmpty()) {
-            return $this->responder('Nenhum item em estoque crítico no momento. 👍');
-        }
-
-        $linhas = $itens->map(function ($item) {
-            return "• {$item->nome} — {$item->quantidade} {$item->unidade_medida} (mínimo: {$item->estoque_minimo})";
-        })->implode("\n");
-
-        return $this->responder("Itens com estoque crítico:\n\n{$linhas}");
-    }
-
-    private function perdas()
-    {
-        $perdas = DB::table('perda')
-            ->join('lote', 'perda.id_lote', '=', 'lote.id_lote')
-            ->join('produto', 'lote.id_produto', '=', 'produto.id_produto')
-            ->where('perda.data_perda', '>=', now()->subDays(30))
-            ->select('produto.nome', 'perda.quantidade', 'perda.razao', 'perda.data_perda')
-            ->orderByDesc('perda.data_perda')
-            ->limit(10)
-            ->get();
-
-        if ($perdas->isEmpty()) {
-            return $this->responder('Nenhuma perda registrada nos últimos 30 dias.');
-        }
-
-        $totalUnidades = $perdas->sum('quantidade');
-
-        $linhas = $perdas->map(function ($p) {
-            $data = \Carbon\Carbon::parse($p->data_perda)->format('d/m/Y');
-            return "• {$p->nome} — {$p->quantidade} un ({$p->razao}, {$data})";
-        })->implode("\n");
-
-        return $this->responder("Perdas nos últimos 30 dias ({$totalUnidades} unidades no total):\n\n{$linhas}");
-    }
-
-    private function movimentacoes()
-    {
-        $movs = DB::table('movimentacao')
-            ->join('item_lote', 'movimentacao.id_item', '=', 'item_lote.id_item')
-            ->select('item_lote.nome', 'movimentacao.tipo', 'movimentacao.quantidade', 'movimentacao.data_movimentacao')
-            ->orderByDesc('movimentacao.data_movimentacao')
-            ->limit(10)
-            ->get();
-
-        if ($movs->isEmpty()) {
-            return $this->responder('Nenhuma movimentação registrada ainda.');
-        }
-
-        $linhas = $movs->map(function ($m) {
-            $data = \Carbon\Carbon::parse($m->data_movimentacao)->format('d/m/Y H:i');
-            return "• {$m->tipo} — {$m->nome} ({$m->quantidade} un, {$data})";
-        })->implode("\n");
-
-        return $this->responder("Últimas movimentações:\n\n{$linhas}");
-    }
-
-    private function buscarProduto(string $pergunta)
-    {
-        $palavrasParaRemover = [
-            'quantas?', 'quantidade de', 'quantidade', 'estoque de', 'estoque',
-            'tenho', 'temos', 'tem', 'possuimos', 'possui', 'existe', 'existem', 'ha',
-            'disponivel', 'disponiveis', 'sobrou', 'sobrando',
-            'onde esta', 'onde estao', 'onde fica', 'cade',
-            'localizacao de', 'localizacao', 'achar', 'encontrar',
-            'procurando', 'procuro', 'no', 'em',
-            'de', 'do', 'da', 'na', 'o', 'a', 'os', 'as',
-        ];
-
-        $padrao = '/\b(' . implode('|', $palavrasParaRemover) . ')\b/u';
-        $termo = preg_replace($padrao, '', $pergunta);
-        $termo = str_replace('?', '', $termo);
-        $termo = preg_replace('/\s+/', ' ', $termo);
-        $termo = trim($termo);
-
-        if (strlen($termo) < 2) {
-            return $this->responder('Qual produto você quer consultar?');
-        }
-
-        // 1ª tentativa: match direto (LIKE)
-        $itens = DB::table('item_lote')
-            ->where('nome', 'like', "%{$termo}%")
-            ->select('nome', 'quantidade', 'unidade_medida', 'estoque_minimo')
-            ->limit(10)
-            ->get();
-
-        if ($itens->isNotEmpty()) {
-            return $this->responderItens($itens);
-        }
-
-        // 2ª tentativa: busca "fuzzy" tolerando erro de digitação
-        $itens = $this->buscarProdutoFuzzy($termo);
-
-        if ($itens->isNotEmpty()) {
-            return $this->responderItens($itens, true);
-        }
-
-        return $this->responder("Não encontrei nenhum item parecido com \"{$termo}\".");
-    }
-
-    /**
-     * Busca aproximada: compara o termo digitado com todos os nomes
-     * cadastrados usando distância de Levenshtein, tolerando erros de
-     * digitação, plural/singular e pequenas diferenças de letras.
-     */
-    private function buscarProdutoFuzzy(string $termo)
-    {
-        $termoSingular = $this->singularizar($termo);
-
-        $todos = DB::table('item_lote')
-            ->select('nome', 'quantidade', 'unidade_medida', 'estoque_minimo')
-            ->get();
-
-        $comDistancia = $todos->map(function ($item) use ($termoSingular) {
-            $nomeNorm = $this->singularizar($this->normalizar($item->nome));
-
-            $palavrasDoNome = explode(' ', $nomeNorm);
-            $distancia = min(array_map(
-                fn($palavra) => levenshtein($termoSingular, $palavra),
-                $palavrasDoNome
-            ));
-
-            $item->distancia = $distancia;
-            return $item;
-        });
-
-        $limiar = max(1, (int) floor(strlen($termoSingular) * 0.4));
-
-        return $comDistancia
-            ->filter(fn($item) => $item->distancia <= $limiar)
-            ->sortBy('distancia')
-            ->take(5)
-            ->values();
-    }
-
-    /**
-     * Remoção simples de plural (ex: "luvas" -> "luva").
-     */
-    private function singularizar(string $texto): string
-    {
-        return preg_replace('/s\b/u', '', $texto);
-    }
-
-    private function responderItens($itens, bool $aproximado = false)
-    {
-        $linhas = $itens->map(function ($item) {
-            return "• {$item->nome} — {$item->quantidade} {$item->unidade_medida} (mínimo: {$item->estoque_minimo})";
-        })->implode("\n");
-
-        $titulo = $aproximado
-            ? "Não achei exato, mas encontrei algo parecido:"
-            : "Encontrei:";
-
-        return $this->responder("{$titulo}\n\n{$linhas}");
     }
 }
