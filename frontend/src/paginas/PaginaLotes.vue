@@ -104,84 +104,95 @@
         </div>
 
         <!-- Tabela de itens -->
-        <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <th class="text-left pb-3 font-medium">SKU</th>
-              <th class="text-left pb-3 font-medium">Nome</th>
-              <th class="text-left pb-3 font-medium">Qtd</th>
-              <th class="text-left pb-3 font-medium">Validade</th>
-              <th class="text-left pb-3 font-medium">Fornecedor</th>
-              <th class="text-left pb-3 font-medium">Localização</th>
-              <th class="text-left pb-3 font-medium">Status</th>
-              <th class="text-left pb-3 font-medium">Ações</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-            <tr
-              v-for="item in loteAtivo.itens"
-              :key="item.id_item"
-              class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer"
-              @click="itemSelecionado = item; modalDetalhesAberto = true"
-            >
-              <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.sku || '—' }}</td>
-              <td class="py-3 text-slate-900 dark:text-white font-medium">{{ item.nome || '—' }}</td>
+<table v-else class="w-full text-sm">
+  <thead>
+    <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+      <th class="text-left pb-3 font-medium w-6"></th>
+      <th class="text-left pb-3 font-medium">SKU</th>
+      <th class="text-left pb-3 font-medium">Nome</th>
+      <th class="text-left pb-3 font-medium">Qtd</th>
+      <th class="text-left pb-3 font-medium">Validade</th>
+      <th class="text-left pb-3 font-medium">Fornecedor</th>
+      <th class="text-left pb-3 font-medium">Localização</th>
+      <th class="text-left pb-3 font-medium">Status</th>
+      <th class="text-left pb-3 font-medium">Ações</th>
+    </tr>
+  </thead>
+  <draggable
+    :list="loteAtivo.itens"
+    tag="tbody"
+    item-key="id_item"
+    handle=".drag-handle"
+    animation="200"
+    class="divide-y divide-slate-200 dark:divide-slate-800"
+    @end="salvarOrdemItens"
+  >
+    <template #item="{ element: item }">
+      <tr
+        class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer"
+        @click="itemSelecionado = item; modalDetalhesAberto = true"
+      >
+        <td class="py-3" @click.stop>
+          <span class="drag-handle cursor-grab text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 select-none">⠿</span>
+        </td>
+        <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.sku || '—' }}</td>
+        <td class="py-3 text-slate-900 dark:text-white font-medium">{{ item.nome || '—' }}</td>
 
-              <td class="py-3">
-                <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
-                  {{ item.quantidade }} {{ item.unidade_medida }}
-                </span>
-              </td>
+        <td class="py-3">
+          <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
+            {{ item.quantidade }} {{ item.unidade_medida }}
+          </span>
+        </td>
 
-              <td class="py-3 text-slate-600 dark:text-slate-300">
-                <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
-                <span v-else class="text-slate-400 dark:text-slate-500">—</span>
-              </td>
+        <td class="py-3 text-slate-600 dark:text-slate-300">
+          <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
+          <span v-else class="text-slate-400 dark:text-slate-500">—</span>
+        </td>
 
-              <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.fornecedor || '—' }}</td>
-              <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
+        <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.fornecedor || '—' }}</td>
+        <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
 
-              <td class="py-3">
-                <div class="flex items-center gap-1 flex-wrap">
-                  <span v-if="item.data_validade && estaVencido(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
-                    Vencido
-                  </span>
-                  <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
-                    Vencendo
-                  </span>
-                  <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-                    OK
-                  </span>
+        <td class="py-3">
+          <div class="flex items-center gap-1 flex-wrap">
+            <span v-if="item.data_validade && estaVencido(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
+              Vencido
+            </span>
+            <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
+              Vencendo
+            </span>
+            <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+              OK
+            </span>
 
-                  <span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo" class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
-                    Crítico
-                  </span>
-                  <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-                    OK
-                  </span>
-                </div>
-              </td>
+            <span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo" class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
+              Crítico
+            </span>
+            <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+              OK
+            </span>
+          </div>
+        </td>
 
-              <td class="py-3" @click.stop>
-                <div class="flex items-center gap-3">
-                  <button class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar" @click="itemSelecionado = item; modalEditarAberto = true">
-                    <Pencil :size="16" />
-                  </button>
-                  <button class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque" @click="itemSelecionado = item; modalBaixaAberto = true">
-                    <PackageOpen :size="16" />
-                  </button>
-                  <button class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque" @click="itemSelecionado = item; modalEntradaAberto = true">
-                    <PackagePlus :size="16" />
-                  </button>
-                  <button class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir" @click="itemSelecionado = item; modalExcluirAberto = true">
-                    <Trash2 :size="16" />
-                  </button>
-                </div>
-              </td>
-
-            </tr>
-          </tbody>
-        </table>
+        <td class="py-3" @click.stop>
+          <div class="flex items-center gap-3">
+            <button class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar" @click="itemSelecionado = item; modalEditarAberto = true">
+              <Pencil :size="16" />
+            </button>
+            <button class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque" @click="itemSelecionado = item; modalBaixaAberto = true">
+              <PackageOpen :size="16" />
+            </button>
+            <button class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque" @click="itemSelecionado = item; modalEntradaAberto = true">
+              <PackagePlus :size="16" />
+            </button>
+            <button class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir" @click="itemSelecionado = item; modalExcluirAberto = true">
+              <Trash2 :size="16" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    </template>
+  </draggable>
+</table>
       </div>
 
       <!-- Aba selecionada mas ainda não liberada (aguardando PIN) -->
@@ -339,6 +350,7 @@
 </template>
 
 <script setup>
+import draggable from 'vuedraggable'
 import { ref, computed, onMounted } from 'vue'
 import { Plus, Shield, Lock, ShieldCheck, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
@@ -386,7 +398,21 @@ function aoClicarTab(idLote) {
   erroPin.value = ''
   modalPinAberto.value = true
 }
+async function salvarOrdemItens() {
+  if (!loteAtivo.value?.itens) return
 
+  const payload = loteAtivo.value.itens.map((item, index) => ({
+    id_item: item.id_item,
+    ordem: index,
+  }))
+
+  try {
+    await api.patch(`/lotes/${loteAtivo.value.id_lote}/itens/reordenar`, { itens: payload })
+  } catch {
+    alert('Erro ao salvar a nova ordem dos itens.')
+    await carregarLotes()
+  }
+}
 async function verificarPin() {
   erroPin.value = ''
   try {

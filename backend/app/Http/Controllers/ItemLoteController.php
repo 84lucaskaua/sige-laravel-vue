@@ -7,6 +7,7 @@ use App\Models\Movimentacao;
 use App\Services\AbcPriorityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class ItemLoteController extends Controller
@@ -50,7 +51,9 @@ class ItemLoteController extends Controller
 
     public function index(int $idLote)
     {
-        $itens = ItemLote::where('id_lote', $idLote)->get();
+        $itens = ItemLote::where('id_lote', $idLote)
+            ->orderBy('ordem')
+            ->get();
         return response()->json($itens);
     }
 
@@ -144,6 +147,31 @@ class ItemLoteController extends Controller
         $this->abcService->recalcularTodos();
 
         return response()->json($item->refresh());
+    }
+
+   public function reordenar(Request $request, int $idLote)
+{
+    $request->validate([
+        'itens'            => 'required|array',
+        'itens.*.id_item'  => 'required|integer|exists:item_lote,id_item',
+        'itens.*.ordem'    => 'required|integer|min:0',
+    ]); 
+        $idsDoLote = ItemLote::where('id_lote', $idLote)->pluck('id_item')->toArray();
+
+        foreach ($request->itens as $item) {
+            if (!in_array($item['id_item'], $idsDoLote)) {
+                return response()->json(['message' => 'Item não pertence a este lote.'], 422);
+            }
+        }
+
+        DB::transaction(function () use ($request) {
+            foreach ($request->itens as $item) {
+                ItemLote::where('id_item', $item['id_item'])
+                    ->update(['ordem' => $item['ordem']]);
+            }
+        });
+
+        return response()->json(['message' => 'Ordem atualizada com sucesso.']);
     }
 
     public function destroy(int $id)

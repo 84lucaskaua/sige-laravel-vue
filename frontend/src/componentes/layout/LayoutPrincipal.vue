@@ -2,7 +2,8 @@
   <div class="flex h-screen bg-white dark:bg-black">
 
     <!-- ===== SIDEBAR ===== -->
-    <aside class="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 border-r flex flex-col transition-all duration-300"
+    <aside
+class="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 border-r flex flex-col transition-all duration-300"
       :class="expandido ? 'w-64' : 'w-16'">
 
       <!-- Logo -->
@@ -15,8 +16,8 @@
           </div>
         </div>
         <button
-          @click="expandido = !expandido"
           class="transition p-1 rounded-lg ml-auto text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+          @click="expandido = !expandido"
         >
           <Menu v-if="!expandido" :size="20" />
           <X v-else :size="20" />
@@ -78,13 +79,13 @@
 
         <!-- Tema -->
         <button
-          @click="tema.toggleTema"
           :title="!expandido ? (tema.temaClaro ? 'Modo Escuro' : 'Modo Claro') : ''"
           :class="[
             'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm',
             'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
             !expandido && 'justify-center'
           ]"
+          @click="tema.toggleTema"
         >
           <Sun v-if="tema.temaClaro" :size="18" class="shrink-0" />
           <Moon v-else :size="18" class="shrink-0" />
@@ -93,13 +94,13 @@
 
         <!-- Notificações -->
         <button
-          @click="abrirNotificacoes"
           :title="!expandido ? 'Notificações' : ''"
           :class="[
             'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm',
             'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
             !expandido && 'justify-center'
           ]"
+          @click="abrirNotificacoes"
         >
           <div class="relative shrink-0">
             <Bell :size="18" />
@@ -113,13 +114,13 @@
 
         <!-- Atalhos -->
         <button
-          @click="painelAtalhosAberto = true"
           :title="!expandido ? 'Atalhos' : ''"
           :class="[
             'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm',
             'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
             !expandido && 'justify-center'
           ]"
+          @click="painelAtalhosAberto = true"
         >
           <Keyboard :size="18" class="shrink-0" />
           <span v-if="expandido">Atalhos</span>
@@ -127,12 +128,12 @@
 
         <!-- Sair -->
         <button
-          @click="sair"
           :title="!expandido ? 'Sair' : ''"
           :class="[
             'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-300 transition text-sm',
             !expandido && 'justify-center'
           ]"
+          @click="sair"
         >
           <LogOut :size="18" class="shrink-0" />
           <span v-if="expandido">Sair</span>
@@ -149,19 +150,19 @@
       >
         <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
           <h2 class="font-bold text-base text-slate-900 dark:text-white">Notificações</h2>
-          <button @click="painelAberto = false" class="transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+          <button class="transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="painelAberto = false">
             <X :size="18" />
           </button>
         </div>
 
         <div class="flex border-b border-slate-200 dark:border-slate-800">
           <button
-            @click="aba = 'todas'"
             :class="['flex-1 py-2.5 text-sm font-medium transition', aba === 'todas' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800']"
+            @click="aba = 'todas'"
           >Todas ({{ notificacoes.length }})</button>
           <button
-            @click="aba = 'nao_lidas'"
             :class="['flex-1 py-2.5 text-sm font-medium transition', aba === 'nao_lidas' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800']"
+            @click="aba = 'nao_lidas'"
           >Não Lidas ({{ totalNaoLidas }})</button>
         </div>
 
@@ -178,11 +179,12 @@
             <div
               v-for="notif in notificacoesFiltradas"
               :key="notif.id"
-              @click="marcarLida(notif)"
               :class="['px-5 py-4 cursor-pointer transition hover:bg-slate-100 dark:hover:bg-slate-800/60', !notif.lida && 'border-l-2 border-blue-500']"
+              @click="marcarLida(notif)"
             >
               <div class="flex items-start gap-3">
-                <div :class="[
+                <div
+:class="[
                   'w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5',
                   notif.tipo === 'vencimento' ? 'bg-orange-100 dark:bg-orange-900/40' : 'bg-red-100 dark:bg-red-900/40'
                 ]">
@@ -200,14 +202,14 @@
         </div>
 
         <div v-if="notificacoes.length > 0" class="px-5 py-3 border-t border-slate-200 dark:border-slate-800">
-          <button @click="marcarTodasLidas" class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition">
+          <button class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition" @click="marcarTodasLidas">
             Marcar todas como lidas
           </button>
         </div>
       </div>
     </transition>
 
-    <div v-if="painelAberto" @click="painelAberto = false" class="fixed inset-0 z-40" />
+   <div v-if="painelAberto" class="fixed inset-0 z-40" @click="painelAberto = false" />
 
     <!-- ===== PAINEL DE ATALHOS ===== -->
     <transition name="slide">
@@ -225,7 +227,7 @@
               <p class="text-xs text-slate-500 dark:text-slate-400">Acelere seu trabalho com atalhos de teclado</p>
             </div>
           </div>
-          <button @click="painelAtalhosAberto = false" class="transition mt-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+          <button class="transition mt-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="painelAtalhosAberto = false">
             <X :size="18" />
           </button>
         </div>
@@ -268,24 +270,26 @@
           <span class="text-xs text-slate-400 dark:text-slate-500">{{ totalAtalhos }} atalhos disponíveis</span>
           <div class="flex items-center gap-2">
             <kbd class="px-2 py-0.5 border rounded text-xs font-mono bg-slate-200 border-slate-300 text-slate-900 dark:bg-slate-700 dark:border-slate-600 dark:text-white">ESC</kbd>
-            <button @click="painelAtalhosAberto = false" class="text-sm transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">Fechar</button>
+            <button class="text-sm transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white" @click="painelAtalhosAberto = false">Fechar</button>
           </div>
         </div>
       </div>
     </transition>
 
-    <div v-if="painelAtalhosAberto" @click="painelAtalhosAberto = false" class="fixed inset-0 z-40" />
+   <div v-if="painelAtalhosAberto" class="fixed inset-0 z-40" @click="painelAtalhosAberto = false" />
 
     <!-- ===== CONTEÚDO ===== -->
     <main class="flex-1 overflow-auto">
       <RouterView />
     </main>
 
+    <ChatbotWidget />
+
   </div>
 </template>
 
 <script setup>
-
+import ChatbotWidget from '@/componentes/ui/ChatbotWidget.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import {

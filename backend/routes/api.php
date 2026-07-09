@@ -15,6 +15,8 @@ use App\Http\Controllers\MovimentacaoController;
 use App\Http\Controllers\RelatorioController;
 use App\Http\Controllers\RelatorioAvancadoController;
 use App\Http\Controllers\ImportacaoExportacaoController;
+use App\Http\Controllers\ChatbotController;
+
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
@@ -27,18 +29,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('/lotes', LoteController::class);
 
-    Route::get('/lotes/{idLote}/itens',   [ItemLoteController::class, 'index']);
-    Route::post('/lotes/{idLote}/itens',  [ItemLoteController::class, 'store']);
-    Route::put('/itens/{id}',             [ItemLoteController::class, 'update']);
-    Route::patch('/itens/{id}/baixa',     [ItemLoteController::class, 'baixa']);
-    Route::patch('/itens/{id}/entrada',   [ItemLoteController::class, 'entrada']);
-    Route::delete('/itens/{id}',          [ItemLoteController::class, 'destroy']);
-    Route::get('/itens/{id}/historico',   [ItemLoteController::class, 'historico']);
-
+   Route::get('/lotes/{idLote}/itens',   [ItemLoteController::class, 'index']);
+Route::post('/lotes/{idLote}/itens',  [ItemLoteController::class, 'store']);
+Route::put('/itens/{id}',             [ItemLoteController::class, 'update']);
+Route::patch('/itens/{id}/baixa',     [ItemLoteController::class, 'baixa']);
+Route::patch('/itens/{id}/entrada',   [ItemLoteController::class, 'entrada']);
+Route::patch('/lotes/{idLote}/itens/reordenar', [ItemLoteController::class, 'reordenar']);
+Route::delete('/itens/{id}',          [ItemLoteController::class, 'destroy']);
+Route::get('/itens/{id}/historico',   [ItemLoteController::class, 'historico']);
     Route::put('/perfil',       [PerfilController::class, 'atualizar']);
     Route::post('/perfil',      [PerfilController::class, 'atualizar']);
     Route::put('/perfil/senha', [PerfilController::class, 'alterarSenha']);
-       Route::put('/perfil/pin',   [PerfilController::class, 'definirPin']);
+    Route::put('/perfil/pin',   [PerfilController::class, 'definirPin']);
     Route::post('/perfil/verificar-pin', [PerfilController::class, 'verificarPin']);
 
     Route::get('/produtos',         [ProdutoController::class, 'index']);
@@ -68,11 +70,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('importacao-exportacao/restaurar/backup',           [ImportacaoExportacaoController::class, 'restaurarBackup']);
     Route::post('importacao-exportacao/importar/excel',             [ImportacaoExportacaoController::class, 'importarExcel']);
 
- Route::get('/audit-logs',        [AuditLogController::class, 'index']);
+    Route::get('/audit-logs',        [AuditLogController::class, 'index']);
     Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
 
     Route::get('/usuarios', [UsuarioController::class, 'index']);
     Route::post('/usuarios', [UsuarioController::class, 'store']);
     Route::put('/usuarios/{id}', [UsuarioController::class, 'update']);
     Route::delete('/usuarios/{id}', [UsuarioController::class, 'destroy']);
+
+    Route::post('/chatbot', [ChatbotController::class, 'perguntar']);
 });
