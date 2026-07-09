@@ -37,6 +37,19 @@ class ChatbotController extends Controller
             return $this->responder('Oi! Posso te ajudar com informações sobre estoque, validades, perdas e movimentações. O que você quer saber?');
         }
 
+        // ---- Intenção: listar todos os produtos ----
+        if ($this->contem($pergunta, [
+            'quais sao os produtos', 'quais os produtos', 'liste os produtos',
+            'listar produtos', 'lista de produtos', 'todos os produtos',
+            'qual e o produtos', 'quais produtos', 'me mostra os produtos',
+            'mostrar produtos', 'ver produtos', 'produtos cadastrados',
+            'quais itens', 'quais os itens', 'lista de itens', 'listar itens',
+            'todos os itens', 'itens cadastrados', 'o que tem no estoque',
+            'o que tem em estoque', 'o que ha no estoque', 'o que possui no estoque',
+        ])) {
+            return $this->listarProdutos();
+        }
+
         // ---- Intenção: vencimentos / validade ----
         if ($this->contem($pergunta, [
             'vence', 'vencendo', 'vencimento', 'vencimentos', 'validade', 'validades',
@@ -108,6 +121,8 @@ class ChatbotController extends Controller
             ['a','a','a','a','a','e','e','e','e','i','i','i','i','o','o','o','o','o','u','u','u','u','c'],
             $texto
         );
+        // remove aspas (retas e curvas) antes de tudo
+        $texto = str_replace(['"', "'", '“', '”', '‘', '’'], '', $texto);
         $texto = preg_replace('/\s+/', ' ', $texto);
         return trim($texto);
     }
@@ -123,6 +138,27 @@ class ChatbotController extends Controller
     private function responder(string $texto)
     {
         return response()->json(['resposta' => $texto]);
+    }
+
+    private function listarProdutos()
+    {
+        $itens = DB::table('item_lote')
+            ->select('nome', 'quantidade', 'unidade_medida')
+            ->orderBy('nome')
+            ->limit(20)
+            ->get();
+
+        if ($itens->isEmpty()) {
+            return $this->responder('Nenhum produto cadastrado no estoque ainda.');
+        }
+
+        $linhas = $itens->map(function ($item) {
+            return "• {$item->nome} — {$item->quantidade} {$item->unidade_medida}";
+        })->implode("\n");
+
+        $aviso = $itens->count() >= 20 ? "\n\n(mostrando os primeiros 20)" : '';
+
+        return $this->responder("Produtos no estoque:\n\n{$linhas}{$aviso}");
     }
 
     private function vencimentos()
@@ -220,8 +256,8 @@ class ChatbotController extends Controller
             'disponivel', 'disponiveis', 'sobrou', 'sobrando',
             'onde esta', 'onde estao', 'onde fica', 'cade',
             'localizacao de', 'localizacao', 'achar', 'encontrar',
-            'procurando', 'procuro',
-            'de', 'do', 'da', 'no', 'na', 'o', 'a', 'os', 'as',
+            'procurando', 'procuro', 'no', 'em',
+            'de', 'do', 'da', 'na', 'o', 'a', 'os', 'as',
         ];
 
         $padrao = '/\b(' . implode('|', $palavrasParaRemover) . ')\b/u';
@@ -234,20 +270,80 @@ class ChatbotController extends Controller
             return $this->responder('Qual produto você quer consultar?');
         }
 
+        // 1ª tentativa: match direto (LIKE)
         $itens = DB::table('item_lote')
             ->where('nome', 'like', "%{$termo}%")
             ->select('nome', 'quantidade', 'unidade_medida', 'estoque_minimo')
             ->limit(10)
             ->get();
 
-        if ($itens->isEmpty()) {
-            return $this->responder("Não encontrei nenhum item com \"{$termo}\" no nome.");
+        if ($itens->isNotEmpty()) {
+            return $this->responderItens($itens);
         }
 
+        // 2ª tentativa: busca "fuzzy" tolerando erro de digitação
+        $itens = $this->buscarProdutoFuzzy($termo);
+
+        if ($itens->isNotEmpty()) {
+            return $this->responderItens($itens, true);
+        }
+
+        return $this->responder("Não encontrei nenhum item parecido com \"{$termo}\".");
+    }
+
+    /**
+     * Busca aproximada: compara o termo digitado com todos os nomes
+     * cadastrados usando distância de Levenshtein, tolerando erros de
+     * digitação, plural/singular e pequenas diferenças de letras.
+     */
+    private function buscarProdutoFuzzy(string $termo)
+    {
+        $termoSingular = $this->singularizar($termo);
+
+        $todos = DB::table('item_lote')
+            ->select('nome', 'quantidade', 'unidade_medida', 'estoque_minimo')
+            ->get();
+
+        $comDistancia = $todos->map(function ($item) use ($termoSingular) {
+            $nomeNorm = $this->singularizar($this->normalizar($item->nome));
+
+            $palavrasDoNome = explode(' ', $nomeNorm);
+            $distancia = min(array_map(
+                fn($palavra) => levenshtein($termoSingular, $palavra),
+                $palavrasDoNome
+            ));
+
+            $item->distancia = $distancia;
+            return $item;
+        });
+
+        $limiar = max(1, (int) floor(strlen($termoSingular) * 0.4));
+
+        return $comDistancia
+            ->filter(fn($item) => $item->distancia <= $limiar)
+            ->sortBy('distancia')
+            ->take(5)
+            ->values();
+    }
+
+    /**
+     * Remoção simples de plural (ex: "luvas" -> "luva").
+     */
+    private function singularizar(string $texto): string
+    {
+        return preg_replace('/s\b/u', '', $texto);
+    }
+
+    private function responderItens($itens, bool $aproximado = false)
+    {
         $linhas = $itens->map(function ($item) {
             return "• {$item->nome} — {$item->quantidade} {$item->unidade_medida} (mínimo: {$item->estoque_minimo})";
         })->implode("\n");
 
-        return $this->responder("Encontrei:\n\n{$linhas}");
+        $titulo = $aproximado
+            ? "Não achei exato, mas encontrei algo parecido:"
+            : "Encontrei:";
+
+        return $this->responder("{$titulo}\n\n{$linhas}");
     }
 }
