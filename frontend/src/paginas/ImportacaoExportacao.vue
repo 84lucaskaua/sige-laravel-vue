@@ -91,19 +91,10 @@
           <div>
             <p class="text-slate-900 dark:text-white font-semibold">Planilha Excel (.xlsx)</p>
             <p class="text-slate-500 dark:text-gray-400 text-sm">
-              Importa produtos do almoxarifado. Mesmo produto com validade diferente gera novo lote.
+              Importa produtos do almoxarifado. Você escolhe se cria um lote único ou distribui em vários lotes.
             </p>
           </div>
           <div class="space-y-2">
-            <label class="text-slate-500 dark:text-gray-400 text-xs">Selecione o arquivo Excel</label>
-            <label class="flex items-center gap-2 bg-slate-100 dark:bg-[#2a2a3e] border border-slate-300 dark:border-gray-600 rounded-lg px-3 py-2 cursor-pointer hover:border-blue-500 transition">
-              <i class="fas fa-folder-open text-slate-400 dark:text-gray-400"></i>
-              <span class="text-slate-600 dark:text-gray-300 text-sm truncate">
-                {{ arquivoExcel ? arquivoExcel.name : 'Nenhum arquivo escolhido' }}
-              </span>
-              <input type="file" accept=".xlsx,.xls" class="hidden" @change="onArquivoExcel" />
-            </label>
-
             <!-- Preview das colunas esperadas -->
             <div class="bg-blue-50 dark:bg-[#0f1a2e] border border-blue-200 dark:border-blue-900 rounded-lg px-3 py-2 text-xs text-blue-700 dark:text-blue-300 space-y-1">
               <p class="font-semibold text-blue-700 dark:text-blue-400">Colunas lidas da planilha:</p>
@@ -111,12 +102,19 @@
             </div>
 
             <button
-              :disabled="!arquivoExcel || loadingImport.excel"
-              class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
-              @click="importarExcel"
+              class="w-full bg-slate-100 dark:bg-[#2a2a3e] hover:bg-slate-200 dark:hover:bg-[#33334d] text-slate-700 dark:text-gray-200 py-2 rounded-lg flex items-center justify-center gap-2 transition text-sm"
+              @click="baixarModelo"
             >
-              <i :class="loadingImport.excel ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'"></i>
-              {{ loadingImport.excel ? 'Importando...' : 'Importar Planilha' }}
+              <i class="fas fa-download"></i>
+              Baixar planilha modelo
+            </button>
+
+            <button
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
+              @click="mostrarWizard = true"
+            >
+              <i class="fas fa-file-excel"></i>
+              Importar Planilha
             </button>
           </div>
         </div>
@@ -161,30 +159,9 @@
             <li>✅ Ignora linhas de agrupamento (LETRA A, LETRA B...)</li>
             <li>✅ Converte validade serial do Excel automaticamente</li>
             <li>✅ Produtos sem código recebem SKU gerado pelo nome</li>
-            <li>✅ <strong>Mesmo produto + validade diferente = novo lote</strong></li>
+            <li>✅ <strong>Você escolhe: lote único ou lotes separados</strong></li>
             <li>✅ Produto já existente tem estoque incrementado</li>
           </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resultado da importação -->
-    <div v-if="resultadoImport" class="bg-green-50 dark:bg-[#1a2e1a] border border-green-300 dark:border-green-700 rounded-xl p-5 space-y-2">
-      <p class="text-green-700 dark:text-green-400 font-semibold flex items-center gap-2">
-        <i class="fas fa-check-circle"></i> {{ resultadoImport.message }}
-      </p>
-      <div class="grid grid-cols-3 gap-4 mt-2">
-        <div class="text-center">
-          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ resultadoImport.produtos_novos }}</p>
-          <p class="text-slate-500 dark:text-gray-400 text-xs">Produtos criados</p>
-        </div>
-        <div class="text-center">
-          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ resultadoImport.lotes_criados }}</p>
-          <p class="text-slate-500 dark:text-gray-400 text-xs">Lotes criados</p>
-        </div>
-        <div class="text-center">
-          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ resultadoImport.ignorados }}</p>
-          <p class="text-slate-500 dark:text-gray-400 text-xs">Linhas ignoradas</p>
         </div>
       </div>
     </div>
@@ -224,22 +201,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Wizard de importação Excel -->
+    <ImportarExcelWizard
+      v-if="mostrarWizard"
+      @fechar="mostrarWizard = false"
+      @importado="() => { carregarStats(); showToast('Importação concluída!') }"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/servicos/api'
+import ImportarExcelWizard from '@/componentes/ui/ImportarExcelWizard.vue'
 
-const stats          = ref({ lotes: 0, produtos: 0, movimentacoes: 0, itens_estoque: 0 })
-const arquivoExcel   = ref(null)
-const arquivoJSON    = ref(null)
-const modalRestaurar = ref(false)
-const resultadoImport = ref(null)
+const stats           = ref({ lotes: 0, produtos: 0, movimentacoes: 0, itens_estoque: 0 })
+const arquivoJSON     = ref(null)
+const modalRestaurar  = ref(false)
+const mostrarWizard   = ref(false)
 
 const loadingExport = ref({ backup: false, produtos: false, movimentacoes: false })
-const loadingImport = ref({ excel: false, backup: false })
-const toast         = ref({ show: false, message: '', type: 'success' })
+const loadingImport = ref({ backup: false })
+const toast          = ref({ show: false, message: '', type: 'success' })
 
 const statsCards = [
   { label: 'Lotes',         key: 'lotes',         icon: 'fas fa-database',  bg: 'bg-blue-600'   },
@@ -280,33 +264,20 @@ async function exportar(tipo) {
     loadingExport.value[chave] = false
   }
 }
-
-function onArquivoExcel(e) {
-  const file = e.target.files[0]
-  console.log('Arquivo selecionado:', file)
-  arquivoExcel.value = file
-}
-function onArquivoJSON(e)  { arquivoJSON.value  = e.target.files[0] }
-
-async function importarExcel() {
-  if (!arquivoExcel.value) return
-  loadingImport.value.excel = true
-  resultadoImport.value = null
-  const form = new FormData()
-  form.append('arquivo', arquivoExcel.value)
+async function baixarModelo() {
   try {
-    const { data } = await api.post('/importacao-exportacao/importar/excel', form)
-    resultadoImport.value = data
-    showToast(data.message)
-    arquivoExcel.value = null
-    carregarStats()
-  } catch (err) {
-    console.log('ERRO:', JSON.stringify(err.response?.data))
-    showToast(err.response?.data?.message ?? 'Erro ao importar planilha.', 'error')
-  } finally {
-    loadingImport.value.excel = false
+    const response = await api.get('/importacao-exportacao/template', { responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([response.data]))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'modelo_importacao_almoxarifado.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    showToast('Erro ao baixar modelo.', 'error')
   }
 }
+function onArquivoJSON(e) { arquivoJSON.value = e.target.files[0] }
 
 function confirmarRestaurar() {
   if (!arquivoJSON.value) return

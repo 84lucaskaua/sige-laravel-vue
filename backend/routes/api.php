@@ -66,10 +66,11 @@ Route::get('/itens/{id}/historico',   [ItemLoteController::class, 'historico']);
     Route::get ('importacao-exportacao/exportar/backup',            [ImportacaoExportacaoController::class, 'exportarBackup']);
     Route::get ('importacao-exportacao/exportar/produtos-csv',      [ImportacaoExportacaoController::class, 'exportarProdutosCSV']);
     Route::get ('importacao-exportacao/exportar/movimentacoes-csv', [ImportacaoExportacaoController::class, 'exportarMovimentacoesCSV']);
+    Route::get ('importacao-exportacao/template',               [ImportacaoExportacaoController::class, 'downloadTemplate']);
     Route::post('importacao-exportacao/importar/produtos-csv',      [ImportacaoExportacaoController::class, 'importarProdutosCSV']);
     Route::post('importacao-exportacao/restaurar/backup',           [ImportacaoExportacaoController::class, 'restaurarBackup']);
-    Route::post('importacao-exportacao/importar/excel',             [ImportacaoExportacaoController::class, 'importarExcel']);
-
+    Route::post('importacao-exportacao/preview',   [ImportacaoExportacaoController::class, 'previewImportacao']);
+Route::post('importacao-exportacao/confirmar', [ImportacaoExportacaoController::class, 'confirmarImportacao']);
     Route::get('/audit-logs',        [AuditLogController::class, 'index']);
     Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
 

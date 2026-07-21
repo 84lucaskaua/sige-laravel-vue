@@ -10,6 +10,10 @@ use App\Models\Movimentacao;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use Carbon\Carbon;
 
 class ImportacaoExportacaoController extends Controller
@@ -25,33 +29,107 @@ class ImportacaoExportacaoController extends Controller
         ]);
     }
 
-    // ─── TEMPLATE CSV ─────────────────────────────────────────
+    // ─── TEMPLATE XLSX ────────────────────────────────────────
     public function downloadTemplate()
     {
-        $csv  = "CODIGO,DESCRICAO,UNIDADE,SALDO,VALIDADE\n";
-        $csv .= "ES0610000000001,\"ABAIXADOR DE MADEIRA PARA LÍNGUA\",PCT,6,2024-12-31\n";
-        $csv .= ",\"ACETONA 500ML\",UN,2,2026-06-15\n";
+        $spreadsheet = new Spreadsheet();
 
-        return response($csv, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="template_importacao.csv"',
+        // ── Aba 1: Planilha ──────────────────────────────
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Planilha');
+
+        $headers = ['CÓDIGO', 'DESCRIÇÃO', 'UNIDADE', 'SALDO', 'VALIDADE'];
+        $sheet->fromArray($headers, null, 'A1');
+        $sheet->getStyle('A1:E1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:E1')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('D9E2F3');
+
+        // Linha de exemplo (destacada em amarelo)
+        $sheet->fromArray(
+            ['ES0610000000001', 'ABAIXADOR DE MADEIRA PARA LÍNGUA', 'PCT', 6, '31/12/2024'],
+            null,
+            'A2'
+        );
+        $sheet->getStyle('A2:E2')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('FFF2CC');
+
+        // Outro exemplo, sem código (SKU automático) e validade no formato mês/ano
+        $sheet->fromArray(['', 'ACETONA 500ML', 'UN', 2, '06/2026'], null, 'A3');
+        $sheet->getStyle('A3:E3')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('FFF2CC');
+
+        // Linha de agrupamento de exemplo (ignorada pelo sistema)
+        $sheet->setCellValue('B4', 'LETRA A');
+        $sheet->getStyle('B4')->getFont()->setItalic(true)->setBold(true);
+
+        // Linhas em branco prontas pra preencher
+        for ($row = 5; $row <= 33; $row++) {
+            $sheet->setCellValueExplicit("D{$row}", '', DataType::TYPE_STRING);
+        }
+
+        foreach (['A' => 22, 'B' => 45, 'C' => 12, 'D' => 10, 'E' => 14] as $col => $width) {
+            $sheet->getColumnDimension($col)->setWidth($width);
+        }
+        $sheet->freezePane('A2');
+
+        // ── Aba 2: Instruções ─────────────────────────────
+        $instrucoes = $spreadsheet->createSheet();
+        $instrucoes->setTitle('Instruções');
+        $instrucoes->setCellValue('A1', 'Como preencher esta planilha');
+        $instrucoes->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+
+        $texto = [
+            '',
+            'CÓDIGO: opcional. Se vazio, o sistema gera um SKU automático a partir da descrição.',
+            'DESCRIÇÃO: obrigatório. Nome do produto.',
+            'UNIDADE: opcional. Se vazio, assume "UN".',
+            'SALDO: obrigatório. Quantidade em estoque. Linhas sem saldo são ignoradas.',
+            'VALIDADE: opcional. Aceita datas como 31/12/2025, 2025-12-31, ou "12/2025" (assume dia 1º do mês).',
+            '',
+            'Linhas amarelas: exemplos de preenchimento correto — pode apagar antes de importar.',
+            '',
+            'Linhas de agrupamento (opcional): use uma linha só com "LETRA A", "LETRA B" etc. na coluna DESCRIÇÃO,',
+            'deixando as demais colunas vazias, para separar visualmente grupos de produtos. O sistema ignora',
+            'essas linhas automaticamente na importação — elas não geram produtos nem erros.',
+            '',
+            'Evite: linhas totalmente em branco no meio dos dados e alterar os nomes das colunas no cabeçalho.',
+            '',
+            'Se o CÓDIGO já existir no sistema, o estoque desse produto é incrementado (somado) em vez de duplicado.',
+        ];
+        foreach ($texto as $i => $linha) {
+            $instrucoes->setCellValue('A' . ($i + 2), $linha);
+        }
+        $instrucoes->getColumnDimension('A')->setWidth(100);
+        foreach ($instrucoes->getRowIterator() as $r) {
+            $instrucoes->getStyle('A' . $r->getRowIndex())->getAlignment()->setWrapText(true);
+        }
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, 'modelo_importacao_almoxarifado.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
 
-    // ─── IMPORTAR EXCEL (.xlsx) ───────────────────────────────
-    public function importarExcel(Request $request)
+    // ─── PREVIEW: parseia Excel, cria/atualiza produtos, retorna itens (sem criar lote ainda) ───
+    public function previewImportacao(Request $request)
     {
         $request->validate([
             'arquivo' => 'required|file',
         ]);
 
-        DB::beginTransaction();
         try {
             $spreadsheet = IOFactory::load($request->file('arquivo')->getRealPath());
             $sheet       = $spreadsheet->getActiveSheet();
             $rows        = $sheet->toArray(null, true, true, false);
 
-            // Encontra a linha de cabeçalho (contém "DESCRIÇÃO" ou "DESCRICAO")
             $headerIndex = null;
             foreach ($rows as $i => $row) {
                 $joined = implode(' ', array_map('mb_strtoupper', array_filter($row, 'is_string')));
@@ -65,7 +143,6 @@ class ImportacaoExportacaoController extends Controller
                 return response()->json(['message' => 'Cabeçalho não encontrado na planilha.'], 422);
             }
 
-            // Mapeia colunas pelo cabeçalho
             $header = array_map(fn($v) => mb_strtoupper(trim((string)$v)), $rows[$headerIndex]);
             $colMap = [];
             foreach ($header as $idx => $col) {
@@ -80,18 +157,14 @@ class ImportacaoExportacaoController extends Controller
                 return response()->json(['message' => 'Colunas obrigatórias (DESCRIÇÃO, SALDO) não encontradas.'], 422);
             }
 
-            $produtosNovos = 0;
-            $lotesCriados  = 0;
-            $ignorados     = 0;
-
-            // Linhas de dados começam após o cabeçalho
-            $dataRows = array_slice($rows, $headerIndex + 1);
+            $dataRows  = array_slice($rows, $headerIndex + 1);
+            $itens     = [];
+            $ignorados = 0;
 
             foreach ($dataRows as $row) {
                 $descricao = isset($colMap['descricao']) ? trim((string)($row[$colMap['descricao']] ?? '')) : '';
                 $saldo     = isset($colMap['saldo'])     ? $row[$colMap['saldo']]                           : null;
 
-                // Ignora linhas vazias ou de agrupamento ("LETRA A", "LETRA B"...)
                 if ($descricao === '' || is_null($saldo) || $saldo === '') {
                     $ignorados++;
                     continue;
@@ -101,20 +174,16 @@ class ImportacaoExportacaoController extends Controller
                     continue;
                 }
 
-                $codigo    = isset($colMap['codigo'])   ? trim((string)($row[$colMap['codigo']]   ?? '')) : '';
-                $unidade   = isset($colMap['unidade'])  ? trim((string)($row[$colMap['unidade']]  ?? 'UN')) : 'UN';
-                $validade  = isset($colMap['validade']) ? $row[$colMap['validade']]                         : null;
-                $quantidade = (int) $saldo;
-
-                // Converte validade
+                $codigo       = isset($colMap['codigo'])   ? trim((string)($row[$colMap['codigo']]   ?? '')) : '';
+                $unidade      = isset($colMap['unidade'])  ? trim((string)($row[$colMap['unidade']]  ?? 'UN')) : 'UN';
+                $validade     = isset($colMap['validade']) ? $row[$colMap['validade']]                         : null;
+                $quantidade   = (int) $saldo;
                 $dataValidade = $this->converterValidade($validade);
 
-                // SKU: usa código se existir, senão gera pelo nome
                 $sku = $codigo !== ''
                     ? $codigo
                     : 'GEN-' . strtoupper(substr(preg_replace('/[^A-Z0-9]/i', '', $descricao), 0, 12));
 
-                // Busca ou cria produto
                 $produto = Produto::where('sku', $sku)->first();
                 if (!$produto) {
                     $produto = Produto::create([
@@ -128,72 +197,78 @@ class ImportacaoExportacaoController extends Controller
                         'id_categoria'   => null,
                         'id_fornecedor'  => null,
                     ]);
-                    $produtosNovos++;
                 }
 
-                // Agrupa por VALIDADE: mesma validade → mesmo lote (vários produtos dentro)
-                // Validade diferente → novo lote
-                $lote = Lote::where('data_validade', $dataValidade)->first();
-                if (!$lote) {
-                    $numeroLote = 'LOTE-' . now()->format('Ymd') . '-' . rand(1000, 9999);
-                    $lote = Lote::create([
-                        'numero_lote'    => $numeroLote,
-                        'quantidade'     => 0,
-                        'status'         => 'ativo',
-                        'data_entrada'   => now()->toDateString(),
-                        'data_validade'  => $dataValidade,
-                        'descricao'      => 'Importação em lote - validade ' . ($dataValidade ?? 'sem validade'),
-                        'id_produto'     => $produto->id_produto,
-                        'id_localizacao' => null,
-                    ]);
+                $itens[] = [
+                    'produto_id' => $produto->id_produto,
+                    'sku'        => $sku,
+                    'nome'       => $descricao,
+                    'unidade'    => $unidade ?: 'UN',
+                    'quantidade' => $quantidade,
+                    'validade'   => $dataValidade,
+                ];
+            }
+
+            return response()->json([
+                'itens'     => $itens,
+                'ignorados' => $ignorados,
+                'total'     => count($itens),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erro ao ler planilha: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // ─── CONFIRMAR: cria lote(s) + item_lote a partir da escolha do usuário ───
+    public function confirmarImportacao(Request $request)
+    {
+        $request->validate([
+            'modo'               => 'required|in:unico,multiplo',
+            'lote.numero_lote'   => 'required_if:modo,unico|nullable|string',
+            'lote.data_validade' => 'nullable|date',
+            'itens'              => 'required_if:modo,unico|array',
+            'itens.*.sku'        => 'required_with:itens|string',
+            'itens.*.nome'       => 'required_with:itens|string',
+            'itens.*.quantidade' => 'required_with:itens|integer|min:0',
+            'itens.*.unidade'    => 'nullable|string',
+            'itens.*.validade'   => 'nullable|date',
+            'lotes'                       => 'required_if:modo,multiplo|array',
+            'lotes.*.numero_lote'         => 'nullable|string',
+            'lotes.*.data_validade'       => 'nullable|date',
+            'lotes.*.itens'               => 'required_if:modo,multiplo|array',
+            'lotes.*.itens.*.sku'         => 'required_with:lotes.*.itens|string',
+            'lotes.*.itens.*.nome'        => 'required_with:lotes.*.itens|string',
+            'lotes.*.itens.*.quantidade'  => 'required_with:lotes.*.itens|integer|min:0',
+            'lotes.*.itens.*.unidade'     => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $lotesCriados = 0;
+
+            if ($request->modo === 'unico') {
+                $this->criarLoteComItens(
+                    $request->input('lote.numero_lote') ?: ('LOTE-' . now()->format('Ymd') . '-' . rand(1000, 9999)),
+                    $request->input('lote.data_validade'),
+                    $request->itens
+                );
+                $lotesCriados = 1;
+            } else {
+                foreach ($request->lotes as $loteData) {
+                    $this->criarLoteComItens(
+                        $loteData['numero_lote'] ?: ('LOTE-' . now()->format('Ymd') . '-' . rand(1000, 9999)),
+                        $loteData['data_validade'] ?? null,
+                        $loteData['itens']
+                    );
                     $lotesCriados++;
                 }
-
-                // Dentro do lote, verifica se o produto (SKU) já tem item cadastrado
-                $item = ItemLote::where('id_lote', $lote->id_lote)
-                    ->where('sku', $sku)
-                    ->first();
-
-                if ($item) {
-                    $item->increment('quantidade', $quantidade);
-                } else {
-                    ItemLote::create([
-                        'id_lote'           => $lote->id_lote,
-                        'nome'              => $descricao,
-                        'sku'               => $sku,
-                        'quantidade'        => $quantidade,
-                        'estoque_minimo'    => 0,
-                        'unidade_medida'    => $unidade ?: 'UN',
-                        'data_validade'     => $dataValidade,
-                        'fornecedor'        => null,
-                        'localizacao'       => null,
-                        'prioridade_abc'    => 'C',
-                        'prioridade_manual' => null,
-                        'categoria'         => null,
-                    ]);
-                }
-
-                $lote->increment('quantidade', $quantidade);
-                $produto->increment('estoque_atual', $quantidade);
-
-                Movimentacao::create([
-                    'tipo'              => 'ENTRADA',
-                    'quantidade'        => $quantidade,
-                    'data_movimentacao' => now()->toDateString(),
-                    'observacao'        => 'Importação via planilha Excel',
-                    'id_lote'           => $lote->id_lote,
-                    'id_item'           => null,
-                    'id_usuario'        => Auth::id(),
-                ]);
             }
 
             DB::commit();
-
             return response()->json([
-                'message'        => 'Importação concluída com sucesso!',
-                'produtos_novos' => $produtosNovos,
-                'lotes_criados'  => $lotesCriados,
-                'ignorados'      => $ignorados,
+                'message'       => 'Importação concluída com sucesso!',
+                'lotes_criados' => $lotesCriados,
             ]);
 
         } catch (\Exception $e) {
@@ -202,12 +277,72 @@ class ImportacaoExportacaoController extends Controller
         }
     }
 
+    // ─── Helper: cria um Lote e seus ItemLote, atualiza estoque e movimentação ───
+    private function criarLoteComItens(string $numeroLote, ?string $dataValidade, array $itens): Lote
+    {
+        $lote = Lote::create([
+            'numero_lote'    => $numeroLote,
+            'quantidade'     => 0,
+            'status'         => 'ativo',
+            'data_entrada'   => now()->toDateString(),
+            'data_validade'  => $dataValidade,
+            'descricao'      => 'Importação em lote',
+            'id_produto'     => null,
+            'id_localizacao' => null,
+        ]);
+
+        foreach ($itens as $it) {
+            if ((int) $it['quantidade'] <= 0) continue;
+
+            $produto = Produto::where('sku', $it['sku'])->first();
+
+            $item = ItemLote::where('id_lote', $lote->id_lote)
+                ->where('sku', $it['sku'])
+                ->first();
+
+            if ($item) {
+                $item->increment('quantidade', $it['quantidade']);
+            } else {
+                ItemLote::create([
+                    'id_lote'           => $lote->id_lote,
+                    'nome'              => $it['nome'],
+                    'sku'               => $it['sku'],
+                    'quantidade'        => $it['quantidade'],
+                    'estoque_minimo'    => 0,
+                    'unidade_medida'    => $it['unidade'] ?? 'UN',
+                    'data_validade'     => $it['validade'] ?? $dataValidade,
+                    'fornecedor'        => null,
+                    'localizacao'       => null,
+                    'prioridade_abc'    => 'C',
+                    'prioridade_manual' => null,
+                    'categoria'         => null,
+                ]);
+            }
+
+            $lote->increment('quantidade', $it['quantidade']);
+            if ($produto) {
+                $produto->increment('estoque_atual', $it['quantidade']);
+            }
+
+            Movimentacao::create([
+                'tipo'              => 'ENTRADA',
+                'quantidade'        => $it['quantidade'],
+                'data_movimentacao' => now()->toDateString(),
+                'observacao'        => 'Importação via planilha Excel',
+                'id_lote'           => $lote->id_lote,
+                'id_item'           => null,
+                'id_usuario'        => Auth::id(),
+            ]);
+        }
+
+        return $lote;
+    }
+
     // ─── Converte validade do Excel para Y-m-d ─────────────────
     private function converterValidade(mixed $valor): ?string
     {
         if (is_null($valor) || $valor === '' || $valor === 0) return null;
 
-        // Número serial do Excel (ex: 45474)
         if (is_numeric($valor) && $valor > 1000) {
             try {
                 return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float)$valor)
@@ -217,17 +352,14 @@ class ImportacaoExportacaoController extends Controller
             }
         }
 
-        // Texto tipo "F:12/2025" ou "F:06/2025"
         if (preg_match('/F[:\s]*(\d{1,2})\/(\d{4})/i', (string)$valor, $m)) {
             return $m[2] . '-' . str_pad($m[1], 2, '0', STR_PAD_LEFT) . '-01';
         }
 
-        // Texto tipo "12/2025"
         if (preg_match('/^(\d{1,2})\/(\d{4})$/', trim((string)$valor), $m)) {
             return $m[2] . '-' . str_pad($m[1], 2, '0', STR_PAD_LEFT) . '-01';
         }
 
-        // Já no formato Y-m-d
         try {
             return Carbon::parse((string)$valor)->format('Y-m-d');
         } catch (\Exception $e) {
