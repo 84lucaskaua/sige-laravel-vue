@@ -408,7 +408,51 @@ class ImportacaoExportacaoController extends Controller
             'Content-Disposition' => 'attachment; filename="produtos_' . now()->format('Ymd') . '.csv"',
         ]);
     }
+// ─── EXPORTAR PRODUTOS XLSX ───────────────────────────────
+    public function exportarProdutosXLSX()
+    {
+        $produtos = Produto::with(['categoria', 'fornecedor'])->get();
 
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Produtos');
+
+        $headers = ['SKU', 'Nome', 'Categoria', 'Fornecedor', 'Unidade', 'Estoque Atual', 'Estoque Mínimo', 'Preço Custo', 'Prioridade ABC'];
+        $sheet->fromArray($headers, null, 'A1');
+        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:I1')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('D9E2F3');
+
+        $row = 2;
+        foreach ($produtos as $p) {
+            $sheet->fromArray([
+                $p->sku,
+                $p->nome,
+                $p->categoria->nome ?? '',
+                $p->fornecedor->nome ?? '',
+                $p->unidade_medida,
+                $p->estoque_atual,
+                $p->estoque_minimo,
+                $p->preco_custo,
+                $p->prioridade_abc,
+            ], null, "A{$row}");
+            $row++;
+        }
+
+        foreach (['A' => 20, 'B' => 40, 'C' => 18, 'D' => 18, 'E' => 10, 'F' => 14, 'G' => 14, 'H' => 14, 'I' => 14] as $col => $width) {
+            $sheet->getColumnDimension($col)->setWidth($width);
+        }
+        $sheet->freezePane('A2');
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, 'produtos_' . now()->format('Ymd') . '.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
     // ─── EXPORTAR MOVIMENTAÇÕES CSV ───────────────────────────
     public function exportarMovimentacoesCSV()
     {
