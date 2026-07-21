@@ -8,7 +8,7 @@
           <Upload class="w-5 h-5 text-blue-600 dark:text-blue-400" />
           Importar Planilha Excel
         </h2>
-        <button @click="tentarFechar" class="text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="tentarFechar">
           <X class="w-5 h-5" />
         </button>
       </div>
@@ -30,8 +30,8 @@
 
           <button
             :disabled="!arquivo || carregando"
-            @click="enviarPreview"
             class="mt-5 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition"
+            @click="enviarPreview"
           >
             {{ carregando ? 'Lendo planilha...' : 'Analisar Planilha' }}
           </button>
@@ -58,8 +58,8 @@
 
           <div class="grid grid-cols-2 gap-4 mb-6">
             <button
-              @click="modo = 'unico'; etapa = 'confirmarUnico'"
               class="border border-slate-200 dark:border-slate-700 hover:border-blue-500 rounded-lg p-5 text-left transition"
+              @click="modo = 'unico'; etapa = 'confirmarUnico'"
             >
               <Package class="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" />
               <p class="text-slate-900 dark:text-white font-semibold">Lote único</p>
@@ -67,8 +67,8 @@
             </button>
 
             <button
-              @click="modo = 'multiplo'; etapa = 'confirmarMultiplo'"
               class="border border-slate-200 dark:border-slate-700 hover:border-blue-500 rounded-lg p-5 text-left transition"
+              @click="modo = 'multiplo'; etapa = 'confirmarMultiplo'"
             >
               <Layers class="w-6 h-6 text-orange-500 dark:text-orange-400 mb-2" />
               <p class="text-slate-900 dark:text-white font-semibold">Lotes separados</p>
@@ -101,7 +101,7 @@
 
         <!-- ETAPA 3A: Confirmar lote único -->
         <div v-else-if="etapa === 'confirmarUnico'">
-          <button @click="etapa = 'modo'" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm mb-4 flex items-center gap-1">
+          <button class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm mb-4 flex items-center gap-1" @click="etapa = 'modo'">
             <ArrowLeft class="w-4 h-4" /> Voltar
           </button>
 
@@ -130,8 +130,8 @@
 
           <button
             :disabled="carregando"
-            @click="confirmarUnico"
             class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition"
+            @click="confirmarUnico"
           >
             {{ carregando ? 'Importando...' : `Criar lote com ${itens.length} produtos` }}
           </button>
@@ -139,15 +139,15 @@
 
         <!-- ETAPA 3B: Confirmar lotes múltiplos -->
         <div v-else-if="etapa === 'confirmarMultiplo'">
-          <button @click="etapa = 'modo'" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm mb-4 flex items-center gap-1">
+          <button class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-sm mb-4 flex items-center gap-1" @click="etapa = 'modo'">
             <ArrowLeft class="w-4 h-4" /> Voltar
           </button>
 
           <div class="flex items-center justify-between mb-4">
             <p class="text-slate-700 dark:text-slate-300 font-medium">Distribuir produtos entre lotes</p>
             <button
-              @click="adicionarLote"
               class="flex items-center gap-1 text-sm bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white px-3 py-1.5 rounded-lg"
+              @click="adicionarLote"
             >
               <Plus class="w-4 h-4" /> Adicionar lote
             </button>
@@ -162,8 +162,8 @@
             >
               <button
                 v-if="lotesMultiplos.length > 1"
-                @click="removerLote(idx)"
                 class="absolute top-2 right-2 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400"
+                @click="removerLote(idx)"
               >
                 <Trash2 class="w-4 h-4" />
               </button>
@@ -200,10 +200,10 @@
                   <td class="px-3 py-1.5 text-right text-slate-400 dark:text-slate-500">{{ it.quantidade }}</td>
                   <td v-for="(lote, idx) in lotesMultiplos" :key="idx" class="px-2 py-1.5 text-right">
                     <input
+                      v-model.number="lote.quantidades[it.sku]"
                       type="number"
                       min="0"
                       :max="it.quantidade"
-                      v-model.number="lote.quantidades[it.sku]"
                       class="w-16 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-1 text-right text-slate-900 dark:text-white"
                     />
                   </td>
@@ -225,8 +225,8 @@
 
           <button
             :disabled="carregando"
-            @click="confirmarMultiplo"
             class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition"
+            @click="confirmarMultiplo"
           >
             {{ carregando ? 'Importando...' : `Criar ${lotesMultiplos.length} lotes` }}
           </button>
@@ -237,7 +237,7 @@
           <Check class="w-14 h-14 text-green-600 dark:text-green-400 mx-auto mb-4" />
           <p class="text-slate-900 dark:text-white font-semibold text-lg">Importação concluída!</p>
           <p class="text-slate-500 dark:text-slate-400 mt-1">{{ resultado.lotes_criados }} lote(s) criado(s).</p>
-          <button @click="fechar" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg">
+          <button class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg" @click="fechar">
             Fechar
           </button>
         </div>
