@@ -432,7 +432,49 @@ class ImportacaoExportacaoController extends Controller
             'Content-Disposition' => 'attachment; filename="movimentacoes_' . now()->format('Ymd') . '.csv"',
         ]);
     }
+// ─── EXPORTAR MOVIMENTAÇÕES XLSX ──────────────────────────
+public function exportarMovimentacoesXLSX()
+{
+    $movs = Movimentacao::with(['lote.produto'])->orderBy('data_movimentacao', 'desc')->get();
 
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Movimentações');
+
+    $headers = ['Data', 'Tipo', 'Produto', 'SKU', 'Quantidade', 'Observação'];
+    $sheet->fromArray($headers, null, 'A1');
+    $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+    $sheet->getStyle('A1:F1')->getFill()
+        ->setFillType(Fill::FILL_SOLID)
+        ->getStartColor()->setRGB('D9E2F3');
+
+    $row = 2;
+    foreach ($movs as $m) {
+        $produto = $m->lote->produto ?? null;
+        $sheet->fromArray([
+            $m->data_movimentacao ?? '',
+            $m->tipo,
+            $produto->nome ?? '',
+            $produto->sku  ?? '',
+            $m->quantidade,
+            $m->observacao ?? '',
+        ], null, "A{$row}");
+        $row++;
+    }
+
+    foreach (['A' => 14, 'B' => 12, 'C' => 32, 'D' => 20, 'E' => 12, 'F' => 40] as $col => $width) {
+        $sheet->getColumnDimension($col)->setWidth($width);
+    }
+    $sheet->freezePane('A2');
+
+    $writer = new Xlsx($spreadsheet);
+
+    return response()->streamDownload(function () use ($writer) {
+        $writer->save('php://output');
+    }, 'movimentacoes_' . now()->format('Ymd') . '.xlsx', [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ]);
+}
     // ─── RESTAURAR BACKUP ─────────────────────────────────────
     public function restaurarBackup(Request $request)
     {

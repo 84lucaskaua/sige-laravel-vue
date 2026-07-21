@@ -45,37 +45,58 @@
           </button>
         </div>
 
-        <!-- Produtos CSV -->
-        <div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
-          <div>
-            <p class="text-slate-900 dark:text-white font-semibold">Produtos (CSV)</p>
-            <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta cadastro de produtos com estoque atual</p>
-          </div>
-          <button
-            :disabled="loadingExport.produtos"
-            class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
-            @click="exportar('produtos-csv')"
-          >
-            <i :class="loadingExport.produtos ? 'fas fa-spinner fa-spin' : 'fas fa-file-csv'"></i>
-            Exportar CSV
-          </button>
-        </div>
+        <!-- Produtos -->
+<div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+  <div>
+    <p class="text-slate-900 dark:text-white font-semibold">Produtos</p>
+    <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta cadastro de produtos com estoque atual</p>
+  </div>
+  <div class="grid grid-cols-2 gap-2">
+    <button
+      :disabled="loadingExport.produtos"
+      class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition text-sm"
+      @click="exportar('produtos-xlsx')"
+    >
+      <i :class="loadingExport.produtos ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'"></i>
+      Excel
+    </button>
+    <button
+      :disabled="loadingExport.produtos"
+      class="bg-slate-600 hover:bg-slate-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition text-sm"
+      @click="exportar('produtos-csv')"
+    >
+      <i :class="loadingExport.produtos ? 'fas fa-spinner fa-spin' : 'fas fa-file-csv'"></i>
+      CSV
+    </button>
+  </div>
+</div>
 
-        <!-- Movimentações CSV -->
-        <div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
-          <div>
-            <p class="text-slate-900 dark:text-white font-semibold">Movimentações (CSV)</p>
-            <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta histórico de entradas e saídas</p>
-          </div>
-          <button
-            :disabled="loadingExport.movimentacoes"
-            class="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition"
-            @click="exportar('movimentacoes-csv')"
-          >
-            <i :class="loadingExport.movimentacoes ? 'fas fa-spinner fa-spin' : 'fas fa-sync'"></i>
-            Exportar CSV
-          </button>
-        </div>
+       <!-- Movimentações -->
+<!-- Movimentações -->
+<div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+  <div>
+    <p class="text-slate-900 dark:text-white font-semibold">Movimentações</p>
+    <p class="text-slate-500 dark:text-gray-400 text-sm">Exporta histórico de entradas e saídas</p>
+  </div>
+  <div class="grid grid-cols-2 gap-2">
+    <button
+      :disabled="loadingExport.movimentacoes"
+      class="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition text-sm"
+      @click="exportar('movimentacoes-xlsx')"
+    >
+      <i :class="loadingExport.movimentacoes ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'"></i>
+      Excel
+    </button>
+    <button
+      :disabled="loadingExport.movimentacoes"
+      class="bg-slate-600 hover:bg-slate-700 disabled:opacity-50 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition text-sm"
+      @click="exportar('movimentacoes-csv')"
+    >
+      <i :class="loadingExport.movimentacoes ? 'fas fa-spinner fa-spin' : 'fas fa-file-csv'"></i>
+      CSV
+    </button>
+  </div>
+</div>
       </div>
     </div>
 
@@ -247,11 +268,13 @@ async function carregarStats() {
 }
 
 async function exportar(tipo) {
-  const chave = tipo === 'backup' ? 'backup' : tipo === 'produtos-csv' ? 'produtos' : 'movimentacoes'
+  const chave = tipo === 'backup' ? 'backup'
+    : (tipo === 'produtos-xlsx' || tipo === 'produtos-csv') ? 'produtos'
+    : 'movimentacoes'
   loadingExport.value[chave] = true
   try {
     const response = await api.get(`/importacao-exportacao/exportar/${tipo}`, { responseType: 'blob' })
-    const ext  = tipo === 'backup' ? 'json' : 'csv'
+    const ext  = tipo === 'backup' ? 'json' : tipo.endsWith('xlsx') ? 'xlsx' : 'csv'
     const nome = `${tipo}_${new Date().toISOString().slice(0, 10)}.${ext}`
     const url  = URL.createObjectURL(new Blob([response.data]))
     const a    = document.createElement('a')
