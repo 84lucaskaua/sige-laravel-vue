@@ -246,15 +246,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { PackagePlus, Package, AlertTriangle, TrendingDown, TrendingUp, PieChart, History } from 'lucide-vue-next'
 import api from '@/servicos/api'
 import Chart from 'chart.js/auto'
 import { useTemaStore } from '@/servicos/tema.store'
+import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 
 const temaStore    = useTemaStore()
 const { temaClaro } = storeToRefs(temaStore)
+
+const autenticacaoStore = useAutenticacaoStore()
+const { perfil }        = storeToRefs(autenticacaoStore)
 
 const carregando            = ref(true)
 const graficoLinha          = ref(null)
@@ -277,6 +281,12 @@ let chartLinha = null
 let chartPizza = null
 let ultimosDadosLinha  = []
 let ultimosDadosPizza  = []
+
+// --- Auto-refresh (somente para o perfil visualizador) ---
+// Atualiza os dados em segundo plano, sem recarregar a página nem
+// mostrar a tela de "Carregando dados..." de novo — só troca o que mudou.
+const INTERVALO_POLLING_MS = 30000
+let idIntervaloPolling = null
 
 function formatarData(data) {
   if (!data) return '—'
@@ -303,8 +313,8 @@ function recortarDiasVazios(dados) {
   return dados.slice(primeiroIndiceComDado - 1)
 }
 
-async function carregarDashboard() {
-  carregando.value = true
+async function carregarDashboard({ mostrarLoading = true } = {}) {
+  if (mostrarLoading) carregando.value = true
   let dadosEvolucao = []
   let dadosDistribuicao = []
 
@@ -320,7 +330,7 @@ async function carregarDashboard() {
   } catch (erro) {
     console.error('Erro ao carregar dashboard:', erro)
   } finally {
-    carregando.value = false
+    if (mostrarLoading) carregando.value = false
   }
 
   ultimosDadosLinha = dadosEvolucao
@@ -347,8 +357,6 @@ function montarGraficoLinha(dados) {
   if (!graficoLinha.value) return
 
   const cores = coresDoTema()
-
-
 
   chartLinha = new Chart(graficoLinha.value, {
     type: 'line',
@@ -442,6 +450,7 @@ function montarGraficoLinha(dados) {
     },
   })
 }
+
 function montarGraficoPizza(dados) {
   if (chartPizza) chartPizza.destroy()
 
@@ -487,5 +496,17 @@ watch(temaClaro, async () => {
   montarGraficoPizza(ultimosDadosPizza)
 })
 
-onMounted(carregarDashboard)
-</script> 
+onMounted(async () => {
+  await carregarDashboard()
+
+  if (perfil.value === 'visualizador') {
+    idIntervaloPolling = setInterval(() => {
+      carregarDashboard({ mostrarLoading: false })
+    }, INTERVALO_POLLING_MS)
+  }
+})
+
+onUnmounted(() => {
+  if (idIntervaloPolling) clearInterval(idIntervaloPolling)
+})
+</script>
