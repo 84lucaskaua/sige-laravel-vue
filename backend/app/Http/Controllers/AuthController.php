@@ -26,23 +26,29 @@ class AuthController extends Controller
         }
 
         /** @var User $user */
-        $user  = Auth::user();
+        $user = Auth::user();
+
+        if (!$user->ativo) {
+            Auth::logout();
+            return response()->json(['message' => 'Usuário inativo. Procure um administrador.'], 403);
+        }
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         AuditHelper::log('Login', 'Usuário ' . $user->name . ' (' . $user->email . ') realizou login');
 
         return response()->json([
-    'token'   => $token,
-    'usuario' => [
-        'id'      => $user->id,
-        'name'    => $user->name,
-        'email'   => $user->email,
-        'perfil'  => $user->perfil ?? 'visualizador',
-        'foto_url'=> $user->foto_url
-            ? asset('storage/' . $user->foto_url)
-            : null,
-    ],
-]);
+            'token'   => $token,
+            'usuario' => [
+                'id'      => $user->id,
+                'name'    => $user->name,
+                'email'   => $user->email,
+                'perfil'  => $user->perfil ?? 'visualizador',
+                'foto_url'=> $user->foto_url
+                    ? asset('storage/' . $user->foto_url)
+                    : null,
+            ],
+        ]);
     }
 
     public function logout(Request $request)

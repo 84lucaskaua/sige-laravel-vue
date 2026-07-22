@@ -79,7 +79,7 @@ Route::post('importacao-exportacao/confirmar', [ImportacaoExportacaoController::
     Route::get('/usuarios', [UsuarioController::class, 'index']);
     Route::post('/usuarios', [UsuarioController::class, 'store']);
     Route::put('/usuarios/{id}', [UsuarioController::class, 'update']);
-    Route::delete('/usuarios/{id}', [UsuarioController::class, 'destroy']);
+    Route::patch('/usuarios/{id}/status', [UsuarioController::class, 'alternarStatus']);
 
     Route::post('/chatbot', [ChatbotController::class, 'perguntar']);
 });

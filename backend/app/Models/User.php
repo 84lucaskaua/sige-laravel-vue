@@ -17,6 +17,7 @@ class User extends Authenticatable
     'perfil',
     'foto_url',
     'pin',
+    'ativo',
 ];
 
     protected $hidden = [
@@ -29,5 +30,6 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'pin' => 'hashed',
+        'ativo' => 'boolean',
     ];
  }

@@ -49,17 +49,33 @@
             <th class="text-left px-6 py-4 font-medium">Nome</th>
             <th class="text-left px-6 py-4 font-medium">Email</th>
             <th class="text-left px-6 py-4 font-medium">Tipo</th>
+            <th class="text-left px-6 py-4 font-medium">Status</th>
             <th class="text-left px-6 py-4 font-medium">Data de Cadastro</th>
             <th class="text-right px-6 py-4 font-medium">Ações</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-          <tr v-for="usuario in usuariosFiltrados" :key="usuario.id" class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition">
+          <tr
+            v-for="usuario in usuariosFiltrados"
+            :key="usuario.id"
+            class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition"
+            :class="{ 'opacity-50': !usuario.ativo }"
+          >
             <td class="px-6 py-4 text-slate-900 dark:text-white font-medium">{{ usuario.name }}</td>
             <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ usuario.email }}</td>
             <td class="px-6 py-4">
               <span :class="corDoPerfil[usuario.perfil]" class="px-3 py-1 rounded-md text-xs font-semibold">
                 {{ nomeDoPerfil[usuario.perfil] || usuario.perfil }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <span
+                :class="usuario.ativo
+                  ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'"
+                class="px-3 py-1 rounded-md text-xs font-semibold"
+              >
+                {{ usuario.ativo ? 'Ativo' : 'Inativo' }}
               </span>
             </td>
             <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ formatarData(usuario.created_at) }}</td>
@@ -73,12 +89,21 @@
                   <Pencil :size="16" />
                 </button>
                 <button
-                  class="p-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Excluir"
+                  v-if="usuario.ativo"
+                  class="p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Inativar"
                   :disabled="usuario.id === autenticacao.usuario?.id"
-                  @click="excluirUsuario(usuario)"
+                  @click="alternarStatusUsuario(usuario)"
                 >
-                  <Trash2 :size="16" />
+                  <UserX :size="16" />
+                </button>
+                <button
+                  v-else
+                  class="p-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50 transition"
+                  title="Ativar"
+                  @click="alternarStatusUsuario(usuario)"
+                >
+                  <UserCheck :size="16" />
                 </button>
               </div>
             </td>
@@ -88,7 +113,7 @@
     </div>
 
     <!-- Cards de totais -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
         <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">Total de Usuários</p>
         <p class="text-3xl font-bold text-slate-900 dark:text-white">{{ usuarios.length }}</p>
@@ -96,6 +121,10 @@
       <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
         <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">Administradores</p>
         <p class="text-3xl font-bold text-blue-600 dark:text-blue-500">{{ totalAdministradores }}</p>
+      </div>
+      <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">Usuários Inativos</p>
+        <p class="text-3xl font-bold text-amber-600 dark:text-amber-500">{{ totalInativos }}</p>
       </div>
     </div>
 
@@ -112,7 +141,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Plus, Search, UserX, Pencil, Trash2 } from 'lucide-vue-next'
+import { Plus, Search, UserX, UserCheck, Pencil } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalUsuario from '@/componentes/ui/ModalUsuario.vue'
@@ -151,6 +180,10 @@ const totalAdministradores = computed(() =>
   usuarios.value.filter(u => u.perfil === 'root').length
 )
 
+const totalInativos = computed(() =>
+  usuarios.value.filter(u => !u.ativo).length
+)
+
 async function carregarUsuarios() {
   carregando.value = true
   try {
@@ -183,13 +216,15 @@ async function aoSalvar() {
   await carregarUsuarios()
 }
 
-async function excluirUsuario(usuario) {
-  if (!confirm(`Excluir o usuário "${usuario.name}"? Esta ação não pode ser desfeita.`)) return
+async function alternarStatusUsuario(usuario) {
+  const acao = usuario.ativo ? 'inativar' : 'ativar'
+  if (!confirm(`Deseja ${acao} o usuário "${usuario.name}"?`)) return
+
   try {
-    await api.delete(`/usuarios/${usuario.id}`)
+    await api.patch(`/usuarios/${usuario.id}/status`, { ativo: !usuario.ativo })
     await carregarUsuarios()
   } catch (erro) {
-    alert(erro.response?.data?.mensagem || erro.response?.data?.message || 'Erro ao excluir usuário.')
+    alert(erro.response?.data?.mensagem || erro.response?.data?.message || `Erro ao ${acao} usuário.`)
   }
 }
 

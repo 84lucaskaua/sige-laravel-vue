@@ -11,7 +11,7 @@ class UsuarioController extends Controller
 {
     public function index()
     {
-        $usuarios = User::select('id', 'name', 'email', 'perfil', 'created_at')
+        $usuarios = User::select('id', 'name', 'email', 'perfil', 'ativo', 'created_at')
             ->orderBy('id', 'asc')
             ->get();
         return response()->json($usuarios);
@@ -66,18 +66,27 @@ class UsuarioController extends Controller
         return response()->json($usuario);
     }
 
-    public function destroy(int $id)
+    public function alternarStatus(Request $request, int $id)
     {
         $usuario = User::findOrFail($id);
 
+        $request->validate([
+            'ativo' => 'required|boolean',
+        ]);
+
         if ($usuario->id === Auth::id()) {
-            return response()->json(['mensagem' => 'Você não pode excluir o próprio usuário.'], 422);
+            return response()->json(['mensagem' => 'Você não pode inativar o próprio usuário.'], 422);
         }
 
-        AuditHelper::log('Exclusao', 'Usuario "' . $usuario->name . '" excluido.');
+        $usuario->update(['ativo' => $request->ativo]);
 
-        $usuario->delete();
+        if (!$request->ativo) {
+            $usuario->tokens()->delete();
+        }
 
-        return response()->json(['message' => 'Usuario excluido com sucesso.']);
+        $acao = $request->ativo ? 'Ativacao' : 'Inativacao';
+        AuditHelper::log($acao, 'Usuario "' . $usuario->name . '" ' . ($request->ativo ? 'ativado' : 'inativado') . '.');
+
+        return response()->json($usuario);
     }
 }
