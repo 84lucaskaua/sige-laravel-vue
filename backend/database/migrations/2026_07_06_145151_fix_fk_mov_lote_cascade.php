@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('movimentacao', function (Blueprint $table) {
-            $table->dropForeign('fk_mov_lote');
+            $table->dropForeign(['id_lote']);
             $table->foreign('id_lote', 'fk_mov_lote')
                 ->references('id_lote')->on('lote')
                 ->onUpdate('cascade')
