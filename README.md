@@ -57,15 +57,25 @@ sige-laravel-vue/
 ### Passo a passo
 
 1 - Ligar o apache e mysql (xampp)
-2 - Configurar o php.ini 
-3 - Configurar o php my admin (criar o banco de dados)
+
+2 - Configurar o workbench(criar o banco de dados)
+
+3 - De o comando "php artisan db:seed --class=UserSeeder" para rodar administrador
+
 4 - Configurar o arquivo .env (Criar dentro do backend)
+
 5 - Fazer "mkdir bootstrap/cache"
+
 6 - Composer install dentro do backend
+
 7 - "Php artisan serve" dentro do backend
+
 8 - Abra outro terminal, entre na pasta frontend
+
 9 - De o comando "npm install" e "npm install lucide-vue-next"
+
 10 - npm run dev (frontend)
+
 11 - php artisan serve (backend)
 
 
