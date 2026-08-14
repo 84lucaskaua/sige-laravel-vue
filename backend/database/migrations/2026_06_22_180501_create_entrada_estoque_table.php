@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id_usuario');
 
             $table->foreign('id_lote')->references('id_lote')->on('lote')->onUpdate('cascade');
-            $table->foreign('id_usuario')->references('id_usuario')->on('usuario')->onUpdate('cascade');
+            $table->foreign('id_usuario')->references('id')->on('users')->onUpdate('cascade');
         });
     }
 
