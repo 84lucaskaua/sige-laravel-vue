@@ -49,42 +49,35 @@ sige-laravel-vue/
 ## 🚀 Como rodar o projeto
 
 ### Pré-requisitos
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado
+
 - Git instalado
+- Node.js instalado
+- SQL (banco de dados do sistema)
 
 ### Passo a passo
 
-**1. Clone o projeto**
-```bash
-git clone <url-do-repositorio>
-cd sige-laravel-vue
-```
+1 - Ligar o apache e mysql (xampp)
 
-**2. Configure o arquivo .env do backend**
-```bash
-cp backend/.env.example backend/.env
-```
+2 - Configurar o workbench(criar o banco de dados)
 
-**3. Suba todos os serviços com Docker**
-```bash
-docker compose up -d
-```
-> Aguarde ~2 minutos para o banco e o PHP iniciarem completamente.
+3 - De o comando "php artisan db:seed --class=UserSeeder" para rodar administrador
 
-**4. Instale as dependências PHP e configure o Laravel**
-```bash
-# Acessa o container do backend
-docker exec -it sige_backend bash
+4 - Configurar o arquivo .env (Criar dentro do backend)
 
-# Dentro do container, rode:
-composer install
-php artisan key:generate
-php artisan migrate
-php artisan db:seed
-exit
-```
+5 - Fazer "mkdir bootstrap/cache"
 
-> Se precisar ajustar o backend usado pelo frontend localmente, copie `frontend/.env.example` para `frontend/.env` e atualize `VITE_API_BASE_URL`.
+6 - Composer install dentro do backend
+
+7 - "Php artisan serve" dentro do backend
+
+8 - Abra outro terminal, entre na pasta frontend
+
+9 - De o comando "npm install" e "npm install lucide-vue-next"
+
+10 - npm run dev (frontend)
+
+11 - php artisan serve (backend)
+
 
 **5. Acesse o sistema**
 
