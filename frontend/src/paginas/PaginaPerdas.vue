@@ -22,7 +22,7 @@
         </div>
         <div>
           <p class="text-slate-500 dark:text-slate-400 text-xs">Unidades Perdidas</p>
-          <p class="text-slate-900 dark:text-white text-2xl font-bold">{{ Number(estatisticas.unidades) }}</p>
+          <p class="text-slate-900 dark:text-white text-2xl font-bold">{{ formatarNumero(estatisticas.unidades) }}</p>
         </div>
       </div>
       <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center gap-4">
@@ -92,7 +92,7 @@
         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
           <tr v-for="perda in perdas" :key="perda.id_movimentacao" class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition">
             <td class="py-3 text-slate-900 dark:text-white font-medium">{{ perda.item?.nome || '—' }}</td>
-            <td class="py-3 text-red-600 dark:text-red-400 font-bold">-{{ Number(perda.quantidade) }}</td>
+            <td class="py-3 text-red-600 dark:text-red-400 font-bold">-{{ formatarNumero(perda.quantidade) }}</td>
             <td class="py-3 text-slate-600 dark:text-slate-300">{{ perda.observacao || '—' }}</td>
             <td class="py-3 text-slate-500 dark:text-slate-400">{{ formatarData(perda.data_movimentacao) }}</td>
           </tr>
@@ -284,6 +284,11 @@ const motivoExibicao = computed(() =>
 const formatarData = (data) => {
   if (!data) return '—'
   return new Date(data).toLocaleDateString('pt-BR')
+}
+
+function formatarNumero(valor) {
+  const num = Number(valor)
+  return num >= 1000 ? num.toLocaleString('pt-BR') : num.toString()
 }
 
 function abrirModal(item) {
