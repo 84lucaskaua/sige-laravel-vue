@@ -27,7 +27,7 @@ class UserSeeder extends Seeder
                     'name' => $u['name'],
                     'password' => Hash::make($u['password']),
                     'perfil' => $u['perfil'],
-                    'pin' => $u['pin'],
+                    'pin' => $u['pin'] ? Hash::make($u['pin']) : null,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]
