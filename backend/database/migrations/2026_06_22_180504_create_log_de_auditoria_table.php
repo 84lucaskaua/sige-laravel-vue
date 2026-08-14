@@ -18,7 +18,7 @@ return new class extends Migration
             $table->dateTime('data_criacao')->useCurrent();
             $table->unsignedBigInteger('id_usuario');
 
-            $table->foreign('id_usuario')->references('id_usuario')->on('usuario')->onUpdate('cascade');
+            $table->foreign('id_usuario')->references('id')->on('users')->onUpdate('cascade');
         });
     }
 

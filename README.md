@@ -44,39 +44,70 @@ sige-laravel-vue/
         └── estilos/            ← CSS global
 ```
 
----
-
-## 🚀 Como rodar o projeto
+## Como rodar o projeto (instalação limpa)
 
 ### Pré-requisitos
 
-- Git instalado
-- Node.js instalado
-- SQL (banco de dados do sistema)
+- PHP >= 8.1
+- Composer
+- Node.js >= 18
+- MySQL (recomendado: XAMPP no Windows ou MySQL Server)
+- Git
 
 ### Passo a passo
 
-1 - Ligar o apache e mysql (xampp)
+```bash
+# 1. Configurar PHP.INI
+ Exclua o ponto e vírgula (;) da ";extension gd" e ";extension zip", depois salve (Abrir com bloco de notas)
 
-2 - Configurar o workbench(criar o banco de dados)
+# 2. Criar cache do bootstrap
+Comando: "mkdir bootstrap\cache" 
 
-3 - De o comando "php artisan db:seed --class=UserSeeder" para rodar administrador
+# 3. Instale as dependencias do Backend (PHP)
+cd Backend
+composer install
 
-4 - Configurar o arquivo .env (Criar dentro do backend)
+# 4. Crie o arquivo de ambiente a partir do template
+copy .env.example .env
 
-5 - Fazer "mkdir bootstrap/cache"
+# 5. Gere a chave da aplicacao
+php artisan key:generate
 
-6 - Composer install dentro do backend
+# 6. Configure o banco de dados no arquivo .env
+#    Edite o arquivo Backend/.env com as seguintes configuracoes:
+#    DB_CONNECTION=mysql
+#    DB_HOST=127.0.0.1
+#    DB_PORT=3307
+#    DB_DATABASE=sige
+#    DB_USERNAME=root
+#    DB_PASSWORD=       (deixe vazio se for XAMPP padrao)
 
-7 - "Php artisan serve" dentro do backend
+# 7. Crie o banco de dados no MySQL
+#    Acesse o MySQL e execute: CREATE DATABASE sige;
 
-8 - Abra outro terminal, entre na pasta frontend
+# 8. Limpe o cache de configuracao (importante em ambientes novos)
+php artisan config:clear
+php artisan cache:clear
 
-9 - De o comando "npm install" e "npm install lucide-vue-next"
+# 9. Execute as migrations (cria as tabelas)
+php artisan migrate
 
-10 - npm run dev (frontend)
+# 10. Execute os seeders (popula o banco com dados de desenvolvimento) - OBRIGATORIO!
+php artisan db:seed
 
-11 - php artisan serve (backend)
+# 11. Inicie o servidor Backend
+php artisan serve
+#    O servidor ira rodar em: http://localhost:8000
+
+# 12. Em outro terminal, instale as dependencias do Frontend
+cd ../Frontend
+npm install
+npm install lucide-vue-next
+
+# 13. Inicie o servidor de desenvolvimento do Frontend
+npm run dev
+#    O frontend ira rodar em: http://localhost:5173
+```
 
 
 **5. Acesse o sistema**
