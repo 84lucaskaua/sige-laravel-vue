@@ -22,9 +22,26 @@ class ItemLoteController extends Controller
     public function store(Request $request, int $idLote)
     {
         $request->validate([
-            'nome'       => 'required|string',
-            'quantidade' => 'required|integer|min:1',
-            'categoria'  => 'required|string',
+            'nome'           => 'required|string|min:2|max:255',
+            'sku'            => 'nullable|string|max:50',
+            'quantidade'     => 'required|integer|min:1',
+            'categoria'      => 'required|string',
+            'data_validade'  => 'nullable|date|after:today|before:2100-01-01',
+            'estoque_minimo' => 'nullable|integer|min:0',
+        ], [
+            'nome.required'          => 'O nome é obrigatório.',
+            'nome.min'               => 'O nome deve ter pelo menos 2 caracteres.',
+            'nome.max'               => 'O nome não pode ter mais de 255 caracteres.',
+            'sku.max'                => 'O SKU não pode ter mais de 50 caracteres.',
+            'quantidade.required'    => 'A quantidade é obrigatória.',
+            'quantidade.integer'     => 'A quantidade deve ser um número inteiro.',
+            'quantidade.min'         => 'A quantidade não pode ser negativa.',
+            'categoria.required'     => 'A categoria é obrigatória.',
+            'data_validade.date'     => 'Informe uma data válida.',
+            'data_validade.after'    => 'A data de validade deve ser futura.',
+            'data_validade.before'   => 'A data de validade informada é inválida.',
+            'estoque_minimo.integer' => 'O estoque mínimo deve ser um número inteiro.',
+            'estoque_minimo.min'     => 'O estoque mínimo não pode ser negativo.',
         ]);
 
         $ehManual = $request->filled('prioridade_abc');
@@ -62,9 +79,26 @@ class ItemLoteController extends Controller
         $item = ItemLote::findOrFail($id);
 
         $request->validate([
-            'nome'       => 'required|string',
-            'quantidade' => 'required|integer|min:0',
-            'categoria'  => 'required|string',
+            'nome'           => 'required|string|min:2|max:255',
+            'sku'            => 'nullable|string|max:50',
+            'quantidade'     => 'required|integer|min:0',
+            'categoria'      => 'required|string',
+            'data_validade'  => 'nullable|date|after:today|before:2100-01-01',
+            'estoque_minimo' => 'nullable|integer|min:0',
+        ], [
+            'nome.required'          => 'O nome é obrigatório.',
+            'nome.min'               => 'O nome deve ter pelo menos 2 caracteres.',
+            'nome.max'               => 'O nome não pode ter mais de 255 caracteres.',
+            'sku.max'                => 'O SKU não pode ter mais de 50 caracteres.',
+            'quantidade.required'    => 'A quantidade é obrigatória.',
+            'quantidade.integer'     => 'A quantidade deve ser um número inteiro.',
+            'quantidade.min'         => 'A quantidade não pode ser negativa.',
+            'categoria.required'     => 'A categoria é obrigatória.',
+            'data_validade.date'     => 'Informe uma data válida.',
+            'data_validade.after'    => 'A data de validade deve ser futura.',
+            'data_validade.before'   => 'A data de validade informada é inválida.',
+            'estoque_minimo.integer' => 'O estoque mínimo deve ser um número inteiro.',
+            'estoque_minimo.min'     => 'O estoque mínimo não pode ser negativo.',
         ]);
 
         $ehManual = $request->filled('prioridade_abc');
@@ -93,6 +127,13 @@ class ItemLoteController extends Controller
             'quantidade' => 'required|integer|min:1|max:' . $item->quantidade,
             'motivo'     => 'nullable|string|max:255',
             'pin'        => 'required|string',
+        ], [
+            'quantidade.required' => 'A quantidade é obrigatória.',
+            'quantidade.integer'  => 'A quantidade deve ser um número inteiro.',
+            'quantidade.min'      => 'A quantidade deve ser pelo menos 1.',
+            'quantidade.max'      => 'A quantidade não pode ser maior que o estoque disponível.',
+            'motivo.max'          => 'O motivo não pode ter mais de 255 caracteres.',
+            'pin.required'        => 'O PIN é obrigatório.',
         ]);
 
         if (!Hash::check($request->pin, Auth::user()->pin)) {
@@ -124,6 +165,12 @@ class ItemLoteController extends Controller
             'quantidade' => 'required|integer|min:1',
             'motivo'     => 'nullable|string|max:255',
             'pin'        => 'required|string',
+        ], [
+            'quantidade.required' => 'A quantidade é obrigatória.',
+            'quantidade.integer'  => 'A quantidade deve ser um número inteiro.',
+            'quantidade.min'      => 'A quantidade deve ser pelo menos 1.',
+            'motivo.max'          => 'O motivo não pode ter mais de 255 caracteres.',
+            'pin.required'        => 'O PIN é obrigatório.',
         ]);
 
         if (!Hash::check($request->pin, Auth::user()->pin)) {
@@ -149,13 +196,21 @@ class ItemLoteController extends Controller
         return response()->json($item->refresh());
     }
 
-   public function reordenar(Request $request, int $idLote)
-{
-    $request->validate([
-        'itens'            => 'required|array',
-        'itens.*.id_item'  => 'required|integer|exists:item_lote,id_item',
-        'itens.*.ordem'    => 'required|integer|min:0',
-    ]); 
+    public function reordenar(Request $request, int $idLote)
+    {
+        $request->validate([
+            'itens'           => 'required|array',
+            'itens.*.id_item' => 'required|integer|exists:item_lote,id_item',
+            'itens.*.ordem'   => 'required|integer|min:0',
+        ], [
+            'itens.required'           => 'A lista de itens é obrigatória.',
+            'itens.array'              => 'A lista de itens está em formato inválido.',
+            'itens.*.id_item.required' => 'O ID do item é obrigatório.',
+            'itens.*.id_item.exists'   => 'Um dos itens informados não existe.',
+            'itens.*.ordem.required'   => 'A ordem é obrigatória.',
+            'itens.*.ordem.min'        => 'A ordem não pode ser negativa.',
+        ]);
+
         $idsDoLote = ItemLote::where('id_lote', $idLote)->pluck('id_item')->toArray();
 
         foreach ($request->itens as $item) {
