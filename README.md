@@ -122,11 +122,15 @@ npm run dev
 
 ## 👤 Usuários para teste
 
-| Email                    | Senha          | Perfil       |
-|--------------------------|----------------|--------------|
-| admin@sige.com           | Admin@2024     | Admin        |
-| operador@sige.com        | Operador@2024  | Operador     |
-| visualizador@sige.com    | Visual@2024    | Visualizador |
+| Perfil       | Email                  | Senha          |
+|--------------|-------------------------|----------------|
+| Admin        | admin@sige.com          | Admin@2024     |
+| Admin        | angel@sige.com          | Angel@2024     |
+| Admin        | natan@sige.com          | Natan@2024     |
+| Operador     | amanda@sige.com         | Operador@2024  |
+| Operador     | daniela@sige.com        | Operador@2024  |
+| Operador     | miguel@sige.com         | Operador@2024  |
+| Visualizador | visualizador@sige.com   | Visual@2024    |
 
 ---
 

@@ -104,95 +104,143 @@
         </div>
 
         <!-- Tabela de itens -->
-<table v-else class="w-full text-sm">
-  <thead>
-    <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-      <th class="text-left pb-3 font-medium w-6"></th>
-      <th class="text-left pb-3 font-medium">SKU</th>
-      <th class="text-left pb-3 font-medium">Nome</th>
-      <th class="text-left pb-3 font-medium">Qtd</th>
-      <th class="text-left pb-3 font-medium">Validade</th>
-      <th class="text-left pb-3 font-medium">Fornecedor</th>
-      <th class="text-left pb-3 font-medium">Localização</th>
-      <th class="text-left pb-3 font-medium">Status</th>
-      <th class="text-left pb-3 font-medium">Ações</th>
-    </tr>
-  </thead>
-  <draggable
-    :list="loteAtivo.itens"
-    tag="tbody"
-    item-key="id_item"
-    handle=".drag-handle"
-    animation="200"
-    class="divide-y divide-slate-200 dark:divide-slate-800"
-    @end="salvarOrdemItens"
-  >
-    <template #item="{ element: item }">
-      <tr
-        class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer"
-        @click="itemSelecionado = item; modalDetalhesAberto = true"
-      >
-        <td class="py-3" @click.stop>
-          <span class="drag-handle cursor-grab text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 select-none">⠿</span>
-        </td>
-        <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.sku || '—' }}</td>
-        <td class="py-3 text-slate-900 dark:text-white font-medium">{{ item.nome || '—' }}</td>
+        <table v-else class="w-full text-sm">
+          <thead>
+            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              <th class="text-left pb-3 font-medium w-6"></th>
+              <th class="text-left pb-3 font-medium">SKU</th>
+              <th class="text-left pb-3 font-medium">Nome</th>
+              <th class="text-left pb-3 font-medium">Qtd</th>
+              <th class="text-left pb-3 font-medium">Validade</th>
+              <th class="text-left pb-3 font-medium">Fornecedor</th>
+              <th class="text-left pb-3 font-medium">Localização</th>
+              <th class="text-left pb-3 font-medium">Status</th>
+              <th class="text-left pb-3 font-medium">Ações</th>
+            </tr>
+          </thead>
+          <draggable
+            :list="itensPaginados"
+            tag="tbody"
+            item-key="id_item"
+            handle=".drag-handle"
+            animation="200"
+            class="divide-y divide-slate-200 dark:divide-slate-800"
+            @end="salvarOrdemItens"
+          >
+            <template #item="{ element: item }">
+              <tr
+                class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer"
+                @click="itemSelecionado = item; modalDetalhesAberto = true"
+              >
+                <td class="py-3" @click.stop>
+                  <span class="drag-handle cursor-grab text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 select-none">⠿</span>
+                </td>
+                <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.sku || '—' }}</td>
+                <td class="py-3 text-slate-900 dark:text-white font-medium">{{ item.nome || '—' }}</td>
 
-        <td class="py-3">
-          <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
-            {{ item.quantidade }} {{ item.unidade_medida }}
-          </span>
-        </td>
+                <td class="py-3">
+                  <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
+                    {{ item.quantidade }} {{ item.unidade_medida }}
+                  </span>
+                </td>
 
-        <td class="py-3 text-slate-600 dark:text-slate-300">
-          <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
-          <span v-else class="text-slate-400 dark:text-slate-500">—</span>
-        </td>
+                <td class="py-3 text-slate-600 dark:text-slate-300">
+                  <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
+                  <span v-else class="text-slate-400 dark:text-slate-500">—</span>
+                </td>
 
-        <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.fornecedor || '—' }}</td>
-        <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
+                <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.fornecedor || '—' }}</td>
+                <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
 
-        <td class="py-3">
-          <div class="flex items-center gap-1 flex-wrap">
-            <span v-if="item.data_validade && estaVencido(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
-              Vencido
-            </span>
-            <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
-              Vencendo
-            </span>
-            <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-              OK
-            </span>
+                <td class="py-3">
+                  <div class="flex items-center gap-1 flex-wrap">
+                    <span v-if="item.data_validade && estaVencido(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
+                      Vencido
+                    </span>
+                    <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
+                      Vencendo
+                    </span>
+                    <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+                      OK
+                    </span>
 
-            <span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo" class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
-              Crítico
-            </span>
-            <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-              OK
-            </span>
+                    <span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo" class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
+                      Crítico
+                    </span>
+                    <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+                      OK
+                    </span>
+                  </div>
+                </td>
+
+                <td class="py-3" @click.stop>
+                  <div class="flex items-center gap-3">
+                    <button class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar" @click="itemSelecionado = item; modalEditarAberto = true">
+                      <Pencil :size="16" />
+                    </button>
+                    <button class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque" @click="itemSelecionado = item; modalBaixaAberto = true">
+                      <PackageOpen :size="16" />
+                    </button>
+                    <button class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque" @click="itemSelecionado = item; modalEntradaAberto = true">
+                      <PackagePlus :size="16" />
+                    </button>
+                    <button class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir" @click="itemSelecionado = item; modalExcluirAberto = true">
+                      <Trash2 :size="16" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </draggable>
+        </table>
+
+        <!-- Controles de paginação -->
+        <div v-if="totalPaginas > 1" class="flex items-center justify-between mt-4 px-1">
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            Página {{ paginaAtual }} de {{ totalPaginas }} — {{ loteAtivo.itens.length }} itens
+          </p>
+
+          <div class="flex items-center gap-1">
+            <button
+              class="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              :disabled="paginaAtual === 1"
+              @click="irParaPagina(paginaAtual - 1)"
+            >
+              <ChevronLeft :size="16" />
+            </button>
+
+            <button
+              v-for="pagina in totalPaginas"
+              :key="pagina"
+              :class="pagina === paginaAtual
+                ? 'bg-blue-600 text-white'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'"
+              class="w-9 h-9 rounded-lg text-sm font-medium transition"
+              @click="irParaPagina(pagina)"
+            >
+              {{ pagina }}
+            </button>
+
+            <button
+              class="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              :disabled="paginaAtual === totalPaginas"
+              @click="irParaPagina(paginaAtual + 1)"
+            >
+              <ChevronRight :size="16" />
+            </button>
           </div>
-        </td>
 
-        <td class="py-3" @click.stop>
-          <div class="flex items-center gap-3">
-            <button class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar" @click="itemSelecionado = item; modalEditarAberto = true">
-              <Pencil :size="16" />
-            </button>
-            <button class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque" @click="itemSelecionado = item; modalBaixaAberto = true">
-              <PackageOpen :size="16" />
-            </button>
-            <button class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque" @click="itemSelecionado = item; modalEntradaAberto = true">
-              <PackagePlus :size="16" />
-            </button>
-            <button class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir" @click="itemSelecionado = item; modalExcluirAberto = true">
-              <Trash2 :size="16" />
-            </button>
-          </div>
-        </td>
-      </tr>
-    </template>
-  </draggable>
-</table>
+          <select
+            v-model="itensPorPagina"
+            class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
+            @change="paginaAtual = 1"
+          >
+            <option :value="10">10 por página</option>
+            <option :value="25">25 por página</option>
+            <option :value="50">50 por página</option>
+          </select>
+        </div>
+
       </div>
 
       <!-- Aba selecionada mas ainda não liberada (aguardando PIN) -->
@@ -351,8 +399,8 @@
 
 <script setup>
 import draggable from 'vuedraggable'
-import { ref, computed, onMounted } from 'vue'
-import { Plus, Shield, Lock, ShieldCheck, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus } from 'lucide-vue-next'
+import { ref, computed, onMounted, watch } from 'vue'
+import { Plus, Shield, Lock, ShieldCheck, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalLote            from '@/componentes/ui/ModalLote.vue'
@@ -380,6 +428,31 @@ const tabAtiva            = ref(null)
 
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 
+// ===== Paginação de itens =====
+const itensPorPagina = ref(10)
+const paginaAtual = ref(1)
+
+const totalPaginas = computed(() => {
+  if (!loteAtivo.value?.itens) return 1
+  return Math.max(1, Math.ceil(loteAtivo.value.itens.length / itensPorPagina.value))
+})
+
+const itensPaginados = computed(() => {
+  if (!loteAtivo.value?.itens) return []
+  const inicio = (paginaAtual.value - 1) * itensPorPagina.value
+  return loteAtivo.value.itens.slice(inicio, inicio + itensPorPagina.value)
+})
+
+function irParaPagina(pagina) {
+  if (pagina < 1 || pagina > totalPaginas.value) return
+  paginaAtual.value = pagina
+}
+
+// reseta a página quando troca de lote
+watch(tabAtiva, () => {
+  paginaAtual.value = 1
+})
+
 // ===== Controle de PIN por SESSÃO (até logout) =====
 
 const modalPinAberto    = ref(false)
@@ -398,8 +471,16 @@ function aoClicarTab(idLote) {
   erroPin.value = ''
   modalPinAberto.value = true
 }
+
 async function salvarOrdemItens() {
   if (!loteAtivo.value?.itens) return
+
+  const offset = (paginaAtual.value - 1) * itensPorPagina.value
+
+  // reconstrói a ordem: itens antes da página + itens reordenados da página + itens depois
+  const itensAntes = loteAtivo.value.itens.slice(0, offset)
+  const itensDepois = loteAtivo.value.itens.slice(offset + itensPorPagina.value)
+  loteAtivo.value.itens = [...itensAntes, ...itensPaginados.value, ...itensDepois]
 
   const payload = loteAtivo.value.itens.map((item, index) => ({
     id_item: item.id_item,
@@ -413,6 +494,7 @@ async function salvarOrdemItens() {
     await carregarLotes()
   }
 }
+
 async function verificarPin() {
   erroPin.value = ''
   try {
