@@ -6,6 +6,7 @@ use App\Models\Movimentacao;
 use App\Models\ItemLote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class PerdaController extends Controller
 {
@@ -25,7 +26,12 @@ class PerdaController extends Controller
             'id_item'    => 'required|integer|exists:item_lote,id_item',
             'quantidade' => 'required|integer|min:1',
             'motivo'     => 'required|string|max:255',
+            'pin'        => 'required|string',
         ]);
+
+        if (!Hash::check($request->pin, Auth::user()->pin)) {
+            return response()->json(['message' => 'PIN incorreto.'], 403);
+        }
 
         $item = ItemLote::findOrFail($request->id_item);
 
