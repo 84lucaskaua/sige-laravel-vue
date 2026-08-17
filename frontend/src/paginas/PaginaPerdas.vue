@@ -228,10 +228,10 @@
           <input
             v-model="pinDigitado"
             type="password"
-            maxlength="4"
+            maxlength="6"
             inputmode="numeric"
-            placeholder="• • • •"
-            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.6em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
+            placeholder="• • • • • •"
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
             @input="pinDigitado = pinDigitado.replace(/\D/g, '')"
             @keyup.enter="confirmarPerda"
           />
@@ -242,7 +242,7 @@
           <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm" @click="etapa = 1; pinDigitado = ''; erroPin = ''">Voltar</button>
           <button
             class="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium transition text-sm"
-            :disabled="pinDigitado.length < 4 || salvando"
+            :disabled="pinDigitado.length < 6 || salvando"
             @click="confirmarPerda"
           >
             {{ salvando ? 'Confirmando...' : 'Confirmar PIN' }}
@@ -272,7 +272,6 @@ const erro             = ref('')
 const etapa       = ref(0)
 const pinDigitado = ref('')
 const erroPin     = ref('')
-const tentativas  = ref(0)
 
 const estatisticas = ref({ total: 0, unidades: 0, esteMes: 0 })
 const form = ref({ quantidade: null, motivo: '', motivoOutro: '' })
@@ -293,7 +292,6 @@ function abrirModal(item) {
   etapa.value = 0
   pinDigitado.value = ''
   erroPin.value = ''
-  tentativas.value = 0
   modalAberto.value = true
 }
 
@@ -302,16 +300,10 @@ function abrirConfirmacao() {
   if (form.value.motivo === 'Outro' && !form.value.motivoOutro.trim()) return
   pinDigitado.value = ''
   erroPin.value = ''
-  tentativas.value = 0
   etapa.value = 1
 }
 
 async function confirmarPerda() {
-  if (tentativas.value >= 3) {
-    erroPin.value = 'PIN incorreto. Acesso bloqueado.'
-    return
-  }
-
   salvando.value = true
   erro.value = ''
   try {
@@ -325,10 +317,7 @@ async function confirmarPerda() {
     await Promise.all([carregarItens(), carregarPerdas(), carregarEstatisticas()])
   } catch (e) {
     if (e.response?.status === 403) {
-      tentativas.value++
-      erroPin.value = tentativas.value >= 3
-        ? 'PIN incorreto. Acesso bloqueado.'
-        : 'PIN incorreto. Tente novamente.'
+      erroPin.value = e.response?.data?.message || 'PIN incorreto. Tente novamente.'
       pinDigitado.value = ''
     } else {
       erro.value = e.response?.data?.message || 'Erro ao registrar perda.'
@@ -345,7 +334,6 @@ function fecharModal() {
   etapa.value           = 0
   pinDigitado.value     = ''
   erroPin.value         = ''
-  tentativas.value      = 0
 }
 
 async function carregarItens() {

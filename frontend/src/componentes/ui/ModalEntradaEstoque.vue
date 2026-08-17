@@ -78,19 +78,16 @@
           ref="inputPin"
           v-model="pinDigitado"
           type="password"
-          maxlength="4"
+          maxlength="6"
           inputmode="numeric"
           pattern="[0-9]*"
-          placeholder="• • • •"
+          placeholder="• • • • • •"
           autofocus
-          class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.6em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
+          class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
           @input="pinDigitado = pinDigitado.replace(/\D/g, '')"
           @keyup.enter="verificarPin"
         />
         <p v-if="erroPin" class="text-red-600 dark:text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
-        <p v-if="tentativas > 0 && !erroPin" class="text-yellow-600 dark:text-yellow-400 text-xs mt-2 text-center">
-          Tentativas restantes: {{ 3 - tentativas }}
-        </p>
       </div>
 
       <div class="flex gap-3">
@@ -102,7 +99,7 @@
         </button>
         <button
           class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium text-sm"
-          :disabled="pinDigitado.length < 4 || salvando"
+          :disabled="pinDigitado.length < 6 || salvando"
           @click="verificarPin"
         >
           {{ salvando ? 'Confirmando...' : 'Confirmar PIN' }}
@@ -195,7 +192,6 @@ const emit = defineEmits(['fechar', 'salvo'])
 const etapa       = ref(0)
 const pinDigitado = ref('')
 const erroPin     = ref('')
-const tentativas  = ref(0)
 const salvando    = ref(false)
 const erro        = ref('')
 
@@ -208,16 +204,10 @@ function abrirConfirmacao() {
   erro.value        = ''
   pinDigitado.value = ''
   erroPin.value     = ''
-  tentativas.value  = 0
   etapa.value       = 1
 }
 
 async function verificarPin() {
-  if (tentativas.value >= 3) {
-    erroPin.value = 'PIN incorreto. Acesso bloqueado. Contate o administrador.'
-    return
-  }
-
   erroPin.value  = ''
   salvando.value = true
   try {
@@ -229,10 +219,7 @@ async function verificarPin() {
     emit('salvo')
   } catch (e) {
     if (e.response?.status === 403) {
-      tentativas.value++
-      erroPin.value = tentativas.value >= 3
-        ? 'PIN incorreto. Acesso bloqueado. Contate o administrador.'
-        : 'PIN incorreto. Tente novamente.'
+      erroPin.value = e.response?.data?.message || 'PIN incorreto. Tente novamente.'
       pinDigitado.value = ''
     } else {
       erro.value  = e.response?.data?.message || 'Erro ao registrar entrada.'

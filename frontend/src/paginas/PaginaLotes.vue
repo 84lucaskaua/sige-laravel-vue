@@ -250,7 +250,7 @@
       </div>
     </div>
 
-    <!-- ===== MODAL PIN (acesso à aba) ===== -->
+    <!-- ===== MODAL PIN ===== -->
     <div v-if="modalPinAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
         <div class="flex justify-between items-start mb-5">
@@ -258,7 +258,7 @@
             <Lock class="text-blue-600 dark:text-blue-400" :size="20" />
             <div>
               <h2 class="text-slate-900 dark:text-white font-bold">Verificação de PIN</h2>
-              <p class="text-slate-500 dark:text-slate-400 text-xs">Necessário para acessar os lotes</p>
+              <p class="text-slate-500 dark:text-slate-400 text-xs">Necessário para acessar lotes, entrada/saída e registro de perda</p>
             </div>
           </div>
           <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="cancelarPin">
@@ -266,23 +266,65 @@
           </button>
         </div>
 
-        <div class="mb-6">
-          <label class="block text-sm text-slate-500 dark:text-slate-400 mb-2">PIN de Segurança</label>
+        <!-- Passo 1: sem código enviado ainda -->
+        <div v-if="!codigoEnviado" class="mb-6 text-center">
+          <p class="text-slate-500 dark:text-slate-400 text-sm mb-5">
+            Se você já tem um PIN, digite-o. Se não tem ou esqueceu, solicite um novo por email.
+          </p>
+          <button
+            class="w-full py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium"
+            :disabled="enviandoCodigo"
+            @click="solicitarCodigoPin"
+          >
+            {{ enviandoCodigo ? 'Enviando...' : 'Não tenho PIN / esqueci' }}
+          </button>
+          <p v-if="erroPin" class="text-red-600 dark:text-red-400 text-sm mt-3">{{ erroPin }}</p>
+
+          <div class="mt-5 text-left">
+            <label class="block text-sm text-slate-500 dark:text-slate-400 mb-2">Ou digite seu PIN diretamente</label>
+            <input
+              v-model="pinDigitado"
+              type="text"
+              maxlength="6"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              placeholder="• • • • • •"
+              class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
+              @input="pinDigitado = pinDigitado.replace(/\D/g, '')"
+              @keyup.enter="verificarPin"
+            />
+          </div>
+        </div>
+
+        <!-- Passo 2: código acabou de ser enviado -->
+        <div v-else class="mb-6">
+          <label class="block text-sm text-slate-500 dark:text-slate-400 mb-2">PIN enviado por email</label>
           <input
             v-model="pinDigitado"
-            type="password"
-            maxlength="4"
+            type="text"
+            maxlength="6"
             inputmode="numeric"
             pattern="[0-9]*"
-            placeholder="• • • •"
+            placeholder="• • • • • •"
             autofocus
-            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.6em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
             @input="pinDigitado = pinDigitado.replace(/\D/g, '')"
             @keyup.enter="verificarPin"
           />
           <p v-if="erroPin" class="text-red-600 dark:text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
+
+          <div class="flex items-center justify-center mt-3">
+            <button
+              class="text-blue-600 dark:text-blue-400 text-xs hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+              :disabled="segundosReenvio > 0"
+              @click="solicitarCodigoPin"
+            >
+              {{ segundosReenvio > 0 ? `Aguarde ${segundosReenvio}s` : 'Pedir novo PIN' }}
+            </button>
+          </div>
+
           <p class="text-slate-500 dark:text-slate-500 text-xs mt-3 text-center">
-            Após confirmado, o acesso fica liberado enquanto você estiver ativo. Após {{ TIMEOUT_INATIVIDADE_MINUTOS }} min sem uso, será solicitado novamente.
+            Esse PIN é seu e continua valendo até você pedir um novo. Guarde em lugar seguro.
           </p>
         </div>
 
@@ -292,10 +334,10 @@
           </button>
           <button
             class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium"
-            :disabled="pinDigitado.length < 4"
+            :disabled="pinDigitado.length < 6 || verificando"
             @click="verificarPin"
           >
-            Confirmar PIN
+            {{ verificando ? 'Verificando...' : 'Confirmar PIN' }}
           </button>
         </div>
       </div>
@@ -453,50 +495,59 @@ watch(tabAtiva, () => {
   paginaAtual.value = 1
 })
 
-// ===== Controle de PIN por SESSÃO (até logout) =====
+// ===== Controle de PIN por email, por SESSÃO (até logout) =====
 
 const modalPinAberto    = ref(false)
 const pinDigitado       = ref('')
-const erroPin           = ref('')
-const pinValido         = ref(sessionStorage.getItem('lotes_pin_valido') === 'true')
-const loteAlvoPendente  = ref(null) // lote que o usuário tentou abrir, aguardando PIN
+const erroPin            = ref('')
+const pinValido          = ref(sessionStorage.getItem('lotes_pin_valido') === 'true')
+const loteAlvoPendente   = ref(null)
+const codigoEnviado      = ref(false)
+const enviandoCodigo     = ref(false)
+const verificando        = ref(false)
+const segundosReenvio    = ref(0)
+let intervaloReenvio     = null
 
 function aoClicarTab(idLote) {
-  if (pinValido.value) {
+  // Visualizador não precisa de PIN
+  if (autenticacao.perfil === 'visualizador' || pinValido.value) {
     tabAtiva.value = idLote
     return
   }
   loteAlvoPendente.value = idLote
   pinDigitado.value = ''
   erroPin.value = ''
+  codigoEnviado.value = false
   modalPinAberto.value = true
 }
 
-async function salvarOrdemItens() {
-  if (!loteAtivo.value?.itens) return
-
-  const offset = (paginaAtual.value - 1) * itensPorPagina.value
-
-  // reconstrói a ordem: itens antes da página + itens reordenados da página + itens depois
-  const itensAntes = loteAtivo.value.itens.slice(0, offset)
-  const itensDepois = loteAtivo.value.itens.slice(offset + itensPorPagina.value)
-  loteAtivo.value.itens = [...itensAntes, ...itensPaginados.value, ...itensDepois]
-
-  const payload = loteAtivo.value.itens.map((item, index) => ({
-    id_item: item.id_item,
-    ordem: index,
-  }))
-
+async function solicitarCodigoPin() {
+  enviandoCodigo.value = true
+  erroPin.value = ''
   try {
-    await api.patch(`/lotes/${loteAtivo.value.id_lote}/itens/reordenar`, { itens: payload })
-  } catch {
-    alert('Erro ao salvar a nova ordem dos itens.')
-    await carregarLotes()
+    await api.post('/perfil/solicitar-pin')
+    codigoEnviado.value = true
+    pinDigitado.value = ''
+    iniciarContagemReenvio()
+  } catch (e) {
+    erroPin.value = e.response?.data?.message || 'Erro ao enviar o PIN. Tente novamente.'
+  } finally {
+    enviandoCodigo.value = false
   }
+}
+
+function iniciarContagemReenvio() {
+  segundosReenvio.value = 30
+  clearInterval(intervaloReenvio)
+  intervaloReenvio = setInterval(() => {
+    segundosReenvio.value--
+    if (segundosReenvio.value <= 0) clearInterval(intervaloReenvio)
+  }, 1000)
 }
 
 async function verificarPin() {
   erroPin.value = ''
+  verificando.value = true
   try {
     await api.post('/perfil/verificar-pin', { pin: pinDigitado.value })
 
@@ -507,10 +558,13 @@ async function verificarPin() {
     }
     modalPinAberto.value = false
     pinDigitado.value = ''
+    codigoEnviado.value = false
     loteAlvoPendente.value = null
   } catch (e) {
     erroPin.value = e.response?.data?.message || 'PIN incorreto. Tente novamente.'
     pinDigitado.value = ''
+  } finally {
+    verificando.value = false
   }
 }
 
@@ -518,7 +572,9 @@ function cancelarPin() {
   modalPinAberto.value = false
   pinDigitado.value = ''
   erroPin.value = ''
+  codigoEnviado.value = false
   loteAlvoPendente.value = null
+  clearInterval(intervaloReenvio)
 }
 
 // ===== Ações sem PIN (criar lote / adicionar item) =====

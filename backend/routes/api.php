@@ -17,6 +17,13 @@ use App\Http\Controllers\RelatorioAvancadoController;
 use App\Http\Controllers\ImportacaoExportacaoController;
 use App\Http\Controllers\ChatbotController;
 
+
+use App\Http\Controllers\PinController;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/perfil/solicitar-pin', [PinController::class, 'solicitar']);
+    Route::post('/perfil/verificar-pin', [PinController::class, 'verificar']);
+});
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
@@ -40,8 +47,7 @@ Route::get('/itens/{id}/historico',   [ItemLoteController::class, 'historico']);
     Route::put('/perfil',       [PerfilController::class, 'atualizar']);
     Route::post('/perfil',      [PerfilController::class, 'atualizar']);
     Route::put('/perfil/senha', [PerfilController::class, 'alterarSenha']);
-    Route::put('/perfil/pin',   [PerfilController::class, 'definirPin']);
-    Route::post('/perfil/verificar-pin', [PerfilController::class, 'verificarPin']);
+    
 
     Route::get('/produtos',         [ProdutoController::class, 'index']);
     Route::delete('/produtos/{id}', [ProdutoController::class, 'destroy']);
@@ -82,4 +88,5 @@ Route::post('importacao-exportacao/confirmar', [ImportacaoExportacaoController::
     Route::patch('/usuarios/{id}/status', [UsuarioController::class, 'alternarStatus']);
 
     Route::post('/chatbot', [ChatbotController::class, 'perguntar']);
+    
 });
