@@ -122,15 +122,15 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
         <p class="text-slate-500 dark:text-slate-400 text-sm mb-2">Itens Filtrados</p>
-        <p class="text-3xl font-bold text-slate-900 dark:text-white">{{ itensFiltrados.length }}</p>
+        <p class="text-3xl font-bold text-slate-900 dark:text-white">{{ formatNumero(itensFiltrados.length) }}</p>
       </div>
       <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
         <p class="text-slate-500 dark:text-slate-400 text-sm mb-2">Itens Vencendo</p>
-        <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ totalVencendo }}</p>
+        <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ formatNumero(totalVencendo) }}</p>
       </div>
       <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
         <p class="text-slate-500 dark:text-slate-400 text-sm mb-2">Itens Vencidos</p>
-        <p class="text-3xl font-bold text-red-600 dark:text-red-400">{{ totalVencidos }}</p>
+        <p class="text-3xl font-bold text-red-600 dark:text-red-400">{{ formatNumero(totalVencidos) }}</p>
       </div>
     </div>
 
@@ -138,9 +138,9 @@
     <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
       <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
         <h2 class="font-semibold text-slate-900 dark:text-white">
-          Resultados ({{ itensFiltrados.length }} itens)
+          Resultados ({{ formatNumero(itensFiltrados.length) }} itens)
           <span v-if="selecionados.size" class="text-blue-600 dark:text-blue-400 font-normal text-sm">
-            — {{ selecionados.size }} selecionado(s)
+            — {{ formatNumero(selecionados.size) }} selecionado(s)
           </span>
         </h2>
         <button
@@ -201,7 +201,7 @@
             </td>
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ item.sku }}</td>
             <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ item.nome }}</td>
-            <td class="px-4 py-3 text-slate-900 dark:text-white">{{ item.quantidade }}</td>
+            <td class="px-4 py-3 text-slate-900 dark:text-white">{{ formatNumero(item.quantidade) }}</td>
             <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ item.data_validade ? formatarData(item.data_validade) : '—' }}</td>
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ item.fornecedor || '—' }}</td>
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
@@ -245,6 +245,11 @@ const filtros = ref({
   dataInicial: '',
   dataFinal: '',
 })
+
+// Formata números com separador de milhar no padrão brasileiro (ex: 17050 -> 17.050)
+function formatNumero(valor) {
+  return Number(valor ?? 0).toLocaleString('pt-BR')
+}
 
 onMounted(async () => {
   carregando.value = true
@@ -381,7 +386,7 @@ function linhas() {
     i.lote?.numero_lote ?? '—',
     i.sku ?? '—',
     i.nome,
-    String(i.quantidade),
+    formatNumero(i.quantidade),
     i.data_validade ? formatarData(i.data_validade) : '—',
     i.fornecedor ?? '—',
     i.localizacao ?? '—',

@@ -105,7 +105,7 @@
           </button>
         </div>
       </div>
-      <p class="text-slate-500 dark:text-slate-400 text-sm mt-4">{{ movimentacoesFiltradas.length }} movimentação(ões) encontrada(s)</p>
+      <p class="text-slate-500 dark:text-slate-400 text-sm mt-4">{{ formatNumero(movimentacoesFiltradas.length) }} movimentação(ões) encontrada(s)</p>
     </div>
 
     <!-- Tabela -->
@@ -143,7 +143,7 @@
               </span>
             </td>
             <td class="px-4 py-3 text-right font-semibold" :class="mov.tipo === 'Entrada' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
-              {{ mov.tipo === 'Entrada' ? '+' : '-' }}{{ mov.quantidade }}
+              {{ mov.tipo === 'Entrada' ? '+' : '-' }}{{ formatNumero(mov.quantidade) }}
             </td>
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.motivo }}</td>
             <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ mov.usuario }}</td>
@@ -223,6 +223,11 @@ const filtros = ref({
   dataFinal: ''
 })
 
+// Formata números com separador de milhar no padrão brasileiro (ex: 17050 -> 17.050)
+function formatNumero(valor) {
+  return Number(valor ?? 0).toLocaleString('pt-BR')
+}
+
 onMounted(async () => {
   try {
     const { data } = await api.get('/movimentacoes')
@@ -290,7 +295,7 @@ const CABECALHOS_PDF = ['Data', 'Produto', 'SKU', 'Lote', 'Tipo', 'Qtd', 'Forn./
 function linhasParaExportar() {
   return movimentacoesFiltradas.value.map((mov) => [
     formatarDataHora(mov.data), mov.produto, mov.sku, mov.lote,
-    mov.tipo, String(mov.quantidade), mov.motivo, mov.usuario
+    mov.tipo, formatNumero(mov.quantidade), mov.motivo, mov.usuario
   ])
 }
 
