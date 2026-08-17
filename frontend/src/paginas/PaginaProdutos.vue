@@ -72,7 +72,7 @@
             <td class="px-4 py-3 text-slate-600 dark:text-slate-300 font-mono text-xs">{{ item.sku ?? '—' }}</td>
             <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ item.nome }}</td>
             <td class="px-4 py-3" :class="estoqueBaixo(item) ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-slate-900 dark:text-white'">
-              {{ item.quantidade }} {{ item.unidade_medida }}
+              {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
             </td>
             <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ formatarData(item.data_validade) }}</td>
             <td class="px-4 py-3">
@@ -103,15 +103,15 @@
     <div class="grid grid-cols-3 gap-4 mt-6">
       <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl p-4">
         <p class="text-slate-500 dark:text-slate-400 text-xs mb-1">Total de Produtos Únicos</p>
-        <p class="text-slate-900 dark:text-white text-2xl font-bold">{{ produtos.length }}</p>
+        <p class="text-slate-900 dark:text-white text-2xl font-bold">{{ formatNumero(produtos.length) }}</p>
       </div>
       <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl p-4">
         <p class="text-slate-500 dark:text-slate-400 text-xs mb-1">Produtos Vencendo</p>
-        <p class="text-orange-600 dark:text-orange-400 text-2xl font-bold">{{ totalVencendo }}</p>
+        <p class="text-orange-600 dark:text-orange-400 text-2xl font-bold">{{ formatNumero(totalVencendo) }}</p>
       </div>
       <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl p-4">
         <p class="text-slate-500 dark:text-slate-400 text-xs mb-1">Produtos Vencidos</p>
-        <p class="text-red-600 dark:text-red-400 text-2xl font-bold">{{ totalVencidos }}</p>
+        <p class="text-red-600 dark:text-red-400 text-2xl font-bold">{{ formatNumero(totalVencidos) }}</p>
       </div>
     </div>
 
@@ -131,6 +131,9 @@ const filtroCategoria    = ref('')
 let temporizadorBusca = null
 
 const estoqueBaixo = (item) => item.quantidade <= item.estoque_minimo
+
+// Formata números com separador de milhar no padrão brasileiro (ex: 17050 -> 17.050)
+const formatNumero = (valor) => Number(valor ?? 0).toLocaleString('pt-BR')
 
 const diasParaVencer = (data) => {
   if (!data) return null

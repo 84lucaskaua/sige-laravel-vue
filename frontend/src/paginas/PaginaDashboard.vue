@@ -19,7 +19,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-slate-500 dark:text-slate-400 text-sm">Total de Lotes</p>
-              <p class="text-4xl font-bold text-slate-900 dark:text-white mt-2">{{ resumo.totalLotes }}</p>
+              <p class="text-4xl font-bold text-slate-900 dark:text-white mt-2">{{ formatNumero(resumo.totalLotes) }}</p>
             </div>
             <div class="w-12 h-12 bg-blue-100 dark:bg-blue-600/20 rounded-lg flex items-center justify-center">
               <PackagePlus class="text-blue-600 dark:text-blue-500" :size="24" />
@@ -32,7 +32,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-slate-500 dark:text-slate-400 text-sm">Total de Itens</p>
-              <p class="text-4xl font-bold text-slate-900 dark:text-white mt-2">{{ resumo.totalProdutos }}</p>
+              <p class="text-4xl font-bold text-slate-900 dark:text-white mt-2">{{ formatNumero(resumo.totalProdutos) }}</p>
             </div>
             <div class="w-12 h-12 bg-cyan-100 dark:bg-cyan-600/20 rounded-lg flex items-center justify-center">
               <Package class="text-cyan-600 dark:text-cyan-500" :size="24" />
@@ -45,7 +45,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-slate-500 dark:text-slate-400 text-sm">Vencendo em 30 dias</p>
-              <p class="text-4xl font-bold text-slate-900 dark:text-white mt-2">{{ resumo.vencendoEm30Dias }}</p>
+              <p class="text-4xl font-bold text-slate-900 dark:text-white mt-2">{{ formatNumero(resumo.vencendoEm30Dias) }}</p>
             </div>
             <div class="w-12 h-12 bg-amber-100 dark:bg-amber-600/20 rounded-lg flex items-center justify-center">
               <AlertTriangle class="text-amber-600 dark:text-amber-500" :size="24" />
@@ -58,7 +58,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-slate-500 dark:text-slate-400 text-sm">Estoque Baixo</p>
-              <p class="text-4xl font-bold text-slate-900 dark:text-white mt-2">{{ resumo.estoqueCritico }}</p>
+              <p class="text-4xl font-bold text-slate-900 dark:text-white mt-2">{{ formatNumero(resumo.estoqueCritico) }}</p>
             </div>
             <div class="w-12 h-12 bg-red-100 dark:bg-red-600/20 rounded-lg flex items-center justify-center">
               <TrendingDown class="text-red-600 dark:text-red-500" :size="24" />
@@ -79,7 +79,7 @@
           </h2>
           <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
             <div v-if="resumo.vencendoEm30Dias > 0" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-lg p-4">
-              <p class="text-red-600 dark:text-red-400 font-medium">{{ resumo.vencendoEm30Dias }} produto(s) vencendo em 30 dias</p>
+              <p class="text-red-600 dark:text-red-400 font-medium">{{ formatNumero(resumo.vencendoEm30Dias) }} produto(s) vencendo em 30 dias</p>
               <p class="text-red-500 dark:text-red-300 text-sm mt-1 mb-3">Verificar validade e priorizar saída (FEFO)</p>
 
               <div class="space-y-2">
@@ -103,7 +103,7 @@
             </div>
 
             <div v-if="resumo.estoqueCritico > 0" class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-900 rounded-lg p-4">
-              <p class="text-orange-600 dark:text-orange-400 font-medium">{{ resumo.estoqueCritico }} produto(s) com estoque baixo</p>
+              <p class="text-orange-600 dark:text-orange-400 font-medium">{{ formatNumero(resumo.estoqueCritico) }} produto(s) com estoque baixo</p>
               <p class="text-orange-500 dark:text-orange-300 text-sm mt-1 mb-3">Solicitar reposição de estoque</p>
 
               <div class="space-y-2">
@@ -114,7 +114,7 @@
                 >
                   <span class="text-sm text-orange-700 dark:text-orange-100 font-medium">{{ produto.nome }}</span>
                   <span class="text-xs text-orange-500 dark:text-orange-300">
-                    {{ produto.quantidade }} / {{ produto.estoque_minimo }} {{ produto.unidade_medida || '' }}
+                    {{ formatNumero(produto.quantidade) }} / {{ formatNumero(produto.estoque_minimo) }} {{ produto.unidade_medida || '' }}
                   </span>
                 </div>
               </div>
@@ -152,7 +152,7 @@
             </div>
             <div>
               <h3 class="text-lg font-bold text-slate-900 dark:text-white">Distribuição por Categoria</h3>
-              <p class="text-sm text-slate-500 dark:text-slate-400">{{ resumo.totalCategorias || 0 }} categorias</p>
+              <p class="text-sm text-slate-500 dark:text-slate-400">{{ formatNumero(resumo.totalCategorias || 0) }} categorias</p>
             </div>
           </div>
           <div v-if="semDadosPizza" class="flex items-center justify-center h-64 text-slate-400 dark:text-slate-500">
@@ -186,7 +186,7 @@
                 </div>
               </div>
               <span :class="mov.tipo === 'entrada' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'" class="font-bold text-sm">
-                {{ mov.tipo === 'entrada' ? '+' : '-' }}{{ mov.quantidade }}
+                {{ mov.tipo === 'entrada' ? '+' : '-' }}{{ formatNumero(mov.quantidade) }}
               </span>
             </div>
           </div>
@@ -232,10 +232,10 @@
               <td class="py-3 text-slate-500 dark:text-slate-400">{{ produto.categoria?.nome || '—' }}</td>
               <td class="py-3 text-right">
                 <span :class="produto.estoque_atual <= produto.estoque_minimo ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'" class="font-bold">
-                  {{ produto.estoque_atual }}
+                  {{ formatNumero(produto.estoque_atual) }}
                 </span>
               </td>
-              <td class="py-3 text-right text-slate-500 dark:text-slate-400">{{ produto.estoque_minimo }}</td>
+              <td class="py-3 text-right text-slate-500 dark:text-slate-400">{{ formatNumero(produto.estoque_minimo) }}</td>
             </tr>
           </tbody>
         </table>
@@ -287,6 +287,11 @@ let ultimosDadosPizza  = []
 // mostrar a tela de "Carregando dados..." de novo — só troca o que mudou.
 const INTERVALO_POLLING_MS = 30000
 let idIntervaloPolling = null
+
+// Formata números com separador de milhar no padrão brasileiro (ex: 17050 -> 17.050)
+function formatNumero(valor) {
+  return Number(valor ?? 0).toLocaleString('pt-BR')
+}
 
 function formatarData(data) {
   if (!data) return '—'

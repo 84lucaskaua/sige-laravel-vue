@@ -75,7 +75,7 @@
               </span>
               <span class="flex items-center gap-1">
                 <Package :size="14" />
-                {{ loteAtivo.itens?.length || 0 }} itens
+                {{ formatNumero(loteAtivo.itens?.length || 0) }} itens
               </span>
             </div>
           </div>
@@ -140,7 +140,7 @@
 
                 <td class="py-3">
                   <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
-                    {{ item.quantidade }} {{ item.unidade_medida }}
+                    {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
                   </span>
                 </td>
 
@@ -197,7 +197,7 @@
         <!-- Controles de paginação -->
         <div v-if="totalPaginas > 1" class="flex items-center justify-between mt-4 px-1">
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Página {{ paginaAtual }} de {{ totalPaginas }} — {{ loteAtivo.itens.length }} itens
+            Página {{ paginaAtual }} de {{ totalPaginas }} — {{ formatNumero(loteAtivo.itens.length) }} itens
           </p>
 
           <div class="flex items-center gap-1">
@@ -425,6 +425,11 @@ const modalExcluirAberto  = ref(false)
 const loteSelecionado     = ref(null)
 const itemSelecionado     = ref(null)
 const tabAtiva            = ref(null)
+
+// Formata números com separador de milhar no padrão brasileiro (ex: 17050 -> 17.050)
+function formatNumero(valor) {
+  return Number(valor ?? 0).toLocaleString('pt-BR')
+}
 
 const loteAtivo = computed(() => lotes.value.find(l => l.id_lote === tabAtiva.value) || null)
 

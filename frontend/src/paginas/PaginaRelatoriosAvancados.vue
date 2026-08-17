@@ -66,7 +66,7 @@
             </div>
             <div>
               <p class="text-slate-500 dark:text-slate-400 text-xs">Total de Perdas</p>
-              <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dadosPerdas.resumo?.total ?? 0 }}</p>
+              <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ formatNumero(dadosPerdas.resumo?.total) }}</p>
             </div>
           </div>
           <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 flex items-center gap-4">
@@ -75,7 +75,7 @@
             </div>
             <div>
               <p class="text-slate-500 dark:text-slate-400 text-xs">Unidades Perdidas</p>
-              <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dadosPerdas.resumo?.unidades ?? 0 }}</p>
+              <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ formatNumero(dadosPerdas.resumo?.unidades) }}</p>
             </div>
           </div>
           <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 flex items-center gap-4">
@@ -84,7 +84,7 @@
             </div>
             <div>
               <p class="text-slate-500 dark:text-slate-400 text-xs">Tipos de Perda</p>
-              <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dadosPerdas.resumo?.tipos ?? 0 }}</p>
+              <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ formatNumero(dadosPerdas.resumo?.tipos) }}</p>
             </div>
           </div>
         </div>
@@ -104,8 +104,8 @@
                   :style="{ width: totalUnidadesPerdas > 0 ? (m.total / totalUnidadesPerdas * 100) + '%' : '0%' }"
                 ></div>
               </div>
-              <span class="text-slate-500 dark:text-slate-400 text-sm w-24 text-right">{{ m.total }} unid.</span>
-              <span class="text-slate-400 dark:text-slate-500 text-xs w-16 text-right">{{ m.ocorrencias }}x</span>
+              <span class="text-slate-500 dark:text-slate-400 text-sm w-24 text-right">{{ formatNumero(m.total) }} unid.</span>
+              <span class="text-slate-400 dark:text-slate-500 text-xs w-16 text-right">{{ formatNumero(m.ocorrencias) }}x</span>
             </div>
           </div>
         </div>
@@ -133,7 +133,7 @@
                 <td class="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ formatarDataHora(p.data) }}</td>
                 <td class="px-4 py-3 text-slate-900 dark:text-white">{{ p.produto }}</td>
                 <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ p.motivo }}</td>
-                <td class="px-4 py-3 text-right text-red-600 dark:text-red-400 font-semibold">-{{ p.quantidade }}</td>
+                <td class="px-4 py-3 text-right text-red-600 dark:text-red-400 font-semibold">-{{ formatNumero(p.quantidade) }}</td>
                 <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ p.usuario }}</td>
               </tr>
             </tbody>
@@ -150,19 +150,19 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
             <p class="text-slate-500 dark:text-slate-400 text-xs mb-1">Total Produtos</p>
-            <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dadosAbc.resumo?.total ?? 0 }}</p>
+            <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ formatNumero(dadosAbc.resumo?.total) }}</p>
           </div>
           <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-green-300 dark:border-green-800 p-5">
             <p class="text-green-600 dark:text-green-400 text-xs mb-1">Classe A (80%)</p>
-            <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dadosAbc.resumo?.A ?? 0 }}</p>
+            <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ formatNumero(dadosAbc.resumo?.A) }}</p>
           </div>
           <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-orange-300 dark:border-orange-800 p-5">
             <p class="text-orange-600 dark:text-orange-400 text-xs mb-1">Classe B (15%)</p>
-            <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dadosAbc.resumo?.B ?? 0 }}</p>
+            <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ formatNumero(dadosAbc.resumo?.B) }}</p>
           </div>
           <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-red-300 dark:border-red-800 p-5">
             <p class="text-red-600 dark:text-red-400 text-xs mb-1">Classe C (5%)</p>
-            <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ dadosAbc.resumo?.C ?? 0 }}</p>
+            <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ formatNumero(dadosAbc.resumo?.C) }}</p>
           </div>
         </div>
 
@@ -181,15 +181,15 @@
             <div class="space-y-2">
               <div class="flex items-center gap-2 text-sm">
                 <span class="w-3 h-3 rounded-sm bg-green-500 inline-block"></span>
-                <span class="text-slate-600 dark:text-slate-300">Classe A: {{ dadosAbc.resumo?.A ?? 0 }} ({{ pct('A') }}%)</span>
+                <span class="text-slate-600 dark:text-slate-300">Classe A: {{ formatNumero(dadosAbc.resumo?.A) }} ({{ pct('A') }}%)</span>
               </div>
               <div class="flex items-center gap-2 text-sm">
                 <span class="w-3 h-3 rounded-sm bg-orange-400 inline-block"></span>
-                <span class="text-slate-600 dark:text-slate-300">Classe B: {{ dadosAbc.resumo?.B ?? 0 }} ({{ pct('B') }}%)</span>
+                <span class="text-slate-600 dark:text-slate-300">Classe B: {{ formatNumero(dadosAbc.resumo?.B) }} ({{ pct('B') }}%)</span>
               </div>
               <div class="flex items-center gap-2 text-sm">
                 <span class="w-3 h-3 rounded-sm bg-red-500 inline-block"></span>
-                <span class="text-slate-600 dark:text-slate-300">Classe C: {{ dadosAbc.resumo?.C ?? 0 }} ({{ pct('C') }}%)</span>
+                <span class="text-slate-600 dark:text-slate-300">Classe C: {{ formatNumero(dadosAbc.resumo?.C) }} ({{ pct('C') }}%)</span>
               </div>
             </div>
           </div>
@@ -226,7 +226,7 @@
                 </td>
                 <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ item.nome }}</td>
                 <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ item.sku }}</td>
-                <td class="px-4 py-3 text-right text-slate-900 dark:text-white">{{ item.movimento }}</td>
+                <td class="px-4 py-3 text-right text-slate-900 dark:text-white">{{ formatNumero(item.movimento) }}</td>
                 <td class="px-4 py-3 text-right text-slate-600 dark:text-slate-300">{{ item.percentual }}%</td>
                 <td class="px-4 py-3 text-right text-blue-600 dark:text-blue-400">{{ item.acumulado }}%</td>
               </tr>
@@ -277,6 +277,11 @@ const dadosAbc    = ref({ itens: [], resumo: {} })
 const totalUnidadesPerdas = computed(() =>
   dadosPerdas.value.porMotivo?.reduce((s, m) => s + m.total, 0) ?? 0
 )
+
+// Formata números com separador de milhar no padrão brasileiro (ex: 17050 -> 17.050)
+function formatNumero(valor) {
+  return Number(valor ?? 0).toLocaleString('pt-BR')
+}
 
 // Cores do SVG do gráfico de pizza precisam trocar manualmente (SVG não lê classes dark:)
 const temaClaroSvg = computed(() => ({
@@ -371,7 +376,7 @@ function exportar() {
     const ws = XLSX.utils.aoa_to_sheet([
       ['Data', 'Produto', 'Motivo', 'Quantidade', 'Responsável'],
       ...(dadosPerdas.value.perdas ?? []).map(p => [
-        formatarDataHora(p.data), p.produto, p.motivo, p.quantidade, p.usuario
+        formatarDataHora(p.data), p.produto, p.motivo, formatNumero(p.quantidade), p.usuario
       ])
     ])
     const wb = XLSX.utils.book_new()
@@ -381,7 +386,7 @@ function exportar() {
     const ws = XLSX.utils.aoa_to_sheet([
       ['Classe', 'Produto', 'SKU', 'Movimento Total', '% do Total', '% Acumulado'],
       ...(dadosAbc.value.itens ?? []).map(i => [
-        i.classe, i.nome, i.sku, i.movimento, i.percentual + '%', i.acumulado + '%'
+        i.classe, i.nome, i.sku, formatNumero(i.movimento), i.percentual + '%', i.acumulado + '%'
       ])
     ])
     const wb = XLSX.utils.book_new()
