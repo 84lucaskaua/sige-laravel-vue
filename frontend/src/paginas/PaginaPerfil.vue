@@ -40,9 +40,9 @@
         <div>
           <label class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 font-medium mb-1">
             <Mail :size="14" /> Email
-          </label>
-          <input :value="usuario && usuario.email" disabled class="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-400 dark:text-slate-500 text-sm cursor-not-allowed" />
-          <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">O email não pode ser alterado</p>
+        </label>
+          <input v-model="form.email" type="email"
+  class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500" />
         </div>
 
         <div class="border-t border-slate-200 dark:border-slate-800 pt-4">
@@ -95,7 +95,8 @@ const removerFoto  = ref(false)
 const imagemPreview = ref((usuario && usuario.foto_url) ? usuario.foto_url : '')
 
 const form = reactive({
-  nome: (usuario && usuario.name) ? usuario.name : '',
+  nome:  (usuario && usuario.name)  ? usuario.name  : '',
+  email: (usuario && usuario.email) ? usuario.email : '',
 })
 
 const senhas = reactive({
@@ -152,7 +153,8 @@ async function salvar() {
   salvando.value = true
   try {
     const formData = new FormData()
-    formData.append('nome', form.nome)
+formData.append('nome', form.nome)
+formData.append('email', form.email)
     if (arquivoFoto.value) {
       formData.append('foto', arquivoFoto.value)
     } else if (removerFoto.value) {
@@ -163,8 +165,9 @@ async function salvar() {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
 
-    autenticacao.usuario.name     = resposta.data.usuario.name
-    autenticacao.usuario.foto_url = resposta.data.usuario.foto_url
+   autenticacao.usuario.name     = resposta.data.usuario.name
+autenticacao.usuario.email    = resposta.data.usuario.email
+autenticacao.usuario.foto_url = resposta.data.usuario.foto_url
     localStorage.setItem('usuario', JSON.stringify(autenticacao.usuario))
     imagemPreview.value = resposta.data.usuario.foto_url || ''
     arquivoFoto.value   = null

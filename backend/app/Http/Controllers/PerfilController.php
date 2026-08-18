@@ -2,81 +2,101 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class PerfilController extends Controller
 {
-    public function atualizar(Request $request)
+    /**
+     * Atualizar perfil do usuário (nome, email e foto)
+     */
+    public function atualizarPerfil(Request $request)
     {
-        /** @var User $usuario */
-        $usuario = Auth::user();
+        $usuario = $request->user();
 
-        $request->validate([
-            'nome'         => 'required|string|max:255',
-            'foto'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+        // MUDANÇA PRINCIPAL: Adicionar validação de email com regra unique
+        $validated = $request->validate([
+            'nome'  => 'required|string|max:255',
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($usuario->id),
+                // ↑ Isso permite que o email seja único, mas ignora o próprio usuário
+            ],
+            'foto'         => 'nullable|image|mimes:jpeg,png,gif,webp|max:2048',
             'remover_foto' => 'nullable|boolean',
         ]);
 
-        $usuario->name = $request->nome;
+        // Atualizar nome
+        $usuario->name = $validated['nome'];
 
+        // MUDANÇA: Atualizar email
+        $usuario->email = $validated['email'];
+
+        // Processar foto (mesmo de antes)
         if ($request->hasFile('foto')) {
-            // Remove foto antiga se existir
             if ($usuario->foto_url) {
-                Storage::disk('public')->delete($usuario->foto_url);
+                $caminhoAntigo = public_path('storage/' . $usuario->foto_url);
+                if (file_exists($caminhoAntigo)) {
+                    unlink($caminhoAntigo);
+                }
             }
 
-            $caminho = $request->file('foto')->store('fotos', 'public');
-            $usuario->foto_url = $caminho;
-        } elseif ($request->boolean('remover_foto')) {
-            // Remove a foto sem enviar uma nova
+            $arquivo = $request->file('foto');
+            $nome = time() . '_' . uniqid() . '.' . $arquivo->getClientOriginalExtension();
+            $arquivo->storeAs('usuarios/fotos', $nome, 'public');
+            $usuario->foto_url = 'usuarios/fotos/' . $nome;
+        } elseif ($request->input('remover_foto')) {
             if ($usuario->foto_url) {
-                Storage::disk('public')->delete($usuario->foto_url);
+                $caminhoAntigo = public_path('storage/' . $usuario->foto_url);
+                if (file_exists($caminhoAntigo)) {
+                    unlink($caminhoAntigo);
+                }
             }
             $usuario->foto_url = null;
         }
 
+        // Salvar tudo de uma vez
         $usuario->save();
 
+        // MUDANÇA: Retornar email atualizado também
         return response()->json([
-            'mensagem' => 'Perfil atualizado com sucesso!',
-            'usuario'  => [
-                'id'       => $usuario->id,
+            'message' => 'Perfil atualizado com sucesso!',
+            'usuario' => [
                 'name'     => $usuario->name,
                 'email'    => $usuario->email,
-                'perfil'   => $usuario->perfil,
-                'foto_url' => $usuario->foto_url
-                    ? asset('storage/' . $usuario->foto_url)
-                    : null,
+                'foto_url' => $usuario->foto_url,
             ],
         ]);
     }
 
-    public function alterarSenha(Request $request)
+    /**
+     * Atualizar senha do usuário
+     */
+    public function atualizarSenha(Request $request)
     {
-        /** @var User $usuario */
-        $usuario = Auth::user();
+        $usuario = $request->user();
 
-        $request->validate([
+        $validated = $request->validate([
             'senha_atual'             => 'required|string',
             'nova_senha'              => 'required|string|min:6',
-            'nova_senha_confirmation' => 'required|same:nova_senha',
+            'nova_senha_confirmation' => 'required|string|same:nova_senha',
         ]);
 
-        if (!Hash::check($request->senha_atual, $usuario->password)) {
+        // Verificar se a senha atual está correta
+        if (!password_verify($validated['senha_atual'], $usuario->password)) {
             return response()->json([
                 'message' => 'Senha atual incorreta.',
             ], 422);
         }
 
-        $usuario->password = Hash::make($request->nova_senha);
+        // Atualizar para a nova senha
+        $usuario->password = bcrypt($validated['nova_senha']);
         $usuario->save();
 
         return response()->json([
-            'mensagem' => 'Senha alterada com sucesso!',
+            'message' => 'Senha atualizada com sucesso!',
         ]);
     }
 }
