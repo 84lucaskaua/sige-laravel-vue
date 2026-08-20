@@ -61,14 +61,14 @@ class PerfilController extends Controller
         $usuario->save();
 
         // MUDANÇA: Retornar email atualizado também
-        return response()->json([
-            'message' => 'Perfil atualizado com sucesso!',
-            'usuario' => [
-                'name'     => $usuario->name,
-                'email'    => $usuario->email,
-                'foto_url' => $usuario->foto_url,
-            ],
-        ]);
+       return response()->json([
+    'message' => 'Perfil atualizado com sucesso!',
+    'usuario' => [
+        'name'     => $usuario->name,
+        'email'    => $usuario->email,
+        'foto_url' => $usuario->foto_url ? asset('storage/' . $usuario->foto_url) : null,
+    ],
+]);
     }
 
     /**

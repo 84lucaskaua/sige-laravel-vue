@@ -449,6 +449,7 @@ function irPara(nomeRota, caminho) {
 }
 
 function handleKeyboard(e) {
+   if (!e.key) return   // ← proteção contra e.key undefined
   const alt   = e.altKey
   const shift = e.shiftKey
   const key   = e.key.toLowerCase()
