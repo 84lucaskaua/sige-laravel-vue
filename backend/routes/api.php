@@ -44,9 +44,9 @@ Route::patch('/itens/{id}/entrada',   [ItemLoteController::class, 'entrada']);
 Route::patch('/lotes/{idLote}/itens/reordenar', [ItemLoteController::class, 'reordenar']);
 Route::delete('/itens/{id}',          [ItemLoteController::class, 'destroy']);
 Route::get('/itens/{id}/historico',   [ItemLoteController::class, 'historico']);
-    Route::put('/perfil',       [PerfilController::class, 'atualizar']);
-    Route::post('/perfil',      [PerfilController::class, 'atualizar']);
-    Route::put('/perfil/senha', [PerfilController::class, 'alterarSenha']);
+  Route::put('/perfil',       [PerfilController::class, 'atualizarPerfil']);
+Route::post('/perfil',      [PerfilController::class, 'atualizarPerfil']);
+Route::put('/perfil/senha', [PerfilController::class, 'atualizarSenha']);
     
 
     Route::get('/produtos',         [ProdutoController::class, 'index']);
