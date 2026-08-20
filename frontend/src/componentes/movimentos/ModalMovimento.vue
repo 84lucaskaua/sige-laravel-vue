@@ -12,11 +12,11 @@
         <h2 class="text-lg font-bold" :class="tipo === 'entrada' ? 'text-green-600' : 'text-red-500'">
           {{ tipo === 'entrada' ? '⬆️ Registrar Entrada' : '⬇️ Registrar Saída' }}
         </h2>
-        <button
-          @click="$emit('fechar')"
-          class="text-xl transition"
-          :class="temaClaro ? 'text-gray-400 hover:text-gray-600' : 'text-slate-500 hover:text-white'"
-        >✕</button>
+       <button
+  class="text-xl transition"
+  :class="temaClaro ? 'text-gray-400 hover:text-gray-600' : 'text-slate-500 hover:text-white'"
+  @click="$emit('fechar')"
+>✕</button>
       </div>
 
       <form @submit.prevent="salvar">
@@ -64,12 +64,12 @@
         </div>
 
         <div class="flex justify-end gap-3">
-          <button
-            type="button"
-            @click="$emit('fechar')"
-            class="px-4 py-2 border rounded-lg transition text-sm"
-            :class="temaClaro ? 'border-gray-300 text-gray-600 hover:bg-gray-50' : 'border-slate-600 text-slate-300 hover:bg-slate-800'"
-          >Cancelar</button>
+         <button
+  type="button"
+  class="px-4 py-2 border rounded-lg transition text-sm"
+  :class="temaClaro ? 'border-gray-300 text-gray-600 hover:bg-gray-50' : 'border-slate-600 text-slate-300 hover:bg-slate-800'"
+  @click="$emit('fechar')"
+>Cancelar</button>
           <button
             type="submit"
             :disabled="salvando"
@@ -119,7 +119,9 @@ async function carregarItensLote() {
   try {
     const resposta = await api.get('/lotes/itens')
     itensLote.value = resposta.data
-  } catch {}
+  } catch (erroHttp) {
+    console.error('Erro ao carregar itens de lote:', erroHttp)
+  }
 }
 
 async function salvar() {
