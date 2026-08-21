@@ -10,13 +10,36 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $hoje     = Carbon::today();
-        $em30dias = Carbon::today()->addDays(30);
+        $produtosEstoqueCritico = $this->buscarProdutosEstoqueCritico();
+        $produtosVencendo       = $this->buscarProdutosVencendo();
+        $totalCategorias        = $this->contarCategorias();
+        $movimentosRecentes     = $this->buscarMovimentosRecentes();
+        $evolucao               = $this->calcularEvolucaoEstoque();
+        $distribuicao           = $this->calcularDistribuicaoCategorias();
+        $topProdutos            = $this->buscarTopProdutos();
 
-        $totalLotes = Lote::count();
-        $totalItens = ItemLote::count();
+        $resumo = [
+            'totalProdutos'    => ItemLote::count(),
+            'totalLotes'       => Lote::count(),
+            'estoqueCritico'   => $produtosEstoqueCritico->count(),
+            'vencendoEm30Dias' => $produtosVencendo->count(),
+            'totalCategorias'  => $totalCategorias,
+        ];
 
-        $produtosEstoqueCritico = ItemLote::whereColumn('quantidade', '<=', 'estoque_minimo')
+        return response()->json([
+            'resumo'                 => $resumo,
+            'produtosEstoqueCritico' => $produtosEstoqueCritico,
+            'produtosVencendo'       => $produtosVencendo,
+            'movimentosRecentes'     => $movimentosRecentes,
+            'evolucaoEstoque'        => $evolucao,
+            'distribuicaoCategorias' => $distribuicao,
+            'topProdutos'            => $topProdutos,
+        ]);
+    }
+
+    private function buscarProdutosEstoqueCritico()
+    {
+        return ItemLote::whereColumn('quantidade', '<=', 'estoque_minimo')
             ->where('estoque_minimo', '>', 0)
             ->get()
             ->map(fn($i) => [
@@ -26,10 +49,14 @@ class DashboardController extends Controller
                 'estoque_minimo' => $i->estoque_minimo,
                 'unidade_medida' => $i->unidade_medida,
             ]);
+    }
 
-        $estoqueCritico = $produtosEstoqueCritico->count();
+    private function buscarProdutosVencendo()
+    {
+        $hoje     = Carbon::today();
+        $em30dias = Carbon::today()->addDays(30);
 
-        $produtosVencendo = ItemLote::with('lote')
+        return ItemLote::with('lote')
             ->whereNotNull('data_validade')
             ->whereBetween('data_validade', [$hoje, $em30dias])
             ->orderBy('data_validade')
@@ -43,15 +70,19 @@ class DashboardController extends Controller
                 'quantidade'     => $i->quantidade,
                 'unidade_medida' => $i->unidade_medida,
             ]);
+    }
 
-        $vencendoEm30Dias = $produtosVencendo->count();
-
-        $totalCategorias = ItemLote::whereNotNull('categoria')
+    private function contarCategorias(): int
+    {
+        return ItemLote::whereNotNull('categoria')
             ->where('categoria', '!=', '')
             ->distinct()
             ->count('categoria');
+    }
 
-        $movimentosRecentes = Movimentacao::with(['item', 'usuario'])
+    private function buscarMovimentosRecentes()
+    {
+        return Movimentacao::with(['item', 'usuario'])
             ->orderByDesc('data_movimentacao')
             ->limit(10)
             ->get()
@@ -65,8 +96,12 @@ class DashboardController extends Controller
                     'produto' => ['nome' => $m->item->nome]
                 ] : null,
             ]);
+    }
 
+    private function calcularEvolucaoEstoque()
+    {
         $evolucao = collect();
+
         for ($i = 29; $i >= 0; $i--) {
             $dia = Carbon::today()->subDays($i);
 
@@ -94,6 +129,11 @@ class DashboardController extends Controller
             ]);
         }
 
+        return $evolucao;
+    }
+
+    private function calcularDistribuicaoCategorias()
+    {
         $distribuicao = ItemLote::whereNotNull('categoria')
             ->where('categoria', '!=', '')
             ->selectRaw('categoria, COUNT(*) as total')
@@ -102,15 +142,18 @@ class DashboardController extends Controller
 
         $totalParaPercentual = $distribuicao->sum('total');
 
-        $distribuicao = $distribuicao->map(fn($c) => [
+        return $distribuicao->map(fn($c) => [
             'categoria'  => $c->categoria,
             'quantidade' => $c->total,
             'percentual' => $totalParaPercentual > 0
                 ? round(($c->total / $totalParaPercentual) * 100, 1)
                 : 0,
         ])->sortByDesc('percentual')->values();
+    }
 
-        $topProdutos = ItemLote::orderByDesc('quantidade')
+    private function buscarTopProdutos()
+    {
+        return ItemLote::orderByDesc('quantidade')
             ->limit(10)
             ->get()
             ->map(fn($i) => [
@@ -120,21 +163,5 @@ class DashboardController extends Controller
                 'estoque_minimo' => $i->estoque_minimo,
                 'categoria'      => $i->categoria ? ['nome' => $i->categoria] : null,
             ]);
-
-        return response()->json([
-            'resumo' => [
-                'totalProdutos'    => $totalItens,
-                'totalLotes'       => $totalLotes,
-                'estoqueCritico'   => $estoqueCritico,
-                'vencendoEm30Dias' => $vencendoEm30Dias,
-                'totalCategorias'  => $totalCategorias,
-            ],
-            'produtosEstoqueCritico' => $produtosEstoqueCritico,
-            'produtosVencendo'       => $produtosVencendo,
-            'movimentosRecentes'     => $movimentosRecentes,
-            'evolucaoEstoque'        => $evolucao,
-            'distribuicaoCategorias' => $distribuicao,
-            'topProdutos'            => $topProdutos,
-        ]);
     }
 }
