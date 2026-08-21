@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 
 class ItemLoteController extends Controller
 {
+use \App\Traits\ValidaPin;
     protected AbcPriorityService $abcService;
 
     public function __construct(AbcPriorityService $abcService)
@@ -144,15 +145,7 @@ class ItemLoteController extends Controller
             'quantidade' => $item->quantidade - $request->quantidade,
         ]);
 
-        Movimentacao::create([
-            'tipo'              => 'SAIDA',
-            'quantidade'        => $request->quantidade,
-            'data_movimentacao' => now(),
-            'observacao'        => $request->motivo,
-            'id_lote'           => $item->id_lote,
-            'id_item'           => $item->id_item,
-            'id_usuario'        => Auth::id(),
-        ]);
+        Movimentacao::registrar('SAIDA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
 
         $this->abcService->recalcularTodos();
 
@@ -173,8 +166,7 @@ class ItemLoteController extends Controller
             'pin.required'        => 'O PIN é obrigatório.',
         ]);
 
-        if (!Hash::check($request->pin, Auth::user()->pin)) {
-            return response()->json(['message' => 'PIN incorreto.'], 403);
+        $this->validarPin($request->pin);
         }
 
         $item = ItemLote::findOrFail($id);

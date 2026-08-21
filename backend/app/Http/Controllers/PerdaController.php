@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Movimentacao;
 use App\Models\ItemLote;
+use App\Traits\ValidaPin;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class PerdaController extends Controller
 {
+    use ValidaPin;
+
     public function index()
     {
         $perdas = Movimentacao::with('item')
@@ -29,9 +30,7 @@ class PerdaController extends Controller
             'pin'        => 'required|string',
         ]);
 
-        if (!Hash::check($request->pin, Auth::user()->pin)) {
-            return response()->json(['message' => 'PIN incorreto.'], 403);
-        }
+        $this->validarPin($request->pin);
 
         $item = ItemLote::findOrFail($request->id_item);
 
@@ -45,24 +44,22 @@ class PerdaController extends Controller
             'quantidade' => $item->quantidade - $request->quantidade,
         ]);
 
-        $perda = Movimentacao::create([
-            'tipo'              => 'PERDA',
-            'quantidade'        => $request->quantidade,
-            'data_movimentacao' => now(),
-            'observacao'        => $request->motivo,
-            'id_lote'           => $item->id_lote,
-            'id_item'           => $item->id_item,
-            'id_usuario'        => Auth::id(),
-        ]);
+        $perda = Movimentacao::registrar(
+            'PERDA',
+            $request->quantidade,
+            $item->id_lote,
+            $item->id_item,
+            $request->motivo
+        );
 
         return response()->json($perda->load('item'), 201);
     }
 
     public function estatisticas()
     {
-        $total     = Movimentacao::where('tipo', 'PERDA')->count();
-        $unidades  = Movimentacao::where('tipo', 'PERDA')->sum('quantidade');
-        $esteMes   = Movimentacao::where('tipo', 'PERDA')
+        $total    = Movimentacao::where('tipo', 'PERDA')->count();
+        $unidades = Movimentacao::where('tipo', 'PERDA')->sum('quantidade');
+        $esteMes  = Movimentacao::where('tipo', 'PERDA')
             ->whereMonth('data_movimentacao', now()->month)
             ->whereYear('data_movimentacao', now()->year)
             ->count();
