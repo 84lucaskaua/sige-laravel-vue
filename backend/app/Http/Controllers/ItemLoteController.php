@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Hash;
 
 class ItemLoteController extends Controller
 {
-use \App\Traits\ValidaPin;
+    use \App\Traits\ValidaPin;
+
     protected AbcPriorityService $abcService;
 
     public function __construct(AbcPriorityService $abcService)
@@ -167,21 +168,12 @@ use \App\Traits\ValidaPin;
         ]);
 
         $this->validarPin($request->pin);
-        }
 
         $item = ItemLote::findOrFail($id);
         $item->quantidade += $request->quantidade;
         $item->save();
 
-        Movimentacao::create([
-            'tipo'              => 'ENTRADA',
-            'quantidade'        => $request->quantidade,
-            'data_movimentacao' => now(),
-            'observacao'        => $request->motivo,
-            'id_lote'           => $item->id_lote,
-            'id_item'           => $item->id_item,
-            'id_usuario'        => Auth::id(),
-        ]);
+        Movimentacao::registrar('ENTRADA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
 
         $this->abcService->recalcularTodos();
 

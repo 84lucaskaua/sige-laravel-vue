@@ -14,7 +14,9 @@ use App\Http\Controllers\PerdaController;
 use App\Http\Controllers\MovimentacaoController;
 use App\Http\Controllers\RelatorioController;
 use App\Http\Controllers\RelatorioAvancadoController;
-use App\Http\Controllers\ImportacaoExportacaoController;
+use App\Http\Controllers\ImportacaoController;
+use App\Http\Controllers\ExportController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ChatbotController;
 
 
@@ -36,18 +38,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('/lotes', LoteController::class);
 
-   Route::get('/lotes/{idLote}/itens',   [ItemLoteController::class, 'index']);
-Route::post('/lotes/{idLote}/itens',  [ItemLoteController::class, 'store']);
-Route::put('/itens/{id}',             [ItemLoteController::class, 'update']);
-Route::patch('/itens/{id}/baixa',     [ItemLoteController::class, 'baixa']);
-Route::patch('/itens/{id}/entrada',   [ItemLoteController::class, 'entrada']);
-Route::patch('/lotes/{idLote}/itens/reordenar', [ItemLoteController::class, 'reordenar']);
-Route::delete('/itens/{id}',          [ItemLoteController::class, 'destroy']);
-Route::get('/itens/{id}/historico',   [ItemLoteController::class, 'historico']);
-  Route::put('/perfil',       [PerfilController::class, 'atualizarPerfil']);
-Route::post('/perfil',      [PerfilController::class, 'atualizarPerfil']);
-Route::put('/perfil/senha', [PerfilController::class, 'atualizarSenha']);
-    
+    Route::get('/lotes/{idLote}/itens',   [ItemLoteController::class, 'index']);
+    Route::post('/lotes/{idLote}/itens',  [ItemLoteController::class, 'store']);
+    Route::put('/itens/{id}',             [ItemLoteController::class, 'update']);
+    Route::patch('/itens/{id}/baixa',     [ItemLoteController::class, 'baixa']);
+    Route::patch('/itens/{id}/entrada',   [ItemLoteController::class, 'entrada']);
+    Route::patch('/lotes/{idLote}/itens/reordenar', [ItemLoteController::class, 'reordenar']);
+    Route::delete('/itens/{id}',          [ItemLoteController::class, 'destroy']);
+    Route::get('/itens/{id}/historico',   [ItemLoteController::class, 'historico']);
+
+    Route::put('/perfil',       [PerfilController::class, 'atualizarPerfil']);
+    Route::post('/perfil',      [PerfilController::class, 'atualizarPerfil']);
+    Route::put('/perfil/senha', [PerfilController::class, 'atualizarSenha']);
 
     Route::get('/produtos',         [ProdutoController::class, 'index']);
     Route::delete('/produtos/{id}', [ProdutoController::class, 'destroy']);
@@ -67,18 +69,23 @@ Route::put('/perfil/senha', [PerfilController::class, 'atualizarSenha']);
     Route::get('/relatorios-avancados/perdas', [RelatorioAvancadoController::class, 'perdas']);
     Route::get('/relatorios-avancados/abc',    [RelatorioAvancadoController::class, 'abc']);
 
-    Route::get ('importacao-exportacao/stats',                      [ImportacaoExportacaoController::class, 'stats']);
-    Route::get ('importacao-exportacao/template-csv',               [ImportacaoExportacaoController::class, 'downloadTemplate']);
-    Route::get ('importacao-exportacao/exportar/backup',            [ImportacaoExportacaoController::class, 'exportarBackup']);
-    Route::get('/importacao-exportacao/exportar/produtos-csv', [ImportacaoExportacaoController::class, 'exportarProdutosCSV']);
-Route::get('/importacao-exportacao/exportar/produtos-xlsx', [ImportacaoExportacaoController::class, 'exportarProdutosXLSX']);
-   Route::get('/importacao-exportacao/exportar/movimentacoes-csv', [ImportacaoExportacaoController::class, 'exportarMovimentacoesCSV']);
-Route::get('/importacao-exportacao/exportar/movimentacoes-xlsx', [ImportacaoExportacaoController::class, 'exportarMovimentacoesXLSX']);
-    Route::get ('importacao-exportacao/template',               [ImportacaoExportacaoController::class, 'downloadTemplate']);
-    Route::post('importacao-exportacao/importar/produtos-csv',      [ImportacaoExportacaoController::class, 'importarProdutosCSV']);
-    Route::post('importacao-exportacao/restaurar/backup',           [ImportacaoExportacaoController::class, 'restaurarBackup']);
-    Route::post('importacao-exportacao/preview',   [ImportacaoExportacaoController::class, 'previewImportacao']);
-Route::post('importacao-exportacao/confirmar', [ImportacaoExportacaoController::class, 'confirmarImportacao']);
+    // ─── Importação ────────────────────────────────────────────
+    Route::get('importacao-exportacao/stats',        [ImportacaoController::class, 'stats']);
+    Route::get('importacao-exportacao/template-csv',  [ImportacaoController::class, 'downloadTemplate']);
+    Route::get('importacao-exportacao/template',      [ImportacaoController::class, 'downloadTemplate']);
+    Route::post('importacao-exportacao/preview',      [ImportacaoController::class, 'previewImportacao']);
+    Route::post('importacao-exportacao/confirmar',    [ImportacaoController::class, 'confirmarImportacao']);
+
+    // ─── Exportação ────────────────────────────────────────────
+    Route::get('/importacao-exportacao/exportar/produtos-csv',       [ExportController::class, 'exportarProdutosCSV']);
+    Route::get('/importacao-exportacao/exportar/produtos-xlsx',      [ExportController::class, 'exportarProdutosXLSX']);
+    Route::get('/importacao-exportacao/exportar/movimentacoes-csv',  [ExportController::class, 'exportarMovimentacoesCSV']);
+    Route::get('/importacao-exportacao/exportar/movimentacoes-xlsx', [ExportController::class, 'exportarMovimentacoesXLSX']);
+
+    // ─── Backup ────────────────────────────────────────────────
+    Route::get('importacao-exportacao/exportar/backup',  [BackupController::class, 'exportarBackup']);
+    Route::post('importacao-exportacao/restaurar/backup', [BackupController::class, 'restaurarBackup']);
+
     Route::get('/audit-logs',        [AuditLogController::class, 'index']);
     Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
 
@@ -88,5 +95,5 @@ Route::post('importacao-exportacao/confirmar', [ImportacaoExportacaoController::
     Route::patch('/usuarios/{id}/status', [UsuarioController::class, 'alternarStatus']);
 
     Route::post('/chatbot', [ChatbotController::class, 'perguntar']);
-    
+
 });
