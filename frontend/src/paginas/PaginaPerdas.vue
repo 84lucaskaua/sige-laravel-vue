@@ -49,16 +49,26 @@
           v-for="item in itens"
           :key="item.id_item"
           class="flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3"
+          :class="{ 'opacity-60': item.quantidade === 0 }"
         >
           <div>
-            <p class="text-slate-900 dark:text-white font-semibold text-sm">{{ item.nome }}</p>
+            <div class="flex items-center gap-2">
+              <p class="text-slate-900 dark:text-white font-semibold text-sm">{{ item.nome }}</p>
+              <span
+                v-if="item.quantidade === 0"
+                class="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"
+              >
+                Sem estoque
+              </span>
+            </div>
             <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
               SKU: {{ item.sku || '—' }}
               &nbsp;&nbsp;Estoque: {{ item.quantidade }} {{ item.unidade_medida }}
             </p>
           </div>
           <button
-            class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition font-medium"
+            class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-600"
+            :disabled="item.quantidade === 0"
             @click="abrirModal(item)"
           >
             <Trash2 :size="14" />
@@ -172,19 +182,19 @@
       </div>
 
       <!-- ETAPA 1: Confirmação -->
-      <div v-else-if="etapa === 1" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
+      <div v-else class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
         <div class="flex justify-between items-start mb-5">
           <div class="flex items-center gap-2">
             <Shield class="text-red-600 dark:text-red-400" :size="20" />
             <div>
               <h2 class="text-slate-900 dark:text-white font-bold">Confirmação de Segurança</h2>
-              <p class="text-slate-500 dark:text-slate-400 text-xs">Esta ação requer confirmação em 2 etapas</p>
+              <p class="text-slate-500 dark:text-slate-400 text-xs">Confirme para prosseguir</p>
             </div>
           </div>
           <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="fecharModal"><X :size="18" /></button>
         </div>
 
-        <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-3">
+        <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
           <div class="flex items-center gap-2 mb-1">
             <AlertTriangle class="text-red-600 dark:text-red-400" :size="16" />
             <span class="text-slate-900 dark:text-white font-medium text-sm">Registrar Perda</span>
@@ -196,56 +206,16 @@
           </p>
         </div>
 
-        <div class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-6">
-          <div class="flex items-center gap-2 mb-1">
-            <Lock :size="15" class="text-slate-500 dark:text-slate-400" />
-            <span class="text-slate-900 dark:text-white font-medium text-sm">Etapa 1 de 2: Confirmação</span>
-          </div>
-          <p class="text-slate-500 dark:text-slate-400 text-sm">Você está prestes a realizar uma ação que afeta o sistema. Confirme para prosseguir para a etapa de verificação PIN.</p>
-        </div>
+        <div v-if="erro" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">{{ erro }}</div>
 
         <div class="flex gap-3">
           <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm" @click="etapa = 0">Voltar</button>
-          <button class="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition text-sm" @click="etapa = 2">Confirmar e Prosseguir</button>
-        </div>
-      </div>
-
-      <!-- ETAPA 2: PIN -->
-      <div v-else class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
-        <div class="flex justify-between items-start mb-5">
-          <div class="flex items-center gap-2">
-            <Lock class="text-blue-600 dark:text-blue-400" :size="20" />
-            <div>
-              <h2 class="text-slate-900 dark:text-white font-bold">Verificação de PIN</h2>
-              <p class="text-slate-500 dark:text-slate-400 text-xs">Etapa 2 de 2: Digite o PIN de segurança</p>
-            </div>
-          </div>
-          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="fecharModal"><X :size="18" /></button>
-        </div>
-
-        <div class="mb-6">
-          <label class="block text-sm text-slate-500 dark:text-slate-400 mb-2">PIN de Segurança</label>
-          <input
-            v-model="pinDigitado"
-            type="password"
-            maxlength="6"
-            inputmode="numeric"
-            placeholder="• • • • • •"
-            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
-            @input="pinDigitado = pinDigitado.replace(/\D/g, '')"
-            @keyup.enter="confirmarPerda"
-          />
-          <p v-if="erroPin" class="text-red-600 dark:text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
-        </div>
-
-        <div class="flex gap-3">
-          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm" @click="etapa = 1; pinDigitado = ''; erroPin = ''">Voltar</button>
           <button
             class="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium transition text-sm"
-            :disabled="pinDigitado.length < 6 || salvando"
+            :disabled="salvando"
             @click="confirmarPerda"
           >
-            {{ salvando ? 'Confirmando...' : 'Confirmar PIN' }}
+            {{ salvando ? 'Confirmando...' : 'Confirmar Perda' }}
           </button>
         </div>
       </div>
@@ -257,7 +227,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { AlertTriangle, Trash2, Calendar, X, Shield, Lock } from 'lucide-vue-next'
+import { AlertTriangle, Trash2, Calendar, X, Shield } from 'lucide-vue-next'
 import api from '@/servicos/api'
 
 const itens            = ref([])
@@ -269,9 +239,7 @@ const itemSelecionado  = ref(null)
 const salvando         = ref(false)
 const erro             = ref('')
 
-const etapa       = ref(0)
-const pinDigitado = ref('')
-const erroPin     = ref('')
+const etapa = ref(0)
 
 const estatisticas = ref({ total: 0, unidades: 0, esteMes: 0 })
 const form = ref({ quantidade: null, motivo: '', motivoOutro: '' })
@@ -295,16 +263,13 @@ function abrirModal(item) {
   form.value = { quantidade: null, motivo: '', motivoOutro: '' }
   erro.value = ''
   etapa.value = 0
-  pinDigitado.value = ''
-  erroPin.value = ''
   modalAberto.value = true
 }
 
 function abrirConfirmacao() {
   if (!form.value.quantidade || !form.value.motivo) return
   if (form.value.motivo === 'Outro' && !form.value.motivoOutro.trim()) return
-  pinDigitado.value = ''
-  erroPin.value = ''
+  erro.value = ''
   etapa.value = 1
 }
 
@@ -316,18 +281,12 @@ async function confirmarPerda() {
       id_item:    itemSelecionado.value.id_item,
       quantidade: form.value.quantidade,
       motivo:     motivoExibicao.value,
-      pin:        pinDigitado.value,
     })
     fecharModal()
     await Promise.all([carregarItens(), carregarPerdas(), carregarEstatisticas()])
   } catch (e) {
-    if (e.response?.status === 403) {
-      erroPin.value = e.response?.data?.message || 'PIN incorreto. Tente novamente.'
-      pinDigitado.value = ''
-    } else {
-      erro.value = e.response?.data?.message || 'Erro ao registrar perda.'
-      etapa.value = 0
-    }
+    erro.value = e.response?.data?.message || 'Erro ao registrar perda.'
+    etapa.value = 0
   } finally {
     salvando.value = false
   }
@@ -337,8 +296,6 @@ function fecharModal() {
   modalAberto.value     = false
   itemSelecionado.value = null
   etapa.value           = 0
-  pinDigitado.value     = ''
-  erroPin.value         = ''
 }
 
 async function carregarItens() {
