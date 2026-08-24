@@ -71,7 +71,7 @@
       </div>
     </div>
 
-    <ModalPin :pin="pin" />
+    
   </div>
 </template>
 
@@ -80,12 +80,11 @@ import { ref, reactive } from 'vue'
 import { UserRound, Mail, Lock, Camera } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
-import { usePinConfirmacao } from '@/composables/usePinConfirmacao'
-import ModalPin from '@/componentes/ui/ModalPin.vue'
+
 
 const autenticacao = useAutenticacaoStore()
 const usuario = autenticacao.usuario
-const pin = usePinConfirmacao()
+
 
 const sucesso      = ref('')
 const erro         = ref('')
@@ -132,16 +131,11 @@ function limparMensagens() {
 async function salvar() {
   limparMensagens()
 
-  if (senhas.nova || senhas.atual || senhas.confirmacao) {
-    if (!senhas.atual) { erro.value = 'Informe a senha atual.'; return }
-    if (senhas.nova.length < 6) { erro.value = 'A nova senha deve ter pelo menos 6 caracteres.'; return }
-    if (senhas.nova !== senhas.confirmacao) { erro.value = 'A nova senha e a confirmação não coincidem.'; return }
-
-    const confirmado = await pin.abrirEAguardarConfirmacao({
-      subtitulo: 'Necessário para confirmar a troca de senha',
-    })
-    if (!confirmado) return
-  }
+ if (senhas.nova || senhas.atual || senhas.confirmacao) {
+  if (!senhas.atual) { erro.value = 'Informe a senha atual.'; return }
+  if (senhas.nova.length < 6) { erro.value = 'A nova senha deve ter pelo menos 6 caracteres.'; return }
+  if (senhas.nova !== senhas.confirmacao) { erro.value = 'A nova senha e a confirmação não coincidem.'; return }
+}
 
   salvando.value = true
   try {

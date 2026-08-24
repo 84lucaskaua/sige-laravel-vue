@@ -125,24 +125,24 @@
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
             <tr v-for="mov in historico" :key="mov.id" class="hover:bg-slate-100 dark:hover:bg-slate-800/40 transition">
-              <td class="py-2 text-slate-600 dark:text-slate-300">{{ formatarData(mov.created_at) }}</td>
-              <td class="py-2">
-                <span
-                  :class="mov.tipo === 'entrada'
-                    ? 'bg-green-700 text-white'
-                    : 'bg-red-600 text-white'"
-                  class="px-2 py-0.5 rounded text-xs font-bold capitalize"
-                >
-                  {{ mov.tipo === 'entrada' ? 'Entrada' : 'Saída' }}
-                </span>
-              </td>
-              <td
-                class="py-2"
-                :class="mov.tipo === 'entrada' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
-              >
-                {{ mov.tipo === 'entrada' ? '+' : '' }}{{ mov.quantidade }}
-              </td>
-              <td class="py-2 text-slate-500 dark:text-slate-400">{{ mov.motivo || '—' }}</td>
+             <td class="py-2 text-slate-600 dark:text-slate-300">{{ formatarData(mov.data_movimentacao) }}</td>
+<td class="py-2">
+  <span
+    :class="mov.tipo === 'ENTRADA'
+      ? 'bg-green-700 text-white'
+      : 'bg-red-600 text-white'"
+    class="px-2 py-0.5 rounded text-xs font-bold capitalize"
+  >
+    {{ mov.tipo === 'ENTRADA' ? 'Entrada' : 'Saída' }}
+  </span>
+</td>
+<td
+  class="py-2"
+  :class="mov.tipo === 'ENTRADA' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+>
+  {{ mov.tipo === 'ENTRADA' ? '+' : '' }}{{ mov.quantidade }}
+</td>
+<td class="py-2 text-slate-500 dark:text-slate-400">{{ mov.observacao || '—' }}</td>
             </tr>
           </tbody>
         </table>
