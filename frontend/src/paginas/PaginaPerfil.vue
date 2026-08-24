@@ -41,19 +41,19 @@
           <label class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 font-medium mb-1">
             <Mail :size="14" /> Email
         </label>
-          <input v-model="form.email" type="email"
-  class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500" />
+          <input
+  v-model="form.email"
+  type="email"
+  class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500"
+/>
         </div>
 
         <div class="border-t border-slate-200 dark:border-slate-800 pt-4">
           <div class="flex items-center justify-between mb-3">
-            <label class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 font-medium">
-              <Lock :size="14" /> Alterar Senha (opcional)
-            </label>
-            <button type="button" class="text-xs text-blue-600 dark:text-blue-400 hover:underline" @click="enviarPinAgora">
-              Enviar PIN por email
-            </button>
-          </div>
+  <label class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 font-medium">
+    <Lock :size="14" /> Alterar Senha (opcional)
+  </label>
+</div>
           <div class="space-y-3">
             <input v-model="senhas.atual" type="password" placeholder="Digite sua senha atual" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-400 dark:placeholder-slate-600" />
             <input v-model="senhas.nova" type="password" placeholder="Mínimo 6 caracteres" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-400 dark:placeholder-slate-600" />
@@ -128,13 +128,6 @@ function limparMensagens() {
   erro.value    = ''
 }
 
-async function enviarPinAgora() {
-  limparMensagens()
-  await pin.abrirEPedirEmail({
-    subtitulo: 'Por favor, insira seu email',
-    emailEsperado: usuario && usuario.email,
-  })
-}
 
 async function salvar() {
   limparMensagens()
