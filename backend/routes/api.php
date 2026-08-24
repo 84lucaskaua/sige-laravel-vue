@@ -19,13 +19,6 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ChatbotController;
 
-
-use App\Http\Controllers\PinController;
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/perfil/solicitar-pin', [PinController::class, 'solicitar']);
-    Route::post('/perfil/verificar-pin', [PinController::class, 'verificar']);
-});
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);

@@ -8,12 +8,9 @@ use App\Services\AbcPriorityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class ItemLoteController extends Controller
 {
-    use \App\Traits\ValidaPin;
-
     protected AbcPriorityService $abcService;
 
     public function __construct(AbcPriorityService $abcService)
@@ -128,19 +125,13 @@ class ItemLoteController extends Controller
         $request->validate([
             'quantidade' => 'required|integer|min:1|max:' . $item->quantidade,
             'motivo'     => 'nullable|string|max:255',
-            'pin'        => 'required|string',
         ], [
             'quantidade.required' => 'A quantidade é obrigatória.',
             'quantidade.integer'  => 'A quantidade deve ser um número inteiro.',
             'quantidade.min'      => 'A quantidade deve ser pelo menos 1.',
             'quantidade.max'      => 'A quantidade não pode ser maior que o estoque disponível.',
             'motivo.max'          => 'O motivo não pode ter mais de 255 caracteres.',
-            'pin.required'        => 'O PIN é obrigatório.',
         ]);
-
-        if (!Hash::check($request->pin, Auth::user()->pin)) {
-            return response()->json(['message' => 'PIN incorreto.'], 403);
-        }
 
         $item->update([
             'quantidade' => $item->quantidade - $request->quantidade,
@@ -158,16 +149,12 @@ class ItemLoteController extends Controller
         $request->validate([
             'quantidade' => 'required|integer|min:1',
             'motivo'     => 'nullable|string|max:255',
-            'pin'        => 'required|string',
         ], [
             'quantidade.required' => 'A quantidade é obrigatória.',
             'quantidade.integer'  => 'A quantidade deve ser um número inteiro.',
             'quantidade.min'      => 'A quantidade deve ser pelo menos 1.',
             'motivo.max'          => 'O motivo não pode ter mais de 255 caracteres.',
-            'pin.required'        => 'O PIN é obrigatório.',
         ]);
-
-        $this->validarPin($request->pin);
 
         $item = ItemLote::findOrFail($id);
         $item->quantidade += $request->quantidade;

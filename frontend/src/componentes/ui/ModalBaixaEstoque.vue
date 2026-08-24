@@ -1,7 +1,7 @@
 <template>
   <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
 
-    <!-- ===== ETAPA 1: CONFIRMAÇÃO ===== -->
+    <!-- ===== ETAPA CONFIRMAÇÃO ===== -->
     <div v-if="etapa === 1" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
 
       <div class="flex justify-between items-start mb-5">
@@ -9,7 +9,7 @@
           <Shield class="text-yellow-600 dark:text-yellow-400" :size="20" />
           <div>
             <h2 class="text-slate-900 dark:text-white font-bold">Confirmação de Segurança</h2>
-            <p class="text-slate-500 dark:text-slate-400 text-xs">Esta ação requer confirmação em 2 etapas</p>
+            <p class="text-slate-500 dark:text-slate-400 text-xs">Confirme para prosseguir</p>
           </div>
         </div>
         <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="$emit('fechar')">
@@ -17,7 +17,7 @@
         </button>
       </div>
 
-      <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-3">
+      <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-6">
         <div class="flex items-center gap-2 mb-1">
           <Shield class="text-yellow-600 dark:text-yellow-400" :size="16" />
           <span class="text-slate-900 dark:text-white font-medium text-sm">Baixa de Estoque</span>
@@ -32,82 +32,26 @@
         </p>
       </div>
 
-      <div class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-6">
-        <div class="flex items-center gap-2 mb-1">
-          <Lock :size="15" class="text-slate-500 dark:text-slate-400" />
-          <span class="text-slate-900 dark:text-white font-medium text-sm">Etapa 1 de 2: Confirmação</span>
-        </div>
-        <p class="text-slate-500 dark:text-slate-400 text-sm">Você está prestes a realizar uma ação que afeta o sistema. Confirme para prosseguir para a etapa de verificação PIN.</p>
-      </div>
+      <p v-if="erro" class="text-red-600 dark:text-red-400 text-sm mb-4 text-center">{{ erro }}</p>
 
       <div class="flex gap-3">
         <button
           class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm"
-          @click="$emit('fechar')"
-        >
-          Cancelar
-        </button>
-        <button
-          class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-medium text-sm"
-          @click="etapa = 2"
-        >
-          Confirmar e Prosseguir
-        </button>
-      </div>
-    </div>
-
-    <!-- ===== ETAPA 2: PIN ===== -->
-    <div v-else-if="etapa === 2" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
-
-      <div class="flex justify-between items-start mb-5">
-        <div class="flex items-center gap-2">
-          <Lock class="text-blue-600 dark:text-blue-400" :size="20" />
-          <div>
-            <h2 class="text-slate-900 dark:text-white font-bold">Verificação de PIN</h2>
-            <p class="text-slate-500 dark:text-slate-400 text-xs">Etapa 2 de 2: Digite o PIN de segurança</p>
-          </div>
-        </div>
-        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="$emit('fechar')">
-          <X :size="18" />
-        </button>
-      </div>
-
-      <div class="mb-6">
-        <label class="block text-sm text-slate-500 dark:text-slate-400 mb-2">PIN de Segurança</label>
-        <input
-          ref="inputPin"
-          v-model="pinDigitado"
-          type="password"
-          maxlength="6"
-          inputmode="numeric"
-          pattern="[0-9]*"
-          placeholder="• • • • • •"
-          autofocus
-          class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-blue-500 transition placeholder-slate-400 dark:placeholder-slate-600"
-          @input="pinDigitado = pinDigitado.replace(/\D/g, '')"
-          @keyup.enter="verificarPin"
-        />
-        <p v-if="erroPin" class="text-red-600 dark:text-red-400 text-sm mt-2 text-center">{{ erroPin }}</p>
-      </div>
-
-      <div class="flex gap-3">
-        <button
-          class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm"
-          @click="etapa = 1; pinDigitado = ''; erroPin = ''"
+          @click="etapa = 0"
         >
           Voltar
         </button>
         <button
           class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium text-sm"
-          :disabled="pinDigitado.length < 6 || salvando"
-          @click="verificarPin"
+          :disabled="salvando"
+          @click="confirmarBaixa"
         >
-          {{ salvando ? 'Confirmando...' : 'Confirmar PIN' }}
+          {{ salvando ? 'Confirmando...' : 'Confirmar Baixa' }}
         </button>
       </div>
     </div>
 
-    <!-- ===== ETAPA 0: FORMULÁRIO DE BAIXA ===== -->
+    <!-- ===== ETAPA FORMULÁRIO DE BAIXA ===== -->
     <div v-else class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-md">
 
       <div class="flex justify-between items-center mb-6">
@@ -181,7 +125,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { X, Shield, Lock } from 'lucide-vue-next'
+import { X, Shield } from 'lucide-vue-next'
 import api from '@/servicos/api'
 
 const props = defineProps({
@@ -189,12 +133,9 @@ const props = defineProps({
 })
 const emit = defineEmits(['fechar', 'salvo'])
 
-const etapa       = ref(0)
-const pinDigitado = ref('')
-const erroPin     = ref('')
-const salvando    = ref(false)
-const erro        = ref('')
-const inputPin    = ref(null)
+const etapa    = ref(0)
+const salvando = ref(false)
+const erro     = ref('')
 
 const form = ref({
   quantidade: null,
@@ -202,34 +143,26 @@ const form = ref({
 })
 
 function abrirConfirmacao() {
-  erro.value        = ''
+  erro.value = ''
   if (form.value.quantidade > props.item.quantidade) {
     erro.value = 'Quantidade maior que o estoque disponível.'
     return
   }
-  pinDigitado.value = ''
-  erroPin.value     = ''
-  etapa.value       = 1
+  etapa.value = 1
 }
 
-async function verificarPin() {
-  erroPin.value  = ''
+async function confirmarBaixa() {
+  erro.value     = ''
   salvando.value = true
   try {
     await api.patch(`/itens/${props.item.id_item}/baixa`, {
       quantidade: form.value.quantidade,
       motivo:     form.value.motivo,
-      pin:        pinDigitado.value,
     })
     emit('salvo')
   } catch (e) {
-    if (e.response?.status === 403) {
-      erroPin.value = e.response?.data?.message || 'PIN incorreto. Tente novamente.'
-      pinDigitado.value = ''
-    } else {
-      erro.value  = e.response?.data?.message || 'Erro ao registrar baixa.'
-      etapa.value = 0
-    }
+    erro.value  = e.response?.data?.message || 'Erro ao registrar baixa.'
+    etapa.value = 0
   } finally {
     salvando.value = false
   }

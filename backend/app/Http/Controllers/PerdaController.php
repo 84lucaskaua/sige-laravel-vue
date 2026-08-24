@@ -4,13 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Movimentacao;
 use App\Models\ItemLote;
-use App\Traits\ValidaPin;
 use Illuminate\Http\Request;
 
 class PerdaController extends Controller
 {
-    use ValidaPin;
-
     public function index()
     {
         $perdas = Movimentacao::with('item')
@@ -27,10 +24,7 @@ class PerdaController extends Controller
             'id_item'    => 'required|integer|exists:item_lote,id_item',
             'quantidade' => 'required|integer|min:1',
             'motivo'     => 'required|string|max:255',
-            'pin'        => 'required|string',
         ]);
-
-        $this->validarPin($request->pin);
 
         $item = ItemLote::findOrFail($request->id_item);
 
