@@ -529,9 +529,10 @@ function tempoRelativo(dataValidade) {
 async function carregarNotificacoes() {
   carregando.value = true;
   try {
-    const { data } = await api.get('/produtos');
-    const lista = [];
-    data.forEach((item) => {
+   const { data } = await api.get('/produtos');
+const lista = [];
+const produtos = Array.isArray(data) ? data : (data.data ?? []);
+produtos.forEach((item) => {
       if (item.data_validade) {
         const dias = diasParaVencer(item.data_validade);
         if (dias !== null && dias <= 30) {

@@ -29,11 +29,10 @@ export const useAutenticacaoStore = defineStore('autenticacao', () => {
   const perfil = computed(() => usuario.value?.perfil || null)
 
   // Helpers de permissão
- const ehRoot         = computed(() => perfil.value === 'root')
-const ehAdmin        = computed(() => perfil.value === 'root') // root é o único "admin"
-const podeMovimentar = computed(() => ['root', 'operador'].includes(perfil.value))
-const podeCadastrar  = computed(() => ['root', 'operador'].includes(perfil.value))
-const podeGerenciarUsuarios = computed(() => perfil.value === 'root')
+  const ehAdmin        = computed(() => perfil.value === 'admin')
+  const podeMovimentar = computed(() => ['admin', 'operador'].includes(perfil.value))
+  const podeCadastrar  = computed(() => ['admin', 'operador'].includes(perfil.value))
+  const podeGerenciarUsuarios = computed(() => perfil.value === 'admin')
 
   // ---- Actions (funções) ----
 
@@ -65,7 +64,7 @@ const podeGerenciarUsuarios = computed(() => perfil.value === 'root')
       await api.post('/logout')
     } catch {
       // Mesmo que o backend dê erro, fazemos logout local
-  } finally {
+    } finally {
       // Limpa os dados do usuário
       token.value   = null
       usuario.value = null
@@ -77,16 +76,15 @@ const podeGerenciarUsuarios = computed(() => perfil.value === 'root')
   }
 
   return {
-  usuario,
-  token,
-  estaLogado,
-  perfil,
-  ehRoot,
-  ehAdmin,
-  podeMovimentar,
-  podeCadastrar,
-  podeGerenciarUsuarios,
-  fazerLogin,
-  fazerLogout,
-}
+    usuario,
+    token,
+    estaLogado,
+    perfil,
+    ehAdmin,
+    podeMovimentar,
+    podeCadastrar,
+    podeGerenciarUsuarios,
+    fazerLogin,
+    fazerLogout,
+  }
 })

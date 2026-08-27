@@ -325,7 +325,7 @@ async function carregarDashboard({ mostrarLoading = true } = {}) {
 
   try {
     const resposta = await api.get('/dashboard')
-    resumo.value                 = resposta.data.resumo
+    resumo.value = resposta.data?.resumo ?? resumo.value
     movimentosRecentes.value     = resposta.data.movimentosRecentes || []
     topProdutos.value            = resposta.data.topProdutos || []
     produtosEstoqueCritico.value = resposta.data.produtosEstoqueCritico || []
