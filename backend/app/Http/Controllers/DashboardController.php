@@ -98,36 +98,39 @@ class DashboardController extends Controller
             ]);
     }
 
-    private function calcularEvolucaoEstoque()
+        private function calcularEvolucaoEstoque()
     {
+         $inicio = Carbon::today()->subDays(29);
+
+        $movs = Movimentacao::selectRaw("DATE(data_movimentacao) as dia, tipo, SUM(quantidade) as total")
+        ->where('data_movimentacao', '>=', $inicio)
+        ->groupBy('dia', 'tipo')
+        ->get()
+        ->groupBy('dia');
+
+        $saldoInicial = Movimentacao::where('data_movimentacao', '<', $inicio)
+        ->selectRaw("SUM(CASE WHEN tipo = 'ENTRADA' THEN quantidade ELSE -quantidade END) as saldo")
+        ->value('saldo') ?? 0;
+
         $evolucao = collect();
+        $acumulado = $saldoInicial;
 
         for ($i = 29; $i >= 0; $i--) {
-            $dia = Carbon::today()->subDays($i);
+        $dia = Carbon::today()->subDays($i);
+        $chave = $dia->format('Y-m-d');
+        $doDia = $movs->get($chave, collect());
 
-            $entradas = Movimentacao::where('tipo', 'ENTRADA')
-                ->whereDate('data_movimentacao', $dia)
-                ->sum('quantidade');
+        $entradas = $doDia->where('tipo', 'ENTRADA')->sum('total');
+        $saidas   = $doDia->whereIn('tipo', ['SAIDA', 'PERDA'])->sum('total');
+        $acumulado += $entradas - $saidas;
 
-            $saidas = Movimentacao::whereIn('tipo', ['SAIDA', 'PERDA'])
-                ->whereDate('data_movimentacao', $dia)
-                ->sum('quantidade');
-
-            $estoqueTotal = Movimentacao::where('tipo', 'ENTRADA')
-                ->whereDate('data_movimentacao', '<=', $dia)
-                ->sum('quantidade')
-                -
-                Movimentacao::whereIn('tipo', ['SAIDA', 'PERDA'])
-                ->whereDate('data_movimentacao', '<=', $dia)
-                ->sum('quantidade');
-
-            $evolucao->push([
-                'label'        => $dia->format('d/m'),
-                'entradas'     => (int) $entradas,
-                'saidas'       => (int) $saidas,
-                'estoqueTotal' => max(0, (int) $estoqueTotal),
-            ]);
-        }
+        $evolucao->push([
+            'label'        => $dia->format('d/m'),
+            'entradas'     => (int) $entradas,
+            'saidas'       => (int) $saidas,
+            'estoqueTotal' => max(0, (int) $acumulado),
+        ]);
+     }
 
         return $evolucao;
     }

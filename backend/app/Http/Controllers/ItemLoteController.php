@@ -4,20 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\ItemLote;
 use App\Models\Movimentacao;
-use App\Services\AbcPriorityService;
+use App\Jobs\RecalcularAbcJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ItemLoteController extends Controller
 {
-    protected AbcPriorityService $abcService;
-
-    public function __construct(AbcPriorityService $abcService)
-    {
-        $this->abcService = $abcService;
-    }
-
     public function store(Request $request, int $idLote)
     {
         $request->validate([
@@ -60,7 +53,7 @@ class ItemLoteController extends Controller
             'categoria'         => $request->categoria,
         ]);
 
-        $this->abcService->recalcularTodos();
+        RecalcularAbcJob::dispatch();
 
         return response()->json($item->refresh(), 201);
     }
@@ -113,7 +106,7 @@ class ItemLoteController extends Controller
 
         $item->update($dados);
 
-        $this->abcService->recalcularTodos();
+        RecalcularAbcJob::dispatch();
 
         return response()->json($item->refresh());
     }
@@ -139,7 +132,7 @@ class ItemLoteController extends Controller
 
         Movimentacao::registrar('SAIDA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
 
-        $this->abcService->recalcularTodos();
+        RecalcularAbcJob::dispatch();
 
         return response()->json($item->refresh());
     }
@@ -162,7 +155,7 @@ class ItemLoteController extends Controller
 
         Movimentacao::registrar('ENTRADA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
 
-        $this->abcService->recalcularTodos();
+        RecalcularAbcJob::dispatch();
 
         return response()->json($item->refresh());
     }
@@ -205,7 +198,7 @@ class ItemLoteController extends Controller
         $item = ItemLote::findOrFail($id);
         $item->delete();
 
-        $this->abcService->recalcularTodos();
+        RecalcularAbcJob::dispatch();
 
         return response()->json(['message' => 'Item excluído com sucesso.']);
     }
