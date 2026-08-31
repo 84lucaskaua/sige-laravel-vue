@@ -194,19 +194,49 @@
 
       </div>
 
-      <!-- TOP 10 PRODUTOS -->
+      <!-- TOP PRODUTOS -->
       <div class="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-            <TrendingUp class="text-green-600 dark:text-green-400" :size="24" />
+        <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+              <TrendingUp class="text-green-600 dark:text-green-400" :size="24" />
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white">Top Produtos</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400">Maiores estoques</p>
+            </div>
           </div>
-          <div>
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Top 10 Produtos</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">Maiores estoques</p>
+
+          <!-- Filtros: quantidade e categoria -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">Mostrar</label>
+              <select
+                v-model.number="filtroLimite"
+                class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
+              >
+                <option v-for="opcao in opcoesLimite" :key="opcao" :value="opcao">{{ opcao }}</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">Categoria</label>
+              <select
+                v-model="filtroCategoria"
+                class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none max-w-[180px]"
+              >
+                <option value="todas">Todas</option>
+                <option v-for="cat in categoriasDisponiveis" :key="cat" :value="cat">{{ cat }}</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div v-if="topProdutos.length === 0" class="flex items-center justify-center h-40 text-slate-400 dark:text-slate-500">
+        <div v-if="carregandoTopProdutos" class="flex items-center justify-center h-40 text-slate-400 dark:text-slate-500">
+          Carregando...
+        </div>
+
+        <div v-else-if="topProdutos.length === 0" class="flex items-center justify-center h-40 text-slate-400 dark:text-slate-500">
           Nenhum dado disponível
         </div>
 
@@ -225,7 +255,7 @@
               v-for="(produto, index) in topProdutos"
               :key="produto.id_produto"
               class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition"
-              
+
             >
               <td class="py-3 text-slate-400 dark:text-slate-500">{{ index + 1 }}</td>
               <td class="py-3 text-slate-900 dark:text-white font-medium">{{ produto.nome }}</td>
@@ -246,7 +276,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { PackagePlus, Package, AlertTriangle, TrendingDown, TrendingUp, PieChart, History } from 'lucide-vue-next'
 import api from '@/servicos/api'
@@ -269,6 +299,13 @@ const produtosEstoqueCritico = ref([])
 const produtosVencendo      = ref([])
 const semDadosPizza         = ref(false)
 
+// ===== Filtro do Top Produtos =====
+const opcoesLimite         = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+const filtroLimite         = ref(10)
+const filtroCategoria      = ref('todas')
+const carregandoTopProdutos = ref(false)
+const categoriasDisponiveis = ref([]) // populado a partir da distribuição por categoria já retornada pelo /dashboard
+
 const resumo = ref({
   totalProdutos:    0,
   totalLotes:       0,
@@ -283,12 +320,9 @@ let ultimosDadosLinha  = []
 let ultimosDadosPizza  = []
 
 // --- Auto-refresh (somente para o perfil visualizador) ---
-// Atualiza os dados em segundo plano, sem recarregar a página nem
-// mostrar a tela de "Carregando dados..." de novo — só troca o que mudou.
 const INTERVALO_POLLING_MS = 30000
 let idIntervaloPolling = null
 
-// Formata números com separador de milhar no padrão brasileiro (ex: 17050 -> 17.050)
 function formatNumero(valor) {
   return Number(valor ?? 0).toLocaleString('pt-BR')
 }
@@ -308,8 +342,6 @@ function formatarDataSimples(data) {
   })
 }
 
-// Remove dias iniciais totalmente zerados (mantém 1 antes do primeiro dado real,
-// pra não achatar o gráfico inteiro por causa de dias sem movimento nenhum).
 function recortarDiasVazios(dados) {
   const primeiroIndiceComDado = dados.findIndex(
     d => (d.estoqueTotal || 0) > 0 || (d.entradas || 0) > 0 || (d.saidas || 0) > 0
@@ -332,6 +364,9 @@ async function carregarDashboard({ mostrarLoading = true } = {}) {
     produtosVencendo.value       = resposta.data.produtosVencendo || []
     dadosEvolucao                = recortarDiasVazios(resposta.data.evolucaoEstoque || [])
     dadosDistribuicao            = resposta.data.distribuicaoCategorias || []
+
+    // Popula as opções do filtro de categoria a partir dos dados já carregados
+    categoriasDisponiveis.value = dadosDistribuicao.map(c => c.categoria).filter(Boolean)
   } catch (erro) {
     console.error('Erro ao carregar dashboard:', erro)
   } finally {
@@ -341,16 +376,34 @@ async function carregarDashboard({ mostrarLoading = true } = {}) {
   ultimosDadosLinha = dadosEvolucao
   ultimosDadosPizza = dadosDistribuicao
 
-  // Só desenha os gráficos DEPOIS que carregando = false,
-  // garantindo que o <canvas> já existe no DOM.
   await nextTick()
   montarGraficoLinha(dadosEvolucao)
   montarGraficoPizza(dadosDistribuicao)
 }
 
-// Chart.js não lê classes dark: nem variáveis CSS — as cores dos eixos,
-// legendas, grid e borda das fatias precisam ser escolhidas manualmente
-// conforme o tema atual.
+// Busca só o Top Produtos filtrado, sem recarregar o resto do dashboard
+async function carregarTopProdutosFiltrado() {
+  carregandoTopProdutos.value = true
+  try {
+    const resposta = await api.get('/dashboard/top-produtos', {
+      params: {
+        limite: filtroLimite.value,
+        categoria: filtroCategoria.value,
+      },
+    })
+    topProdutos.value = resposta.data || []
+  } catch (erro) {
+    console.error('Erro ao carregar top produtos filtrado:', erro)
+  } finally {
+    carregandoTopProdutos.value = false
+  }
+}
+
+// Sempre que o usuário mudar o limite ou a categoria, refaz só essa consulta
+watch([filtroLimite, filtroCategoria], () => {
+  carregarTopProdutosFiltrado()
+})
+
 function coresDoTema() {
   return temaClaro.value
     ? { texto: '#475569', textoEixo: '#64748b', grid: 'rgba(0,0,0,0.08)', bordaFatia: '#ffffff' }
@@ -492,9 +545,6 @@ function montarGraficoPizza(dados) {
   })
 }
 
-// Quando o usuário troca de tema, os gráficos já desenhados continuam
-// com as cores antigas (Chart.js não reage a mudanças de CSS sozinho),
-// então redesenhamos com os dados já carregados.
 watch(temaClaro, async () => {
   await nextTick()
   montarGraficoLinha(ultimosDadosLinha)

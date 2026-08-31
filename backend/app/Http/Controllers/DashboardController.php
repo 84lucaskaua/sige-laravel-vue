@@ -5,6 +5,7 @@ use App\Models\ItemLote;
 use App\Models\Lote;
 use App\Models\Movimentacao;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -35,6 +36,31 @@ class DashboardController extends Controller
             'distribuicaoCategorias' => $distribuicao,
             'topProdutos'            => $topProdutos,
         ]);
+    }
+
+    /**
+     * Endpoint dedicado para o filtro do Top Produtos, evitando recarregar
+     * o dashboard inteiro (gráficos, alertas, etc) toda vez que o usuário
+     * troca o limite ou a categoria.
+     * GET /dashboard/top-produtos?limite=20&categoria=Higiene
+     */
+    public function topProdutos(Request $request)
+    {
+        $limitesPermitidos = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+
+        $limite = (int) $request->query('limite', 10);
+        if (!in_array($limite, $limitesPermitidos, true)) {
+            $limite = 10;
+        }
+
+        $categoria = $request->query('categoria');
+        if ($categoria === 'todas') {
+            $categoria = null;
+        }
+
+        return response()->json(
+            $this->buscarTopProdutos($limite, $categoria)
+        );
     }
 
     private function buscarProdutosEstoqueCritico()
@@ -154,10 +180,15 @@ class DashboardController extends Controller
         ])->sortByDesc('percentual')->values();
     }
 
-    private function buscarTopProdutos()
+    private function buscarTopProdutos(int $limite = 10, ?string $categoria = null)
     {
-        return ItemLote::orderByDesc('quantidade')
-            ->limit(10)
+        $query = ItemLote::orderByDesc('quantidade');
+
+        if (!empty($categoria)) {
+            $query->where('categoria', $categoria);
+        }
+
+        return $query->limit($limite)
             ->get()
             ->map(fn($i) => [
                 'id_produto'     => $i->id_item,

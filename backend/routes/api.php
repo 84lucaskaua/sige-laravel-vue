@@ -88,5 +88,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/usuarios/{id}/status', [UsuarioController::class, 'alternarStatus']);
 
     Route::post('/chatbot', [ChatbotController::class, 'perguntar']);
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+Route::get('/dashboard/top-produtos', [DashboardController::class, 'topProdutos']);
+ 
 
 });
