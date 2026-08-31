@@ -1,13 +1,22 @@
+// Converte "YYYY-MM-DD" em Date local, evitando o bug de fuso horário
+// (new Date("YYYY-MM-DD") interpreta como UTC e pode voltar 1 dia no Brasil)
+function paraDataLocal(dataString) {
+  const [ano, mes, dia] = dataString.split('T')[0].split('-').map(Number)
+  return new Date(ano, mes - 1, dia)
+}
+
 export function formatarData(dataString) {
   if (!dataString) return '—'
 
-  const data = new Date(dataString)
+  const data = paraDataLocal(dataString)
   return data.toLocaleDateString('pt-BR')
 }
 
 export function formatarDataHora(dataString) {
   if (!dataString) return '—'
 
+  // aqui mantém o comportamento original (com hora), pois formatarDataHora
+  // provavelmente lida com timestamps completos (ex: created_at), não datas puras
   const data = new Date(dataString)
   const dataFormatada = data.toLocaleDateString('pt-BR')
   const horaFormatada = data.toLocaleTimeString('pt-BR', {
@@ -20,13 +29,13 @@ export function formatarDataHora(dataString) {
 
 export function estaVencido(dataString) {
   if (!dataString) return false
-  return new Date(dataString) < new Date()
+  return paraDataLocal(dataString) < new Date()
 }
 
 export function proximoDoVencimento(dataString, dias = 30) {
   if (!dataString) return false
 
-  const dataValidade = new Date(dataString)
+  const dataValidade = paraDataLocal(dataString)
   const hoje = new Date()
   const limite = new Date()
   limite.setDate(hoje.getDate() + dias)
