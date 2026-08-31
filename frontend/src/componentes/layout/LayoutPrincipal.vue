@@ -13,7 +13,7 @@
           <img :src="logo" alt="Senac" class="h-8" />
           <div>
             <h1 class="text-base font-bold text-slate-900 dark:text-white">SIGE</h1>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Sistema de Estoque</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Controle total do seu estoque</p>
           </div>
         </div>
         <button
