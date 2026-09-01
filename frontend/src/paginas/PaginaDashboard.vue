@@ -120,7 +120,7 @@
               </div>
             </div>
 
-            <div v-if="resumo.vencendoEm30Dias === 0 && resumo.estoqueCritico === 0" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 rounded-lg p-4">
+                    <div v-if="semAlertas" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 rounded-lg p-4">
               <p class="text-green-600 dark:text-green-400 font-medium">✓ Nenhum alerta crítico</p>
               <p class="text-green-500 dark:text-green-300 text-sm mt-1">Tudo está funcionando perfeitamente</p>
             </div>
@@ -313,7 +313,9 @@ const resumo = ref({
   vencendoEm30Dias: 0,
   totalCategorias:  0,
 })
-
+const semAlertas = computed(() =>
+  resumo.value.vencendoEm30Dias === 0 && resumo.value.estoqueCritico === 0
+)
 let chartLinha = null
 let chartPizza = null
 let ultimosDadosLinha  = []

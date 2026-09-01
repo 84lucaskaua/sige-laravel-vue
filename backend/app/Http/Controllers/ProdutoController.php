@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Produto;
 use App\Models\ItemLote;
 use Illuminate\Http\Request;
 
@@ -9,10 +10,15 @@ class ProdutoController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ItemLote::with('lote');
+        $query = Produto::query()
+            ->withSum('itensLote', 'quantidade')
+            ->with(['itensLote' => function ($q) {
+                $q->whereNotNull('data_validade')->orderBy('data_validade', 'asc');
+            }]);
 
         if ($request->boolean('estoque_baixo')) {
-            $query->whereColumn('quantidade', '<=', 'estoque_minimo');
+            // agora compara o total agregado (via having, depois do withSum) em vez do campo por-lote
+            $query->havingRaw('COALESCE(itens_lote_sum_quantidade, 0) <= estoque_minimo');
         }
 
         if ($request->filled('busca')) {
@@ -22,13 +28,20 @@ class ProdutoController extends Controller
             });
         }
 
-        return response()->json($query->get());
+        $produtos = $query->get()->map(function ($produto) {
+            $produto->quantidade_total   = $produto->itens_lote_sum_quantidade ?? 0;
+            $produto->proxima_validade   = optional($produto->itensLote->first())->data_validade;
+            return $produto;
+        });
+
+        return response()->json($produtos);
     }
 
     public function destroy(int $id)
     {
-        $item = ItemLote::findOrFail($id);
-        $item->delete();
+        // Agora exclui o Produto (e os item_lote em cascata, via FK cascadeOnDelete)
+        $produto = Produto::findOrFail($id);
+        $produto->delete();
 
         return response()->json(['message' => 'Produto excluído com sucesso.']);
     }

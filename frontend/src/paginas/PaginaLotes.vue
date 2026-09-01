@@ -49,6 +49,8 @@
             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'"
           class="px-4 py-2 rounded-t-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5"
           @click="aoClicarTab(lote.id_lote)"
+          @dragover.prevent
+          @drop="aoSoltarNaTab(lote.id_lote)"
         >
           {{ lote.numero_lote }}
         </button>
@@ -90,103 +92,118 @@
           </div>
         </div>
 
-        <!-- Sem itens -->
+           <!-- Sem itens -->
         <div v-if="!loteAtivo.itens || loteAtivo.itens.length === 0" class="text-center py-16">
           <Package class="mx-auto mb-3 text-slate-400 dark:text-slate-600" :size="40" />
           <p class="text-slate-500 dark:text-slate-500">Nenhum item neste lote</p>
         </div>
 
-        <!-- Tabela de itens -->
-        <table v-else class="w-full text-sm">
-          <thead>
-            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <th class="text-left pb-3 font-medium w-6"></th>
-              <th class="text-left pb-3 font-medium">SKU</th>
-              <th class="text-left pb-3 font-medium">Nome</th>
-              <th class="text-left pb-3 font-medium">Qtd</th>
-              <th class="text-left pb-3 font-medium">Validade</th>
-              <th class="text-left pb-3 font-medium">Fornecedor</th>
-              <th class="text-left pb-3 font-medium">Localização</th>
-              <th class="text-left pb-3 font-medium">Status</th>
-              <th class="text-left pb-3 font-medium">Ações</th>
-            </tr>
-          </thead>
-          <draggable
-            :list="itensPaginados"
-            tag="tbody"
-            item-key="id_item"
-            handle=".drag-handle"
-            animation="200"
-            class="divide-y divide-slate-200 dark:divide-slate-800"
-            @end="salvarOrdemItens"
-          >
-            <template #item="{ element: item }">
-              <tr
-                class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer"
-                @click="itemSelecionado = item; modalDetalhesAberto = true"
-              >
-                <td class="py-3" @click.stop>
-                  <span class="drag-handle cursor-grab text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 select-none">⠿</span>
-                </td>
-                <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.sku || '—' }}</td>
-                <td class="py-3 text-slate-900 dark:text-white font-medium">{{ item.nome || '—' }}</td>
+        <!-- Tabela de itens (arrastável com o mouse) -->
+        <div
+          v-else
+          ref="tabelaRef"
+          class="overflow-x-auto cursor-grab select-none"
+          @mousedown="aoIniciar"
+          @mousemove="aoMover"
+          @mouseup="aoSoltar"
+          @mouseleave="aoSoltar"
+        
+       
+>
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+        <th class="text-left pb-3 font-medium w-6"></th>
+        <th class="text-left pb-3 font-medium">SKU</th>
+        <th class="text-left pb-3 font-medium">Nome</th>
+        <th class="text-left pb-3 font-medium">Qtd</th>
+        <th class="text-left pb-3 font-medium">Validade</th>
+        <th class="text-left pb-3 font-medium">Fornecedor</th>
+        <th class="text-left pb-3 font-medium">Localização</th>
+        <th class="text-left pb-3 font-medium">Status</th>
+        <th class="text-left pb-3 font-medium">Ações</th>
+      </tr>
+    </thead>
+    <draggable
+      :list="itensPaginados"
+      tag="tbody"
+      item-key="id_item"
+      handle=".drag-handle"
+      animation="200"
+      class="divide-y divide-slate-200 dark:divide-slate-800"
+      @start="aoIniciarArraste"
+      @end="salvarOrdemItens"
+    >
+      <template #item="{ element: item }">
+        <tr
+          class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer"
+          @click="itemSelecionado = item; modalDetalhesAberto = true"
+        >
+          <td class="py-3" @click.stop>
+            <span class="drag-handle cursor-grab text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 select-none">⠿</span>
+          </td>
+          <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.produto?.sku || '—' }}</td>
+          <td class="py-3 text-slate-900 dark:text-white font-medium">{{ item.produto?.nome || '—' }}</td>
 
-                <td class="py-3">
-                  <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= item.estoque_minimo ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
-                    {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
-                  </span>
-                </td>
+          <td class="py-3">
+            <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= (item.produto?.estoque_minimo ?? 0) ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
+              {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
+            </span>
+          </td>
 
-                <td class="py-3 text-slate-600 dark:text-slate-300">
-                  <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
-                  <span v-else class="text-slate-400 dark:text-slate-500">—</span>
-                </td>
+          <td class="py-3 text-slate-600 dark:text-slate-300">
+            <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
+            <span v-else class="text-slate-400 dark:text-slate-500">—</span>
+          </td>
 
-                <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.fornecedor || '—' }}</td>
-                <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
+          <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.produto?.fornecedor?.nome || '—' }}</td>
+          <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
 
-                <td class="py-3">
-                  <div class="flex items-center gap-1 flex-wrap">
-                    <span v-if="item.data_validade && estaVencido(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
-                      Vencido
-                    </span>
-                    <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
-                      Vencendo
-                    </span>
-                    <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-                      OK
-                    </span>
+          <td class="py-3">
+            <div class="flex items-center gap-1 flex-wrap">
+              <span v-if="item.data_validade && estaVencido(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
+                Vencido
+              </span>
+              <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
+                Vencendo
+              </span>
+              <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+                OK
+              </span>
 
-                    <span v-if="item.quantidade === 0 || item.quantidade <= item.estoque_minimo" class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
-                      Crítico
-                    </span>
-                    <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-                      OK
-                    </span>
-                  </div>
-                </td>
+              <span v-if="item.quantidade === 0 || item.quantidade <= (item.produto?.estoque_minimo ?? 0)" class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
+                Crítico
+              </span>
+              <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+                OK
+              </span>
+            </div>
+          </td>
 
-                <td class="py-3" @click.stop>
-                  <div class="flex items-center gap-3">
-                    <button class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar" @click="itemSelecionado = item; modalEditarAberto = true">
-                      <Pencil :size="16" />
-                    </button>
-                    <button class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque" @click="itemSelecionado = item; modalBaixaAberto = true">
-                      <PackageOpen :size="16" />
-                    </button>
-                    <button class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque" @click="itemSelecionado = item; modalEntradaAberto = true">
-                      <PackagePlus :size="16" />
-                    </button>
-                    <button class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir" @click="itemSelecionado = item; modalExcluirAberto = true">
-                      <Trash2 :size="16" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </template>
-          </draggable>
-        </table>
-
+          <td class="py-3" @click.stop>
+            <div class="flex items-center gap-3">
+              <button class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar" @click="itemSelecionado = item; modalEditarAberto = true">
+                <Pencil :size="16" />
+              </button>
+              <button class="text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition" title="Transferir" @click="iniciarTransferenciaManual(item)">
+                <ArrowRightLeft :size="16" />
+              </button>
+              <button class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque" @click="itemSelecionado = item; modalBaixaAberto = true">
+                <PackageOpen :size="16" />
+              </button>
+              <button class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque" @click="itemSelecionado = item; modalEntradaAberto = true">
+                <PackagePlus :size="16" />
+              </button>
+              <button class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir" @click="itemSelecionado = item; modalExcluirAberto = true">
+                <Trash2 :size="16" />
+              </button>
+            </div>
+          </td>
+        </tr>
+      </template>
+    </draggable>
+  </table>
+</div>
         <!-- Controles de paginação -->
         <div v-if="totalPaginas > 1" class="flex items-center justify-between mt-4 px-1">
           <p class="text-sm text-slate-500 dark:text-slate-400">
@@ -294,6 +311,16 @@
       @salvo="modalEditarAberto = false; carregarLotes()"
     />
 
+    <!-- Modal transferir item -->
+    <ModalTransferirItem
+      v-if="modalTransferirAberto"
+      :item="itemParaTransferir"
+      :lotes="lotes"
+      :lote-destino-inicial="loteDestinoPreSelecionado"
+      @fechar="modalTransferirAberto = false"
+      @salvo="modalTransferirAberto = false; carregarLotes()"
+    />
+
     <!-- Modal baixa de estoque -->
     <ModalBaixaEstoque
       v-if="modalBaixaAberto"
@@ -336,19 +363,24 @@
 <script setup>
 import draggable from 'vuedraggable'
 import { ref, computed, onMounted, watch } from 'vue'
-import { Plus, Shield, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Plus, Shield, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus, ChevronLeft, ChevronRight, ArrowRightLeft } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
+import { useNotificacao } from '@/composables/useNotificacao'
 import ModalLote            from '@/componentes/ui/ModalLote.vue'
 import ModalAdicionarItem   from '@/componentes/ui/ModalAdicionarItem.vue'
 import ModalEditarItem      from '@/componentes/ui/ModalEditarItem.vue'
+import ModalTransferirItem  from '@/componentes/ui/ModalTransferirItem.vue'
 import ModalExcluirItem     from '@/componentes/ui/ModalExcluirItem.vue'
 import ModalDetalhesProduto from '@/componentes/ui/ModalDetalhesProduto.vue'
 import ModalBaixaEstoque    from '@/componentes/ui/ModalBaixaEstoque.vue'
 import ModalEntradaEstoque  from '@/componentes/ui/ModalEntradaEstoque.vue'
 import { formatarData, estaVencido, proximoDoVencimento } from '@/utils/date'
+import { useArrastarParaRolar } from '@/composables/useArrastarParaRolar'
 
+const { elementoRef: tabelaRef, aoIniciar, aoMover, aoSoltar } = useArrastarParaRolar()
 const autenticacao        = useAutenticacaoStore()
+const { sucesso, erro }   = useNotificacao()
 const lotes               = ref([])
 const carregando          = ref(false)
 const modalAberto         = ref(false)
@@ -361,6 +393,12 @@ const modalExcluirAberto  = ref(false)
 const loteSelecionado     = ref(null)
 const itemSelecionado     = ref(null)
 const tabAtiva            = ref(null)
+
+// ===== Transferência de item entre lotes =====
+const modalTransferirAberto     = ref(false)
+const itemArrastado             = ref(null)
+const itemParaTransferir        = ref(null)
+const loteDestinoPreSelecionado = ref(null)
 
 // Formata números com separador de milhar no padrão brasileiro (ex: 17050 -> 17.050)
 function formatNumero(valor) {
@@ -409,6 +447,25 @@ function iniciarAdicaoItem() {
   modalItemAberto.value = true
 }
 
+// ===== Transferência de item entre lotes =====
+function aoIniciarArraste(evt) {
+  itemArrastado.value = itensPaginados.value[evt.oldIndex]
+}
+
+function aoSoltarNaTab(idLoteDestino) {
+  if (!itemArrastado.value || idLoteDestino === tabAtiva.value) return
+  itemParaTransferir.value = itemArrastado.value
+  loteDestinoPreSelecionado.value = idLoteDestino
+  modalTransferirAberto.value = true
+  itemArrastado.value = null
+}
+
+function iniciarTransferenciaManual(item) {
+  itemParaTransferir.value = item
+  loteDestinoPreSelecionado.value = null
+  modalTransferirAberto.value = true
+}
+
 // ===== Exclusão de lote (confirmação simples) =====
 const modalExcluirLoteAberto = ref(false)
 
@@ -421,9 +478,10 @@ async function excluirLote() {
     await api.delete(`/lotes/${loteAtivo.value.id_lote}`)
     tabAtiva.value = null
     modalExcluirLoteAberto.value = false
+    sucesso('Lote excluído com sucesso.')
     await carregarLotes()
   } catch {
-    alert('Erro ao excluir lote.')
+    erro('Erro ao excluir lote.')
   }
 }
 
@@ -436,7 +494,21 @@ async function aoSalvar() {
   fecharModal()
   await carregarLotes()
 }
+async function salvarOrdemItens() {
+  if (!loteAtivo.value?.itens) return
 
+  const itens = itensPaginados.value.map((item, index) => ({
+    id_item: item.id_item,
+    ordem:   index,
+  }))
+
+  try {
+    await api.patch(`/lotes/${loteAtivo.value.id_lote}/itens/reordenar`, { itens })
+  } catch {
+    erro('Não foi possível salvar a nova ordem dos itens.')
+    await carregarLotes()
+  }
+}
 async function carregarLotes() {
   carregando.value = true
   try {
@@ -446,7 +518,7 @@ async function carregarLotes() {
       tabAtiva.value = lotes.value[0].id_lote
     }
   } catch {
-    alert('Não foi possível carregar os lotes.')
+    erro('Não foi possível carregar os lotes.')
   } finally {
     carregando.value = false
   }

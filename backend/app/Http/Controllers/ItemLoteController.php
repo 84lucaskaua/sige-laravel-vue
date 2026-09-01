@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\ItemLote;
+use App\Models\Produto;
 use App\Models\Movimentacao;
 use App\Jobs\RecalcularAbcJob;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ItemLoteController extends Controller
@@ -14,53 +14,74 @@ class ItemLoteController extends Controller
     public function store(Request $request, int $idLote)
     {
         $request->validate([
-            'nome'           => 'required|string|min:2|max:255',
-            'sku'            => 'nullable|string|max:50',
+            'id_produto'     => 'nullable|integer|exists:produto,id_produto',
+            'nome'           => 'required_without:id_produto|string|min:2|max:255',
+            'sku'            => 'required_without:id_produto|string|max:50',
             'quantidade'     => 'required|integer|min:1',
-            'categoria'      => 'required|string',
+            'categoria'      => 'required_without:id_produto|string',
             'data_validade'  => 'nullable|date|after:today|before:2100-01-01',
-            'estoque_minimo' => 'nullable|integer|min:0',
+            'estoque_minimo' => 'required_without:id_produto|integer|min:1',
         ], [
-            'nome.required'          => 'O nome é obrigatório.',
-            'nome.min'               => 'O nome deve ter pelo menos 2 caracteres.',
-            'nome.max'               => 'O nome não pode ter mais de 255 caracteres.',
-            'sku.max'                => 'O SKU não pode ter mais de 50 caracteres.',
-            'quantidade.required'    => 'A quantidade é obrigatória.',
-            'quantidade.integer'     => 'A quantidade deve ser um número inteiro.',
-            'quantidade.min'         => 'A quantidade não pode ser negativa.',
-            'categoria.required'     => 'A categoria é obrigatória.',
-            'data_validade.date'     => 'Informe uma data válida.',
-            'data_validade.after'    => 'A data de validade deve ser futura.',
-            'data_validade.before'   => 'A data de validade informada é inválida.',
-            'estoque_minimo.integer' => 'O estoque mínimo deve ser um número inteiro.',
-            'estoque_minimo.min'     => 'O estoque mínimo não pode ser negativo.',
+            'nome.required_without'           => 'Informe o produto (id_produto) ou os dados de um produto novo.',
+            'categoria.required_without'      => 'A categoria é obrigatória ao cadastrar um produto novo.',
+            'quantidade.required'             => 'A quantidade é obrigatória.',
+            'quantidade.integer'              => 'A quantidade deve ser um número inteiro.',
+            'quantidade.min'                  => 'A quantidade não pode ser negativa.',
+            'data_validade.date'              => 'Informe uma data válida.',
+            'data_validade.after'             => 'A data de validade deve ser futura.',
+            'data_validade.before'            => 'A data de validade informada é inválida.',
+            'estoque_minimo.required_without' => 'O estoque mínimo é obrigatório ao cadastrar um produto novo.',
+            'estoque_minimo.integer'          => 'O estoque mínimo deve ser um número inteiro.',
+            'estoque_minimo.min'              => 'O estoque mínimo deve ser pelo menos 1.',
         ]);
+
+        // Resolve o produto: usa o id_produto informado, ou acha por sku, ou cria um novo
+        if ($request->id_produto) {
+            $idProduto = $request->id_produto;
+        } else {
+            try {
+                $produto = Produto::firstOrCreate(
+                    ['sku' => $request->sku], // condição de busca (usa o UNIQUE)
+                    [
+                        'nome'           => $request->nome,
+                        'unidade_medida' => $request->unidade_medida ?? 'UN',
+                        'estoque_minimo' => $request->estoque_minimo,
+                        'estoque_atual'  => 0,
+                    ]
+                );
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Corrida rara: outro request criou o mesmo SKU entre o firstOrCreate e o commit.
+                // Busca de novo — agora vai achar, porque o UNIQUE garantiu que só existe 1.
+                $produto = Produto::where('sku', $request->sku)->firstOrFail();
+            }
+            $idProduto = $produto->id_produto;
+        }
 
         $ehManual = $request->filled('prioridade_abc');
 
         $item = ItemLote::create([
             'id_lote'           => $idLote,
-            'nome'              => $request->nome,
-            'sku'               => $request->sku,
+            'id_produto'        => $idProduto,
             'quantidade'        => $request->quantidade,
-            'estoque_minimo'    => $request->estoque_minimo ?? 0,
             'unidade_medida'    => $request->unidade_medida ?? 'UN',
             'data_validade'     => $request->data_validade ?: null,
-            'fornecedor'        => $request->fornecedor,
             'localizacao'       => $request->localizacao,
             'prioridade_abc'    => $ehManual ? $request->prioridade_abc : null,
             'prioridade_manual' => $ehManual,
-            'categoria'         => $request->categoria,
         ]);
+
+        // Mantém estoque_atual do produto em sincronia
+        Produto::whereKey($idProduto)->increment('estoque_atual', $request->quantidade);
 
         RecalcularAbcJob::dispatch();
 
-        return response()->json($item->refresh(), 201);
+        return response()->json($item->refresh()->load('produto.fornecedor'), 201);
     }
 
     public function index(int $idLote)
     {
-        $itens = ItemLote::where('id_lote', $idLote)
+        $itens = ItemLote::with('produto.fornecedor')
+            ->where('id_lote', $idLote)
             ->orderBy('ordem')
             ->get();
         return response()->json($itens);
@@ -71,44 +92,34 @@ class ItemLoteController extends Controller
         $item = ItemLote::findOrFail($id);
 
         $request->validate([
-            'nome'           => 'required|string|min:2|max:255',
-            'sku'            => 'nullable|string|max:50',
             'quantidade'     => 'required|integer|min:0',
-            'categoria'      => 'required|string',
-            'data_validade'  => 'nullable|date|after:today|before:2100-01-01',
-            'estoque_minimo' => 'nullable|integer|min:0',
+            'data_validade'  => 'nullable|date|before:2100-01-01',
         ], [
-            'nome.required'          => 'O nome é obrigatório.',
-            'nome.min'               => 'O nome deve ter pelo menos 2 caracteres.',
-            'nome.max'               => 'O nome não pode ter mais de 255 caracteres.',
-            'sku.max'                => 'O SKU não pode ter mais de 50 caracteres.',
-            'quantidade.required'    => 'A quantidade é obrigatória.',
-            'quantidade.integer'     => 'A quantidade deve ser um número inteiro.',
-            'quantidade.min'         => 'A quantidade não pode ser negativa.',
-            'categoria.required'     => 'A categoria é obrigatória.',
-            'data_validade.date'     => 'Informe uma data válida.',
-            'data_validade.after'    => 'A data de validade deve ser futura.',
-            'data_validade.before'   => 'A data de validade informada é inválida.',
-            'estoque_minimo.integer' => 'O estoque mínimo deve ser um número inteiro.',
-            'estoque_minimo.min'     => 'O estoque mínimo não pode ser negativo.',
+            'quantidade.required'  => 'A quantidade é obrigatória.',
+            'quantidade.integer'   => 'A quantidade deve ser um número inteiro.',
+            'quantidade.min'       => 'A quantidade não pode ser negativa.',
+            'data_validade.date'   => 'Informe uma data válida.',
+            'data_validade.before' => 'A data de validade informada é inválida.',
         ]);
 
-        $ehManual = $request->filled('prioridade_abc');
+        $qtdAntiga = $item->quantidade;
+        $ehManual  = $request->filled('prioridade_abc');
 
-        $dados = $request->only([
-            'nome', 'sku', 'quantidade', 'estoque_minimo',
-            'unidade_medida', 'data_validade', 'fornecedor',
-            'localizacao', 'categoria',
-        ]);
-
+        $dados = $request->only(['quantidade', 'unidade_medida', 'data_validade', 'localizacao']);
         $dados['prioridade_manual'] = $ehManual;
         $dados['prioridade_abc']    = $ehManual ? $request->prioridade_abc : null;
 
         $item->update($dados);
 
+        // Ajusta estoque_atual do produto pela diferença
+        $diferenca = $item->quantidade - $qtdAntiga;
+        if ($diferenca !== 0) {
+            Produto::whereKey($item->id_produto)->increment('estoque_atual', $diferenca);
+        }
+
         RecalcularAbcJob::dispatch();
 
-        return response()->json($item->refresh());
+        return response()->json($item->refresh()->load('produto.fornecedor'));
     }
 
     public function baixa(Request $request, int $id)
@@ -126,9 +137,8 @@ class ItemLoteController extends Controller
             'motivo.max'          => 'O motivo não pode ter mais de 255 caracteres.',
         ]);
 
-        $item->update([
-            'quantidade' => $item->quantidade - $request->quantidade,
-        ]);
+        $item->update(['quantidade' => $item->quantidade - $request->quantidade]);
+        Produto::whereKey($item->id_produto)->decrement('estoque_atual', $request->quantidade);
 
         Movimentacao::registrar('SAIDA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
 
@@ -152,6 +162,8 @@ class ItemLoteController extends Controller
         $item = ItemLote::findOrFail($id);
         $item->quantidade += $request->quantidade;
         $item->save();
+
+        Produto::whereKey($item->id_produto)->increment('estoque_atual', $request->quantidade);
 
         Movimentacao::registrar('ENTRADA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
 
@@ -185,8 +197,7 @@ class ItemLoteController extends Controller
 
         DB::transaction(function () use ($request) {
             foreach ($request->itens as $item) {
-                ItemLote::where('id_item', $item['id_item'])
-                    ->update(['ordem' => $item['ordem']]);
+                ItemLote::where('id_item', $item['id_item'])->update(['ordem' => $item['ordem']]);
             }
         });
 
@@ -196,6 +207,9 @@ class ItemLoteController extends Controller
     public function destroy(int $id)
     {
         $item = ItemLote::findOrFail($id);
+
+        Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+
         $item->delete();
 
         RecalcularAbcJob::dispatch();
@@ -212,4 +226,126 @@ class ItemLoteController extends Controller
                 ->get()
         );
     }
+    public function transferir(Request $request, int $id)
+{
+    $itemOrigem = ItemLote::findOrFail($id);
+
+    $request->validate([
+        'id_lote_destino' => 'required|integer|exists:lote,id_lote|different:' . $itemOrigem->id_lote,
+        'quantidade'       => 'required|integer|min:1|max:' . $itemOrigem->quantidade,
+    ], [
+        'id_lote_destino.required'   => 'Selecione o lote de destino.',
+        'id_lote_destino.different'  => 'O lote de destino deve ser diferente do lote atual.',
+        'quantidade.required'        => 'A quantidade é obrigatória.',
+        'quantidade.max'             => 'A quantidade não pode ser maior que a disponível no item.',
+    ]);
+
+    $qtd = $request->quantidade;
+
+    return DB::transaction(function () use ($itemOrigem, $request, $qtd) {
+        // Debita do item de origem
+        $itemOrigem->decrement('quantidade', $qtd);
+
+        // Procura se já existe um item do mesmo produto no lote destino
+        $itemDestino = ItemLote::where('id_lote', $request->id_lote_destino)
+            ->where('id_produto', $itemOrigem->id_produto)
+            ->first();
+
+        if ($itemDestino) {
+    $itemDestino->increment('quantidade', $qtd);
+
+    // Se o destino não tem validade, ou a do item de origem vence antes, usa a mais próxima (FEFO)
+    if (!$itemDestino->data_validade ||
+        ($itemOrigem->data_validade && $itemOrigem->data_validade->lt($itemDestino->data_validade))) {
+        $itemDestino->update(['data_validade' => $itemOrigem->data_validade]);
+    }
+} else {
+            $itemDestino = ItemLote::create([
+                'id_lote'        => $request->id_lote_destino,
+                'id_produto'     => $itemOrigem->id_produto,
+                'quantidade'     => $qtd,
+                'unidade_medida' => $itemOrigem->unidade_medida,
+                'data_validade'  => $itemOrigem->data_validade,
+                'localizacao'    => $itemOrigem->localizacao,
+            ]);
+        }
+        $numeroLoteOrigem  = \App\Models\Lote::find($itemOrigem->id_lote)?->numero_lote ?? $itemOrigem->id_lote;
+$numeroLoteDestino = \App\Models\Lote::find($request->id_lote_destino)?->numero_lote ?? $request->id_lote_destino;
+       Movimentacao::registrar('TRANSFERENCIA', $qtd, $itemOrigem->id_lote, $itemOrigem->id_item,
+    "Transferido para lote {$numeroLoteDestino}");
+Movimentacao::registrar('TRANSFERENCIA', $qtd, $itemDestino->id_lote, $itemDestino->id_item,
+    "Recebido do lote {$numeroLoteOrigem}");
+
+        return response()->json([
+            'item_origem'  => $itemOrigem->refresh()->load('produto.fornecedor'),
+            'item_destino' => $itemDestino->refresh()->load('produto.fornecedor'),
+        ]);
+    });
+}
+}public function transferir(Request $request, int $id)
+{
+    $itemOrigem = ItemLote::findOrFail($id);
+
+    $request->validate([
+        'id_lote_destino' => 'required|integer|exists:lote,id_lote|different:' . $itemOrigem->id_lote,
+        'quantidade'       => 'required|integer|min:1|max:' . $itemOrigem->quantidade,
+    ], [
+        'id_lote_destino.required'   => 'Selecione o lote de destino.',
+        'id_lote_destino.different'  => 'O lote de destino deve ser diferente do lote atual.',
+        'quantidade.required'        => 'A quantidade é obrigatória.',
+        'quantidade.max'             => 'A quantidade não pode ser maior que a disponível no item.',
+    ]);
+
+    // NOVO: impede propagar um item sem validade cadastrada para outro lote.
+    // Sem isso, itens que ficaram sem data_validade (por qualquer motivo) espalham
+    // o problema silenciosamente a cada transferência.
+    if (!$itemOrigem->data_validade) {
+        return response()->json([
+            'message' => 'Este item não possui data de validade cadastrada. Atualize a validade do item antes de transferi-lo.'
+        ], 422);
+    }
+
+    $qtd = $request->quantidade;
+
+    return DB::transaction(function () use ($itemOrigem, $request, $qtd) {
+        // Debita do item de origem
+        $itemOrigem->decrement('quantidade', $qtd);
+
+        // Procura se já existe um item do mesmo produto no lote destino
+        $itemDestino = ItemLote::where('id_lote', $request->id_lote_destino)
+            ->where('id_produto', $itemOrigem->id_produto)
+            ->first();
+
+        if ($itemDestino) {
+            $itemDestino->increment('quantidade', $qtd);
+
+            // Se o destino não tem validade, ou a do item de origem vence antes, usa a mais próxima (FEFO)
+            if (!$itemDestino->data_validade ||
+                ($itemOrigem->data_validade && $itemOrigem->data_validade->lt($itemDestino->data_validade))) {
+                $itemDestino->update(['data_validade' => $itemOrigem->data_validade]);
+            }
+        } else {
+            $itemDestino = ItemLote::create([
+                'id_lote'        => $request->id_lote_destino,
+                'id_produto'     => $itemOrigem->id_produto,
+                'quantidade'     => $qtd,
+                'unidade_medida' => $itemOrigem->unidade_medida,
+                'data_validade'  => $itemOrigem->data_validade,
+                'localizacao'    => $itemOrigem->localizacao,
+            ]);
+        }
+
+        $numeroLoteOrigem  = \App\Models\Lote::find($itemOrigem->id_lote)?->numero_lote ?? $itemOrigem->id_lote;
+        $numeroLoteDestino = \App\Models\Lote::find($request->id_lote_destino)?->numero_lote ?? $request->id_lote_destino;
+
+        Movimentacao::registrar('TRANSFERENCIA', $qtd, $itemOrigem->id_lote, $itemOrigem->id_item,
+            "Transferido para lote {$numeroLoteDestino}");
+        Movimentacao::registrar('TRANSFERENCIA', $qtd, $itemDestino->id_lote, $itemDestino->id_item,
+            "Recebido do lote {$numeroLoteOrigem}");
+
+        return response()->json([
+            'item_origem'  => $itemOrigem->refresh()->load('produto.fornecedor'),
+            'item_destino' => $itemDestino->refresh()->load('produto.fornecedor'),
+        ]);
+    });
 }

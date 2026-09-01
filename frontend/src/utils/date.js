@@ -15,9 +15,7 @@ export function formatarData(dataString) {
 export function formatarDataHora(dataString) {
   if (!dataString) return '—'
 
-  // aqui mantém o comportamento original (com hora), pois formatarDataHora
-  // provavelmente lida com timestamps completos (ex: created_at), não datas puras
-  const data = new Date(dataString)
+  const data = new Date(dataString.replace(' ', 'T'))
   const dataFormatada = data.toLocaleDateString('pt-BR')
   const horaFormatada = data.toLocaleTimeString('pt-BR', {
     hour: '2-digit',

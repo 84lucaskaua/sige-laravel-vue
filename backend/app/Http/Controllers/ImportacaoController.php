@@ -174,28 +174,17 @@ class ImportacaoController extends Controller
                     ? $codigo
                     : 'GEN-' . strtoupper(substr(preg_replace('/[^A-Z0-9]/i', '', $descricao), 0, 12));
 
-                $produto = Produto::where('sku', $sku)->first();
-                if (!$produto) {
-                    $produto = Produto::create([
-                        'nome'           => $descricao,
-                        'sku'            => $sku,
-                        'unidade_medida' => $unidade ?: 'UN',
-                        'preco_custo'    => 0,
-                        'estoque_minimo' => 0,
-                        'estoque_atual'  => 0,
-                        'prioridade_abc' => 'C',
-                        'id_categoria'   => null,
-                        'id_fornecedor'  => null,
-                    ]);
-                }
+                // Apenas consulta — nunca cria o produto no preview
+                $produtoExistente = Produto::where('sku', $sku)->first();
 
                 $itens[] = [
-                    'produto_id' => $produto->id_produto,
-                    'sku'        => $sku,
-                    'nome'       => $descricao,
-                    'unidade'    => $unidade ?: 'UN',
-                    'quantidade' => $quantidade,
-                    'validade'   => $dataValidade,
+                    'produto_id'        => $produtoExistente->id_produto ?? null, // null = produto novo
+                    'sku'               => $sku,
+                    'nome'              => $descricao,
+                    'unidade'           => $unidade ?: 'UN',
+                    'quantidade'        => $quantidade,
+                    'validade'          => $dataValidade,
+                    'produto_existente' => (bool) $produtoExistente, // útil pro frontend avisar na tabela
                 ];
             }
 
@@ -282,37 +271,48 @@ class ImportacaoController extends Controller
         foreach ($itens as $it) {
             if ((int) $it['quantidade'] <= 0) continue;
 
-            $produto = Produto::where('sku', $it['sku'])->first();
+            // Resolve o produto AGORA (na confirmação), de forma atômica — não no preview
+            $produto = Produto::firstOrCreate(
+                ['sku' => $it['sku']],
+                [
+                    'nome'           => $it['nome'],
+                    'unidade_medida' => $it['unidade'] ?? 'UN',
+                    'preco_custo'    => 0,
+                    'estoque_minimo' => 0,
+                    'estoque_atual'  => 0,
+                    'prioridade_abc' => 'C',
+                    'id_categoria'   => null,
+                    'id_fornecedor'  => null,
+                ]
+            );
 
+            $validadeItem = $it['validade'] ?? $dataValidade;
+
+            // Agrupa por PRODUTO + VALIDADE, não por SKU sozinho — preserva lotes com validades diferentes
             $item = ItemLote::where('id_lote', $lote->id_lote)
-                ->where('sku', $it['sku'])
+                ->where('id_produto', $produto->id_produto)
+                ->where('data_validade', $validadeItem)
                 ->first();
 
             if ($item) {
                 $item->increment('quantidade', $it['quantidade']);
             } else {
-                ItemLote::create([
+                $item = ItemLote::create([
                     'id_lote'           => $lote->id_lote,
-                    'nome'              => $it['nome'],
-                    'sku'               => $it['sku'],
+                    'id_produto'        => $produto->id_produto,
                     'quantidade'        => $it['quantidade'],
-                    'estoque_minimo'    => 0,
                     'unidade_medida'    => $it['unidade'] ?? 'UN',
-                    'data_validade'     => $it['validade'] ?? $dataValidade,
-                    'fornecedor'        => null,
+                    'data_validade'     => $validadeItem,
                     'localizacao'       => null,
-                    'prioridade_abc'    => 'C',
-                    'prioridade_manual' => null,
-                    'categoria'         => null,
+                    'prioridade_abc'    => null,
+                    'prioridade_manual' => false,
                 ]);
             }
 
             $lote->increment('quantidade', $it['quantidade']);
-            if ($produto) {
-                $produto->increment('estoque_atual', $it['quantidade']);
-            }
+            $produto->increment('estoque_atual', $it['quantidade']);
 
-            Movimentacao::registrar('ENTRADA', $it['quantidade'], $lote->id_lote, null, 'Importação via planilha Excel');
+            Movimentacao::registrar('ENTRADA', $it['quantidade'], $lote->id_lote, $item->id_item ?? null, 'Importação via planilha Excel');
         }
 
         return $lote;

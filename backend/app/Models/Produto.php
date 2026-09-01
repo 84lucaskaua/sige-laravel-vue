@@ -11,10 +11,24 @@ class Produto extends Model {
     public function categoria() {
         return $this->belongsTo(Categoria::class, 'id_categoria');
     }
+
     public function fornecedor() {
         return $this->belongsTo(Fornecedor::class, 'id_fornecedor');
     }
+
     public function lotes() {
         return $this->hasMany(Lote::class, 'id_produto');
+    }
+
+    // NOVO: cada "entrada" com validade/quantidade própria fica aqui
+    public function itensLote() {
+        return $this->hasMany(ItemLote::class, 'id_produto');
+    }
+
+    // Item de lote com validade mais próxima (útil pra badge FEFO na listagem)
+    public function proximoVencimento() {
+        return $this->hasOne(ItemLote::class, 'id_produto')
+            ->whereNotNull('data_validade')
+            ->orderBy('data_validade', 'asc');
     }
 }

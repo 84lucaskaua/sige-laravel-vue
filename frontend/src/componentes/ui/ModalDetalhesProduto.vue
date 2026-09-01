@@ -17,11 +17,13 @@
       <div class="grid grid-cols-2 gap-6 mb-6">
         <div>
           <p class="text-sky-600 dark:text-sky-400 text-xs mb-1">Código / SKU</p>
-          <p class="text-slate-900 dark:text-white font-bold">{{ item.sku || '—' }}</p>
+          <p class="text-slate-900 dark:text-white font-bold">{{ item.produto?.sku || '—' }}</p>
         </div>
         <div>
-          <p class="text-sky-600 dark:text-sky-400 text-xs mb-1">Nome do Produto</p>
-          <p class="text-slate-900 dark:text-white font-bold">{{ item.nome || '—' }}</p>
+        <div>
+  <p class="text-sky-600 dark:text-sky-400 text-xs mb-1">Nome do Produto</p>
+  <p class="text-slate-900 dark:text-white font-bold">{{ item.produto?.nome || '—' }}</p>
+</div>
         </div>
         <div>
           <p class="text-sky-600 dark:text-sky-400 text-xs mb-1">Lote</p>
@@ -44,7 +46,7 @@
             class="px-2 py-0.5 rounded text-xs font-bold bg-red-800 text-white"
           >Sem Estoque</span>
           <span
-            v-else-if="item.quantidade <= item.estoque_minimo"
+           v-else-if="item.quantidade <= (item.produto?.estoque_minimo ?? 0)"
             class="px-2 py-0.5 rounded text-xs font-bold bg-orange-600 text-white"
           >Crítico</span>
           <span
@@ -62,7 +64,7 @@
         </div>
         <div>
           <p class="text-sky-600 dark:text-sky-400 text-xs mb-1">Fornecedor</p>
-          <p class="text-slate-700 dark:text-white">{{ item.fornecedor || '—' }}</p>
+         <p class="text-slate-700 dark:text-white">{{ item.produto?.fornecedor?.nome || '—' }}</p>
         </div>
         <div>
           <p class="text-sky-600 dark:text-sky-400 text-xs mb-1">Localização / Prateleira</p>
@@ -125,16 +127,18 @@
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
             <tr v-for="mov in historico" :key="mov.id" class="hover:bg-slate-100 dark:hover:bg-slate-800/40 transition">
-             <td class="py-2 text-slate-600 dark:text-slate-300">{{ formatarData(mov.data_movimentacao) }}</td>
+           <td class="py-2 text-slate-600 dark:text-slate-300">{{ formatarDataHora(mov.data_movimentacao) }}</td>
 <td class="py-2">
-  <span
-    :class="mov.tipo === 'ENTRADA'
-      ? 'bg-green-700 text-white'
+ <span
+  :class="mov.tipo === 'ENTRADA'
+    ? 'bg-green-700 text-white'
+    : mov.tipo === 'TRANSFERENCIA'
+      ? 'bg-purple-600 text-white'
       : 'bg-red-600 text-white'"
-    class="px-2 py-0.5 rounded text-xs font-bold capitalize"
-  >
-    {{ mov.tipo === 'ENTRADA' ? 'Entrada' : 'Saída' }}
-  </span>
+  class="px-2 py-0.5 rounded text-xs font-bold capitalize"
+>
+  {{ mov.tipo === 'ENTRADA' ? 'Entrada' : mov.tipo === 'TRANSFERENCIA' ? 'Transferência' : 'Saída' }}
+</span>
 </td>
 <td
   class="py-2"
@@ -156,7 +160,7 @@
 import { ref, onMounted } from 'vue'
 import { X, Pencil, PackageOpen, PackagePlus, Trash2 } from 'lucide-vue-next'
 import api from '@/servicos/api'
-import { formatarData, estaVencido, proximoDoVencimento } from '@/utils/date'
+import { formatarData, formatarDataHora, estaVencido, proximoDoVencimento } from '@/utils/date'
 
 const props = defineProps({
   item:        { type: Object, required: true },

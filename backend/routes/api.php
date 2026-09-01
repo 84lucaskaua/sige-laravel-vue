@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/itens/{id}',             [ItemLoteController::class, 'update']);
     Route::patch('/itens/{id}/baixa',     [ItemLoteController::class, 'baixa']);
     Route::patch('/itens/{id}/entrada',   [ItemLoteController::class, 'entrada']);
+    Route::patch('/itens/{id}/transferir', [ItemLoteController::class, 'transferir']);
     Route::patch('/lotes/{idLote}/itens/reordenar', [ItemLoteController::class, 'reordenar']);
     Route::delete('/itens/{id}',          [ItemLoteController::class, 'destroy']);
     Route::get('/itens/{id}/historico',   [ItemLoteController::class, 'historico']);
@@ -81,7 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/audit-logs',        [AuditLogController::class, 'index']);
     Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
-
+Route::post('/itens-lote/{id}/transferir', [ItemLoteController::class, 'transferir']);
     Route::get('/usuarios', [UsuarioController::class, 'index']);
     Route::post('/usuarios', [UsuarioController::class, 'store']);
     Route::put('/usuarios/{id}', [UsuarioController::class, 'update']);

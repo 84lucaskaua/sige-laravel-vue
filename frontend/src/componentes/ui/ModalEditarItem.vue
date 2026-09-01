@@ -5,25 +5,24 @@
       <div class="flex justify-between items-center mb-6">
         <div>
           <h2 class="text-lg font-bold text-slate-900 dark:text-white">Editar Item</h2>
-          <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Modifique as informações do produto.</p>
+          <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Modifique quantidade, unidade, validade e localização.</p>
         </div>
         <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="$emit('fechar')">
           <X :size="20" />
         </button>
       </div>
 
-      <form @submit.prevent="salvar">
+      <!-- Dados do produto: somente leitura. Editar nome/SKU/categoria/fornecedor é feito na tela de Produtos. -->
+      <div class="mb-5 p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm">
+        <p class="text-slate-900 dark:text-white font-medium">{{ item.produto?.nome || '—' }}</p>
+        <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+          SKU: {{ item.produto?.sku || '—' }}
+          <span v-if="item.produto?.categoria?.nome"> · Categoria: {{ item.produto.categoria.nome }}</span>
+          <span v-if="item.produto?.fornecedor?.nome"> · Fornecedor: {{ item.produto.fornecedor.nome }}</span>
+        </p>
+      </div>
 
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="label">Código / SKU *</label>
-            <input v-model="form.sku" type="text" class="campo" placeholder="Ex: PROD001" />
-          </div>
-          <div>
-            <label class="label">Nome do Produto *</label>
-            <input v-model="form.nome" type="text" required class="campo" placeholder="Ex: Arroz Integral" />
-          </div>
-        </div>
+      <form @submit.prevent="salvar">
 
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
@@ -49,19 +48,8 @@
 
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <label class="label">Estoque Mínimo</label>
-            <input v-model.number="form.estoque_minimo" type="number" min="0" class="campo" />
-          </div>
-          <div>
-            <label class="label">Validade *</label>
+            <label class="label">Validade</label>
             <input v-model="form.data_validade" type="date" class="campo campo-data" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="label">Fornecedor</label>
-            <input v-model="form.fornecedor" type="text" class="campo" placeholder="Ex: Fornecedor ABC" />
           </div>
           <div>
             <label class="label">Localização / Prateleira</label>
@@ -69,7 +57,7 @@
           </div>
         </div>
 
-        <div class="mb-4">
+        <div class="mb-6">
           <label class="label">Prioridade Manual</label>
           <select v-model="form.prioridade_abc" class="campo">
             <option value="">Automática</option>
@@ -77,31 +65,6 @@
             <option value="B">B — Média</option>
             <option value="C">C — Baixa</option>
           </select>
-        </div>
-
-        <div class="mb-6">
-          <label class="label">Categoria *</label>
-          <select v-model="form.categoria" required class="campo">
-            <option value="" disabled>Selecione uma categoria *</option>
-            <option value="Medicina">Medicina</option>
-            <option value="Enfermagem">Enfermagem</option>
-            <option value="Odontologia">Odontologia</option>
-            <option value="Laboratório">Laboratório</option>
-            <option value="Higiene e Antissepsia">Higiene e Antissepsia</option>
-            <option value="Estética">Estética</option>
-            <option value="Podologia">Podologia</option>
-            <option value="Equipamentos">Equipamentos</option>
-            <option value="Consumíveis">Consumíveis</option>
-            <option value="Outros">Outros</option>
-          </select>
-          <input
-            v-if="form.categoria === 'Outros'"
-            v-model="form.categoria_outros"
-            type="text"
-            required
-            class="campo mt-2"
-            placeholder="Digite a categoria"
-          />
         </div>
 
         <div v-if="erro" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">
@@ -143,39 +106,20 @@ const emit = defineEmits(['fechar', 'salvo'])
 const salvando = ref(false)
 const erro     = ref('')
 
-const categoriasPadrao = [
-  'Medicina', 'Enfermagem', 'Odontologia', 'Laboratório',
-  'Higiene e Antissepsia', 'Estética', 'Podologia',
-  'Equipamentos', 'Consumíveis',
-]
-
-const categoriaEhPadrao = categoriasPadrao.includes(props.item.categoria)
-
+// Só campos que o backend (ItemLoteController@update) realmente salva
 const form = ref({
-  sku:              props.item.sku            || '',
-  nome:             props.item.nome           || '',
-  quantidade:       props.item.quantidade     ?? null,
-  unidade_medida:   props.item.unidade_medida || 'UN',
-  estoque_minimo:   props.item.estoque_minimo ?? 0,
-  data_validade:    props.item.data_validade  || '',
-  fornecedor:       props.item.fornecedor     || '',
-  localizacao:      props.item.localizacao    || '',
-  prioridade_abc:   props.item.prioridade_abc || '',
-  categoria:        categoriaEhPadrao || !props.item.categoria ? (props.item.categoria || '') : 'Outros',
-  categoria_outros: categoriaEhPadrao || !props.item.categoria ? '' : props.item.categoria,
+  quantidade:      props.item.quantidade     ?? null,
+  unidade_medida:  props.item.unidade_medida || 'UN',
+  data_validade:   props.item.data_validade  || '',
+  localizacao:     props.item.localizacao    || '',
+  prioridade_abc:  props.item.prioridade_abc || '',
 })
 
 async function salvar() {
   erro.value     = ''
   salvando.value = true
   try {
-    const dados = { ...form.value }
-    if (dados.categoria === 'Outros') {
-      dados.categoria = dados.categoria_outros
-    }
-    delete dados.categoria_outros
-
-    await api.put(`/itens/${props.item.id_item}`, dados)
+    await api.put(`/itens/${props.item.id_item}`, form.value)
     emit('salvo')
   } catch (e) {
     const erros = e.response?.data?.errors
@@ -213,7 +157,6 @@ option {
   background: var(--card);
   color: var(--foreground);
 }
-/* input[type=date] usa ícone nativo do navegador — precisa inverter no dark */
 .campo-data {
   color-scheme: light;
 }

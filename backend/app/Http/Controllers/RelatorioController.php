@@ -11,13 +11,13 @@ class RelatorioController extends Controller
     // Posição atual do estoque agrupada por item
     public function estoque()
     {
-        $itens = ItemLote::all()->map(fn($item) => [
-            'produto_id'      => $item->id_item,
-            'nome'            => $item->nome,
-            'categoria'       => $item->categoria ?? '—',
+        $itens = ItemLote::with(['produto.categoria'])->get()->map(fn($item) => [
+            'produto_id'       => $item->id_item,
+            'nome'             => $item->produto?->nome,
+            'categoria'        => $item->produto?->categoria?->nome ?? '—',
             'quantidade_total' => $item->quantidade,
-            'estoque_minimo'  => $item->estoque_minimo ?? 0,
-            'unidade'         => $item->unidade_medida ?? 'UN',
+            'estoque_minimo'   => $item->produto?->estoque_minimo ?? 0,
+            'unidade'          => $item->unidade_medida ?? 'UN',
         ]);
 
         return response()->json($itens);
@@ -31,14 +31,14 @@ class RelatorioController extends Controller
         $itens = ItemLote::whereNotNull('data_validade')
             ->where('data_validade', '<=', $limite)
             ->where('quantidade', '>', 0)
-            ->with('lote')
+            ->with(['lote', 'produto'])
             ->get()
             ->map(fn($item) => [
-                'id'       => $item->id_item,
-                'produto'  => ['nome' => $item->nome, 'unidade' => $item->unidade_medida],
-                'lote'     => ['numero' => $item->lote?->numero_lote ?? '—'],
+                'id'         => $item->id_item,
+                'produto'    => ['nome' => $item->produto?->nome, 'unidade' => $item->unidade_medida],
+                'lote'       => ['numero' => $item->lote?->numero_lote ?? '—'],
                 'quantidade' => $item->quantidade,
-                'validade' => $item->data_validade,
+                'validade'   => $item->data_validade,
             ]);
 
         return response()->json($itens);
@@ -47,7 +47,7 @@ class RelatorioController extends Controller
     // Log de auditoria baseado nas movimentações
     public function auditoria()
     {
-        $logs = Movimentacao::with(['item', 'usuario'])
+        $logs = Movimentacao::with(['item.produto', 'usuario'])
             ->orderBy('data_movimentacao', 'desc')
             ->limit(200)
             ->get()
@@ -56,7 +56,7 @@ class RelatorioController extends Controller
                 'usuario'  => ['nome' => $m->usuario?->name ?? 'Sistema'],
                 'acao'     => $m->tipo,
                 'detalhes' => [
-                    'produto'    => $m->item?->nome ?? '—',
+                    'produto'    => $m->item?->produto?->nome ?? '—',
                     'quantidade' => $m->quantidade,
                     'observacao' => $m->observacao ?? '—',
                 ],
@@ -65,9 +65,10 @@ class RelatorioController extends Controller
 
         return response()->json($logs);
     }
+
     public function itens()
-{
-    $itens = ItemLote::with('lote')->get();
-    return response()->json($itens);
-}
+    {
+        $itens = ItemLote::with(['lote', 'produto'])->get();
+        return response()->json($itens);
+    }
 }

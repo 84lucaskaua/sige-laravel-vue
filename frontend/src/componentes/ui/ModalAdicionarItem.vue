@@ -16,12 +16,27 @@
 
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <label class="label">Código / SKU</label>
-            <input v-model="form.sku" type="text" class="campo" placeholder="Ex: PROD001" />
+            <label class="label">Código / SKU *</label>
+            <input v-model="form.sku" type="text" required class="campo" placeholder="Ex: PROD001" />
+            <p v-if="buscandoProduto" class="text-xs text-slate-400 mt-1">Buscando...</p>
+            <p v-else-if="produtoEncontrado" class="text-xs text-green-600 dark:text-green-400 mt-1">
+              ✓ Produto existente: {{ produtoEncontrado.nome }} (estoque atual: {{ produtoEncontrado.estoque_atual }})
+            </p>
+            <p v-else-if="form.sku && form.sku.length >= 2" class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+              Nenhum produto encontrado — será cadastrado como novo.
+            </p>
           </div>
           <div>
             <label class="label">Nome do Produto *</label>
-            <input v-model="form.nome" type="text" required class="campo" placeholder="Ex: Arroz Integral" />
+            <input
+              v-model="form.nome"
+              type="text"
+              required
+              :disabled="!!produtoEncontrado"
+              class="campo"
+              :class="{ 'opacity-60 cursor-not-allowed': produtoEncontrado }"
+              placeholder="Ex: Arroz Integral"
+            />
           </div>
         </div>
 
@@ -48,9 +63,9 @@
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="label">Estoque Mínimo</label>
-            <input v-model.number="form.estoque_minimo" type="number" min="0" class="campo" placeholder="Ex: 10" />
+          <div v-if="!produtoEncontrado">
+            <label class="label">Estoque Mínimo *</label>
+            <input v-model.number="form.estoque_minimo" type="number" min="1" required class="campo" placeholder="Ex: 10" />
           </div>
           <div>
             <label class="label">Validade *</label>
@@ -69,17 +84,7 @@
           </div>
         </div>
 
-        <div class="mb-4">
-          <label class="label">Prioridade Manual</label>
-          <select v-model="form.prioridade_abc" class="campo">
-            <option value="">Automática</option>
-            <option value="A">A — Alta</option>
-            <option value="B">B — Média</option>
-            <option value="C">C — Baixa</option>
-          </select>
-        </div>
-
-        <div class="mb-6">
+        <div v-if="!produtoEncontrado" class="mb-6">
           <label class="label">Categoria *</label>
           <select v-model="form.categoria" required class="campo">
             <option value="" disabled>Selecione uma categoria *</option>
@@ -131,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { X } from 'lucide-vue-next'
 import api from '@/servicos/api'
 
@@ -143,18 +148,46 @@ const emit = defineEmits(['fechar', 'salvo'])
 const salvando = ref(false)
 const erro     = ref('')
 
+// form precisa ser declarado ANTES do watch que o usa
 const form = ref({
   sku:              '',
   nome:             '',
   quantidade:       null,
   unidade_medida:   'UN',
-  estoque_minimo:   0,
+  estoque_minimo:   null,
   data_validade:    '',
   fornecedor:       '',
   localizacao:      '',
   prioridade_abc:   '',
   categoria:        '',
   categoria_outros: '',
+})
+
+// ===== Busca de produto por SKU =====
+const buscandoProduto   = ref(false)
+const produtoEncontrado = ref(null) // null = ainda não buscou / não achou
+let debounceTimer = null
+
+watch(() => form.value.sku, (sku) => {
+  produtoEncontrado.value = null
+  clearTimeout(debounceTimer)
+  if (!sku || sku.trim().length < 2) return
+
+  debounceTimer = setTimeout(async () => {
+    buscandoProduto.value = true
+    try {
+      const { data } = await api.get('/produtos/buscar-por-sku', { params: { sku } })
+      produtoEncontrado.value = data // backend retorna null se não achar
+      if (produtoEncontrado.value) {
+        // autopreenche pra exibir, mas esses campos ficam readonly/ocultos no template
+        form.value.nome = produtoEncontrado.value.nome
+      }
+    } catch {
+      produtoEncontrado.value = null
+    } finally {
+      buscandoProduto.value = false
+    }
+  }, 400)
 })
 
 const temAlteracoes = computed(() => {
@@ -187,14 +220,29 @@ async function salvar() {
     erro.value = 'A data de validade é obrigatória.'
     return
   }
+  if (!form.value.sku) {
+    erro.value = 'O SKU é obrigatório — use um SKU existente ou defina um novo para o produto.'
+    return
+  }
 
   salvando.value = true
   try {
     const dados = { ...form.value }
-    if (dados.categoria === 'Outros') {
-      dados.categoria = dados.categoria_outros
+
+    if (produtoEncontrado.value) {
+      // produto já existe: manda só o id_produto + quantidade/validade/localização
+      dados.id_produto = produtoEncontrado.value.id_produto
+      delete dados.nome
+      delete dados.categoria
+      delete dados.categoria_outros
+      delete dados.fornecedor
+      delete dados.estoque_minimo
+    } else {
+      if (dados.categoria === 'Outros') {
+        dados.categoria = dados.categoria_outros
+      }
+      delete dados.categoria_outros
     }
-    delete dados.categoria_outros
 
     await api.post(`/lotes/${props.lote.id_lote}/itens`, dados)
     emit('salvo')
