@@ -141,10 +141,10 @@ PROMPT;
     private function chamarAnthropic(string $systemPrompt, array $messages, array $tools): ?array
     {
         $response = Http::withHeaders([
-                'x-api-key' => config('services.anthropic.api_key'),
-                'anthropic-version' => '2023-06-01',
-                'content-type' => 'application/json',
-            ])
+            'x-api-key' => config('services.anthropic.api_key'),
+            'anthropic-version' => '2023-06-01',
+            'content-type' => 'application/json',
+        ])
             ->timeout(15)
             ->post('https://api.anthropic.com/v1/messages', [
                 'model' => self::MODELO,
@@ -192,8 +192,9 @@ PROMPT;
     private function dadosListarProdutos(): array
     {
         return DB::table('item_lote')
-            ->select('nome', 'quantidade', 'unidade_medida')
-            ->orderBy('nome')
+            ->join('produto', 'item_lote.id_produto', '=', 'produto.id_produto')
+            ->select('produto.nome', 'item_lote.quantidade', 'item_lote.unidade_medida')
+            ->orderBy('produto.nome')
             ->limit(30)
             ->get()
             ->toArray();
@@ -202,10 +203,11 @@ PROMPT;
     private function dadosVencimentos(): array
     {
         return DB::table('item_lote')
-            ->whereNotNull('data_validade')
-            ->where('data_validade', '<=', now()->addDays(7))
-            ->orderBy('data_validade')
-            ->select('nome', 'quantidade', 'unidade_medida', 'data_validade')
+            ->join('produto', 'item_lote.id_produto', '=', 'produto.id_produto')
+            ->whereNotNull('item_lote.data_validade')
+            ->where('item_lote.data_validade', '<=', now()->addDays(7))
+            ->orderBy('item_lote.data_validade')
+            ->select('produto.nome', 'item_lote.quantidade', 'item_lote.unidade_medida', 'item_lote.data_validade')
             ->limit(15)
             ->get()
             ->toArray();
@@ -214,8 +216,9 @@ PROMPT;
     private function dadosEstoqueCritico(): array
     {
         return DB::table('item_lote')
-            ->whereColumn('quantidade', '<=', 'estoque_minimo')
-            ->select('nome', 'quantidade', 'estoque_minimo', 'unidade_medida')
+            ->join('produto', 'item_lote.id_produto', '=', 'produto.id_produto')
+            ->whereColumn('item_lote.quantidade', '<=', 'produto.estoque_minimo')
+            ->select('produto.nome', 'item_lote.quantidade', 'produto.estoque_minimo', 'item_lote.unidade_medida')
             ->limit(15)
             ->get()
             ->toArray();
@@ -252,8 +255,9 @@ PROMPT;
         }
 
         $itens = DB::table('item_lote')
-            ->where('nome', 'like', "%{$termo}%")
-            ->select('nome', 'quantidade', 'unidade_medida', 'estoque_minimo')
+            ->join('produto', 'item_lote.id_produto', '=', 'produto.id_produto')
+            ->where('produto.nome', 'like', "%{$termo}%")
+            ->select('produto.nome', 'item_lote.quantidade', 'item_lote.unidade_medida', 'produto.estoque_minimo')
             ->limit(10)
             ->get();
 
@@ -264,12 +268,14 @@ PROMPT;
         return $this->buscarProdutoFuzzy($termo)->toArray();
     }
 
+
     private function buscarProdutoFuzzy(string $termo)
     {
         $termoNorm = $this->singularizar($this->normalizar($termo));
 
         $todos = DB::table('item_lote')
-            ->select('nome', 'quantidade', 'unidade_medida', 'estoque_minimo')
+            ->join('produto', 'item_lote.id_produto', '=', 'produto.id_produto')
+            ->select('produto.nome', 'item_lote.quantidade', 'item_lote.unidade_medida', 'produto.estoque_minimo')
             ->get();
 
         $comDistancia = $todos->map(function ($item) use ($termoNorm) {
@@ -301,29 +307,71 @@ PROMPT;
         $pergunta = $this->normalizar($mensagemOriginal);
 
         if ($this->contem($pergunta, [
-            'obrigado', 'obrigada', 'valeu', 'vlw', 'brigado', 'brigada', 'thanks',
-            'tchau', 'ate mais', 'ate logo', 'falou', 'flw',
+            'obrigado',
+            'obrigada',
+            'valeu',
+            'vlw',
+            'brigado',
+            'brigada',
+            'thanks',
+            'tchau',
+            'ate mais',
+            'ate logo',
+            'falou',
+            'flw',
         ])) {
             return $this->responder('De nada! Qualquer coisa é só chamar. 😊');
         }
 
         if ($this->contem($pergunta, [
-            'oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'eae', 'e ai',
-            'tudo bem', 'blz', 'beleza', 'salve', 'opa', 'fala',
-            'como vc esta', 'como voce esta', 'como vc ta', 'como voce ta',
-            'tudo certo', 'tudo joia', 'tudo tranquilo', 'suave',
-            'quem e vc', 'quem e voce', 'o que vc faz', 'o que voce faz',
-            'me ajuda', 'pode me ajudar', 'preciso de ajuda',
-            'o que vc sabe fazer', 'quais comandos', 'como funciona',
+            'oi',
+            'ola',
+            'bom dia',
+            'boa tarde',
+            'boa noite',
+            'eae',
+            'e ai',
+            'tudo bem',
+            'blz',
+            'beleza',
+            'salve',
+            'opa',
+            'fala',
+            'como vc esta',
+            'como voce esta',
+            'como vc ta',
+            'como voce ta',
+            'tudo certo',
+            'tudo joia',
+            'tudo tranquilo',
+            'suave',
+            'quem e vc',
+            'quem e voce',
+            'o que vc faz',
+            'o que voce faz',
+            'me ajuda',
+            'pode me ajudar',
+            'preciso de ajuda',
+            'o que vc sabe fazer',
+            'quais comandos',
+            'como funciona',
         ])) {
             return $this->responder('Oi! Posso te ajudar com informações sobre estoque, validades, perdas e movimentações. O que você quer saber?');
         }
 
         if ($this->contem($pergunta, [
-            'quais sao os produtos', 'quais os produtos', 'liste os produtos',
-            'listar produtos', 'lista de produtos', 'todos os produtos',
-            'quais produtos', 'me mostra os produtos', 'produtos cadastrados',
-            'quais itens', 'lista de itens', 'o que tem no estoque',
+            'quais sao os produtos',
+            'quais os produtos',
+            'liste os produtos',
+            'listar produtos',
+            'lista de produtos',
+            'todos os produtos',
+            'quais produtos',
+            'me mostra os produtos',
+            'produtos cadastrados',
+            'quais itens',
+            'lista de itens',
+            'o que tem no estoque',
             'o que tem em estoque',
         ])) {
             $itens = $this->dadosListarProdutos();
@@ -335,8 +383,15 @@ PROMPT;
         }
 
         if ($this->contem($pergunta, [
-            'vence', 'vencendo', 'vencimento', 'validade', 'expirando', 'expira',
-            'prazo', 'venc', 'vai vencer',
+            'vence',
+            'vencendo',
+            'vencimento',
+            'validade',
+            'expirando',
+            'expira',
+            'prazo',
+            'venc',
+            'vai vencer',
         ])) {
             $itens = $this->dadosVencimentos();
             if (empty($itens)) {
@@ -350,8 +405,16 @@ PROMPT;
         }
 
         if ($this->contem($pergunta, [
-            'critico', 'criticos', 'acabando', 'minimo', 'baixo estoque',
-            'estoque baixo', 'faltando', 'em falta', 'zerado', 'no vermelho',
+            'critico',
+            'criticos',
+            'acabando',
+            'minimo',
+            'baixo estoque',
+            'estoque baixo',
+            'faltando',
+            'em falta',
+            'zerado',
+            'no vermelho',
         ])) {
             $itens = $this->dadosEstoqueCritico();
             if (empty($itens)) {
@@ -401,20 +464,40 @@ PROMPT;
 
         return $this->responder(
             "Não entendi bem. Você pode perguntar coisas como:\n" .
-            "• \"o que vence essa semana?\"\n" .
-            "• \"estoque crítico\"\n" .
-            "• \"perdas do mês\"\n" .
-            "• \"quantas luvas temos?\""
+                "• \"o que vence essa semana?\"\n" .
+                "• \"estoque crítico\"\n" .
+                "• \"perdas do mês\"\n" .
+                "• \"quantas luvas temos?\""
         );
     }
 
     private function extrairTermoBusca(string $pergunta): string
     {
         $palavras = [
-            'quantas?', 'quantidade de', 'quantidade', 'estoque de', 'estoque',
-            'tenho', 'temos', 'tem', 'possui', 'existe', 'ha', 'disponivel',
-            'onde esta', 'onde estao', 'cade', 'de', 'do', 'da', 'no', 'na',
-            'o', 'a', 'os', 'as',
+            'quantas?',
+            'quantidade de',
+            'quantidade',
+            'estoque de',
+            'estoque',
+            'tenho',
+            'temos',
+            'tem',
+            'possui',
+            'existe',
+            'ha',
+            'disponivel',
+            'onde esta',
+            'onde estao',
+            'cade',
+            'de',
+            'do',
+            'da',
+            'no',
+            'na',
+            'o',
+            'a',
+            'os',
+            'as',
         ];
         $padrao = '/\b(' . implode('|', $palavras) . ')\b/u';
         $termo = preg_replace($padrao, '', $pergunta);
@@ -426,17 +509,17 @@ PROMPT;
     // =======================  UTIL  =============================
     // =========================================================
 
-   private function normalizar(string $texto): string
-{
-    $texto = mb_strtolower(trim($texto), 'UTF-8');
-    $texto = str_replace(
-        ['á','à','â','ã','ä','é','è','ê','ë','í','ì','î','ï','ó','ò','ô','õ','ö','ú','ù','û','ü','ç'],
-        ['a','a','a','a','a','e','e','e','e','i','i','i','i','o','o','o','o','o','u','u','u','u','c'],
-        $texto
-    );
-    $texto = str_replace(['"', "'", "\u{201C}", "\u{201D}", "\u{2018}", "\u{2019}"], '', $texto);
-    return trim(preg_replace('/\s+/', ' ', $texto));
-}
+    private function normalizar(string $texto): string
+    {
+        $texto = mb_strtolower(trim($texto), 'UTF-8');
+        $texto = str_replace(
+            ['á', 'à', 'â', 'ã', 'ä', 'é', 'è', 'ê', 'ë', 'í', 'ì', 'î', 'ï', 'ó', 'ò', 'ô', 'õ', 'ö', 'ú', 'ù', 'û', 'ü', 'ç'],
+            ['a', 'a', 'a', 'a', 'a', 'e', 'e', 'e', 'e', 'i', 'i', 'i', 'i', 'o', 'o', 'o', 'o', 'o', 'u', 'u', 'u', 'u', 'c'],
+            $texto
+        );
+        $texto = str_replace(['"', "'", "\u{201C}", "\u{201D}", "\u{2018}", "\u{2019}"], '', $texto);
+        return trim(preg_replace('/\s+/', ' ', $texto));
+    }
     private function singularizar(string $texto): string
     {
         return preg_replace('/s\b/u', '', $texto);
