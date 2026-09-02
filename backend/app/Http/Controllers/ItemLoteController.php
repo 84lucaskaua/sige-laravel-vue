@@ -35,13 +35,12 @@ class ItemLoteController extends Controller
             'estoque_minimo.min'              => 'O estoque mínimo deve ser pelo menos 1.',
         ]);
 
-        // Resolve o produto: usa o id_produto informado, ou acha por sku, ou cria um novo
         if ($request->id_produto) {
             $idProduto = $request->id_produto;
         } else {
             try {
                 $produto = Produto::firstOrCreate(
-                    ['sku' => $request->sku], // condição de busca (usa o UNIQUE)
+                    ['sku' => $request->sku],
                     [
                         'nome'           => $request->nome,
                         'unidade_medida' => $request->unidade_medida ?? 'UN',
@@ -50,8 +49,6 @@ class ItemLoteController extends Controller
                     ]
                 );
             } catch (\Illuminate\Database\QueryException $e) {
-                // Corrida rara: outro request criou o mesmo SKU entre o firstOrCreate e o commit.
-                // Busca de novo — agora vai achar, porque o UNIQUE garantiu que só existe 1.
                 $produto = Produto::where('sku', $request->sku)->firstOrFail();
             }
             $idProduto = $produto->id_produto;
@@ -70,7 +67,6 @@ class ItemLoteController extends Controller
             'prioridade_manual' => $ehManual,
         ]);
 
-        // Mantém estoque_atual do produto em sincronia
         Produto::whereKey($idProduto)->increment('estoque_atual', $request->quantidade);
 
         RecalcularAbcJob::dispatch();
@@ -111,7 +107,6 @@ class ItemLoteController extends Controller
 
         $item->update($dados);
 
-        // Ajusta estoque_atual do produto pela diferença
         $diferenca = $item->quantidade - $qtdAntiga;
         if ($diferenca !== 0) {
             Produto::whereKey($item->id_produto)->increment('estoque_atual', $diferenca);
@@ -217,6 +212,30 @@ class ItemLoteController extends Controller
         return response()->json(['message' => 'Item excluído com sucesso.']);
     }
 
+    public function destroyMultiplos(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:item_lote,id_item',
+        ], [
+            'ids.required' => 'Selecione ao menos um item para excluir.',
+            'ids.*.exists' => 'Um dos itens selecionados não existe.',
+        ]);
+
+        $itens = ItemLote::whereIn('id_item', $request->ids)->get();
+
+        DB::transaction(function () use ($itens) {
+            foreach ($itens as $item) {
+                Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+            }
+            ItemLote::whereIn('id_item', $itens->pluck('id_item'))->delete();
+        });
+
+        RecalcularAbcJob::dispatch();
+
+        return response()->json(['message' => count($itens) . ' item(ns) excluído(s) com sucesso.']);
+    }
+
     public function historico(int $id)
     {
         $item = ItemLote::findOrFail($id);
@@ -241,57 +260,117 @@ class ItemLoteController extends Controller
             'quantidade.max'             => 'A quantidade não pode ser maior que a disponível no item.',
         ]);
 
-        // Impede propagar um item sem validade cadastrada para outro lote.
-        // Sem isso, itens que ficaram sem data_validade (por qualquer motivo) espalham
-        // o problema silenciosamente a cada transferência.
         if (!$itemOrigem->data_validade) {
             return response()->json([
                 'message' => 'Este item não possui data de validade cadastrada. Atualize a validade do item antes de transferi-lo.'
             ], 422);
         }
 
-        $qtd = $request->quantidade;
-
-        return DB::transaction(function () use ($itemOrigem, $request, $qtd) {
-            // Debita do item de origem
-            $itemOrigem->decrement('quantidade', $qtd);
-
-            // Procura se já existe um item do mesmo produto no lote destino
-            $itemDestino = ItemLote::where('id_lote', $request->id_lote_destino)
-                ->where('id_produto', $itemOrigem->id_produto)
-                ->first();
-
-            if ($itemDestino) {
-                $itemDestino->increment('quantidade', $qtd);
-
-                // Se o destino não tem validade, ou a do item de origem vence antes, usa a mais próxima (FEFO)
-                if (!$itemDestino->data_validade ||
-                    ($itemOrigem->data_validade && $itemOrigem->data_validade->lt($itemDestino->data_validade))) {
-                    $itemDestino->update(['data_validade' => $itemOrigem->data_validade]);
-                }
-            } else {
-                $itemDestino = ItemLote::create([
-                    'id_lote'        => $request->id_lote_destino,
-                    'id_produto'     => $itemOrigem->id_produto,
-                    'quantidade'     => $qtd,
-                    'unidade_medida' => $itemOrigem->unidade_medida,
-                    'data_validade'  => $itemOrigem->data_validade,
-                    'localizacao'    => $itemOrigem->localizacao,
-                ]);
-            }
-
-            $numeroLoteOrigem  = \App\Models\Lote::find($itemOrigem->id_lote)?->numero_lote ?? $itemOrigem->id_lote;
-            $numeroLoteDestino = \App\Models\Lote::find($request->id_lote_destino)?->numero_lote ?? $request->id_lote_destino;
-
-            Movimentacao::registrar('TRANSFERENCIA', $qtd, $itemOrigem->id_lote, $itemOrigem->id_item,
-                "Transferido para lote {$numeroLoteDestino}");
-            Movimentacao::registrar('TRANSFERENCIA', $qtd, $itemDestino->id_lote, $itemDestino->id_item,
-                "Recebido do lote {$numeroLoteOrigem}");
-
-            return response()->json([
-                'item_origem'  => $itemOrigem->refresh()->load('produto.fornecedor'),
-                'item_destino' => $itemDestino->refresh()->load('produto.fornecedor'),
-            ]);
+        $resultado = DB::transaction(function () use ($itemOrigem, $request) {
+            return $this->executarTransferencia($itemOrigem, $request->id_lote_destino, $request->quantidade);
         });
+
+        return response()->json($resultado);
+    }
+
+    /**
+     * Transfere múltiplos itens de uma vez, cada um podendo ir para um lote
+     * de destino diferente (e com quantidade diferente). Cobre os 3 casos:
+     * vários itens -> 1 lote, vários itens -> vários lotes, e até dividir
+     * a quantidade de um mesmo item entre lotes diferentes.
+     */
+    public function transferirEmLote(Request $request)
+    {
+        $request->validate([
+            'transferencias'                       => 'required|array|min:1',
+            'transferencias.*.id_item'              => 'required|integer|exists:item_lote,id_item',
+            'transferencias.*.id_lote_destino'      => 'required|integer|exists:lote,id_lote',
+            'transferencias.*.quantidade'           => 'required|integer|min:1',
+        ], [
+            'transferencias.required'                  => 'Selecione ao menos um item para transferir.',
+            'transferencias.*.id_item.exists'           => 'Um dos itens selecionados não existe.',
+            'transferencias.*.id_lote_destino.exists'   => 'Um dos lotes de destino não existe.',
+        ]);
+
+        $resultados = [];
+
+        try {
+            DB::transaction(function () use ($request, &$resultados) {
+                foreach ($request->transferencias as $transferencia) {
+                    $itemOrigem    = ItemLote::with('produto')->findOrFail($transferencia['id_item']);
+                    $qtd           = (int) $transferencia['quantidade'];
+                    $idLoteDestino = (int) $transferencia['id_lote_destino'];
+                    $nomeProduto   = $itemOrigem->produto->nome ?? "item #{$itemOrigem->id_item}";
+
+                    if ($idLoteDestino === $itemOrigem->id_lote) {
+                        throw new \RuntimeException("\"{$nomeProduto}\" já está no lote de destino selecionado.");
+                    }
+
+                    if ($qtd > $itemOrigem->quantidade) {
+                        throw new \RuntimeException("Quantidade informada para \"{$nomeProduto}\" é maior que o disponível ({$itemOrigem->quantidade}).");
+                    }
+
+                    if (!$itemOrigem->data_validade) {
+                        throw new \RuntimeException("\"{$nomeProduto}\" não possui data de validade cadastrada.");
+                    }
+
+                    $resultados[] = $this->executarTransferencia($itemOrigem, $idLoteDestino, $qtd);
+                }
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message'    => count($resultados) . ' transferência(s) realizada(s) com sucesso.',
+            'resultados' => $resultados,
+        ]);
+    }
+
+    /**
+     * Lógica central de transferência, compartilhada entre transferir() (individual)
+     * e transferirEmLote() (múltiplos). Assume que já foi validado: quantidade
+     * disponível, lote de destino diferente do atual, e data_validade presente.
+     */
+    private function executarTransferencia(ItemLote $itemOrigem, int $idLoteDestino, int $qtd): array
+    {
+        $itemOrigem->decrement('quantidade', $qtd);
+
+        $itemDestino = ItemLote::where('id_lote', $idLoteDestino)
+            ->where('id_produto', $itemOrigem->id_produto)
+            ->first();
+
+        if ($itemDestino) {
+            $itemDestino->increment('quantidade', $qtd);
+
+            if (!$itemDestino->data_validade ||
+                ($itemOrigem->data_validade && $itemOrigem->data_validade->lt($itemDestino->data_validade))) {
+                $itemDestino->update(['data_validade' => $itemOrigem->data_validade]);
+            }
+        } else {
+            $itemDestino = ItemLote::create([
+                'id_lote'        => $idLoteDestino,
+                'id_produto'     => $itemOrigem->id_produto,
+                'quantidade'     => $qtd,
+                'unidade_medida' => $itemOrigem->unidade_medida,
+                'data_validade'  => $itemOrigem->data_validade,
+                'localizacao'    => $itemOrigem->localizacao,
+            ]);
+        }
+
+        $numeroLoteOrigem  = \App\Models\Lote::find($itemOrigem->id_lote)?->numero_lote ?? $itemOrigem->id_lote;
+        $numeroLoteDestino = \App\Models\Lote::find($idLoteDestino)?->numero_lote ?? $idLoteDestino;
+
+        Movimentacao::registrar('TRANSFERENCIA', $qtd, $itemOrigem->id_lote, $itemOrigem->id_item,
+            "Transferido para lote {$numeroLoteDestino}");
+        Movimentacao::registrar('TRANSFERENCIA', $qtd, $itemDestino->id_lote, $itemDestino->id_item,
+            "Recebido do lote {$numeroLoteOrigem}");
+
+        RecalcularAbcJob::dispatch();
+
+        return [
+            'item_origem'  => $itemOrigem->refresh()->load('produto.fornecedor'),
+            'item_destino' => $itemDestino->refresh()->load('produto.fornecedor'),
+        ];
     }
 }

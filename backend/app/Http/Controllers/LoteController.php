@@ -66,4 +66,28 @@ class LoteController extends Controller
         $lote->delete();
         return response()->json(['message' => 'Lote excluido com sucesso.']);
     }
+    public function destroyMultiplos(Request $request)
+{
+    $request->validate([
+        'ids'   => 'required|array|min:1',
+        'ids.*' => 'integer|exists:lote,id_lote',
+    ], [
+        'ids.required' => 'Selecione ao menos um lote para excluir.',
+        'ids.*.exists' => 'Um dos lotes selecionados não existe.',
+    ]);
+
+    $lotes = Lote::whereIn('id_lote', $request->ids)->get();
+
+    DB::transaction(function () use ($request, $lotes) {
+        DB::table('movimentacao')->whereIn('id_lote', $request->ids)->delete();
+
+        foreach ($lotes as $lote) {
+            AuditHelper::log('Exclusao', 'Lote "' . $lote->numero_lote . '" excluído (exclusão em massa).');
+        }
+
+        Lote::whereIn('id_lote', $request->ids)->delete();
+    });
+
+    return response()->json(['message' => count($lotes) . ' lote(s) excluído(s) com sucesso.']);
+}
 }

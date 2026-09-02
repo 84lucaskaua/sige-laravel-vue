@@ -7,14 +7,42 @@
         <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Lotes</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400">Gerenciamento de lotes por tabs</p>
       </div>
-      <button
-        v-if="autenticacao.podeCadastrar"
-        class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
-        @click="iniciarCriacaoLote"
-      >
-        <Plus :size="18" />
-        Novo Lote
-      </button>
+      <div class="flex items-center gap-2">
+        <template v-if="modoSelecaoLotes">
+          <span class="text-sm text-slate-500 dark:text-slate-400">{{ lotesSelecionados.size }} selecionado(s)</span>
+          <button
+            class="flex items-center gap-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+            :disabled="lotesSelecionados.size === 0"
+            @click="modalExcluirVariosAberto = true"
+          >
+            <Trash2 :size="16" />
+            Excluir Selecionados
+          </button>
+          <button
+            class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm font-medium"
+            @click="alternarModoSelecao"
+          >
+            Cancelar
+          </button>
+        </template>
+        <template v-else>
+          <button
+            v-if="lotes.length > 0"
+            class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm font-medium"
+            @click="alternarModoSelecao"
+          >
+            Selecionar
+          </button>
+          <button
+            v-if="autenticacao.podeCadastrar"
+            class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+            @click="iniciarCriacaoLote"
+          >
+            <Plus :size="18" />
+            Novo Lote
+          </button>
+        </template>
+      </div>
     </div>
 
     <!-- Carregando -->
@@ -52,6 +80,12 @@
           @dragover.prevent
           @drop="aoSoltarNaTab(lote.id_lote)"
         >
+          <input
+            v-if="modoSelecaoLotes"
+            type="checkbox"
+            :checked="lotesSelecionados.has(lote.id_lote)"
+            class="pointer-events-none"
+          />
           {{ lote.numero_lote }}
         </button>
       </div>
@@ -74,25 +108,60 @@
               </span>
             </div>
           </div>
+
           <div class="flex items-center gap-2">
-            <button
-              class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-              @click="iniciarAdicaoItem"
-            >
-              <Plus :size="16" />
-              Adicionar Item
-            </button>
-            <button
-              class="flex items-center gap-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition text-sm font-medium"
-              @click="iniciarExclusaoLote"
-            >
-              <Trash2 :size="16" />
-              Excluir Lote
-            </button>
+           <template v-if="modoSelecaoItens">
+  <span class="text-sm text-slate-500 dark:text-slate-400">{{ itensSelecionados.size }} selecionado(s)</span>
+  <button
+    class="flex items-center gap-2 border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 px-4 py-2 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+    :disabled="itensSelecionados.size === 0"
+    @click="iniciarTransferenciaVarios"
+  >
+    <ArrowRightLeft :size="16" />
+    Transferir Selecionados
+  </button>
+  <button
+    class="flex items-center gap-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+    :disabled="itensSelecionados.size === 0"
+    @click="modalExcluirItensAberto = true"
+  >
+    <Trash2 :size="16" />
+    Excluir Selecionados
+  </button>
+  <button
+    class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm font-medium"
+    @click="alternarModoSelecaoItens"
+  >
+    Cancelar
+  </button>
+</template>
+            <template v-else>
+              <button
+                v-if="loteAtivo.itens?.length > 0"
+                class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm font-medium"
+                @click="alternarModoSelecaoItens"
+              >
+                Selecionar
+              </button>
+              <button
+                class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                @click="iniciarAdicaoItem"
+              >
+                <Plus :size="16" />
+                Adicionar Item
+              </button>
+              <button
+                class="flex items-center gap-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition text-sm font-medium"
+                @click="iniciarExclusaoLote"
+              >
+                <Trash2 :size="16" />
+                Excluir Lote
+              </button>
+            </template>
           </div>
         </div>
 
-           <!-- Sem itens -->
+        <!-- Sem itens -->
         <div v-if="!loteAtivo.itens || loteAtivo.itens.length === 0" class="text-center py-16">
           <Package class="mx-auto mb-3 text-slate-400 dark:text-slate-600" :size="40" />
           <p class="text-slate-500 dark:text-slate-500">Nenhum item neste lote</p>
@@ -107,103 +176,111 @@
           @mousemove="aoMover"
           @mouseup="aoSoltar"
           @mouseleave="aoSoltar"
-        
-       
->
-  <table class="w-full text-sm">
-    <thead>
-      <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-        <th class="text-left pb-3 font-medium w-6"></th>
-        <th class="text-left pb-3 font-medium">SKU</th>
-        <th class="text-left pb-3 font-medium">Nome</th>
-        <th class="text-left pb-3 font-medium">Qtd</th>
-        <th class="text-left pb-3 font-medium">Validade</th>
-        <th class="text-left pb-3 font-medium">Fornecedor</th>
-        <th class="text-left pb-3 font-medium">Localização</th>
-        <th class="text-left pb-3 font-medium">Status</th>
-        <th class="text-left pb-3 font-medium">Ações</th>
-      </tr>
-    </thead>
-    <draggable
-      :list="itensPaginados"
-      tag="tbody"
-      item-key="id_item"
-      handle=".drag-handle"
-      animation="200"
-      class="divide-y divide-slate-200 dark:divide-slate-800"
-      @start="aoIniciarArraste"
-      @end="salvarOrdemItens"
-    >
-      <template #item="{ element: item }">
-        <tr
-          class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer"
-          @click="itemSelecionado = item; modalDetalhesAberto = true"
         >
-          <td class="py-3" @click.stop>
-            <span class="drag-handle cursor-grab text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 select-none">⠿</span>
-          </td>
-          <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.produto?.sku || '—' }}</td>
-          <td class="py-3 text-slate-900 dark:text-white font-medium">{{ item.produto?.nome || '—' }}</td>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <th v-if="modoSelecaoItens" class="text-left pb-3 font-medium w-6"></th>
+                <th class="text-left pb-3 font-medium w-6"></th>
+                <th class="text-left pb-3 font-medium">SKU</th>
+                <th class="text-left pb-3 font-medium">Nome</th>
+                <th class="text-left pb-3 font-medium">Qtd</th>
+                <th class="text-left pb-3 font-medium">Validade</th>
+                <th class="text-left pb-3 font-medium">Fornecedor</th>
+                <th class="text-left pb-3 font-medium">Localização</th>
+                <th class="text-left pb-3 font-medium">Status</th>
+                <th class="text-left pb-3 font-medium">Ações</th>
+              </tr>
+            </thead>
+            <draggable
+              :list="itensPaginados"
+              :disabled="modoSelecaoItens"
+              tag="tbody"
+              item-key="id_item"
+              handle=".drag-handle"
+              animation="200"
+              class="divide-y divide-slate-200 dark:divide-slate-800"
+              @start="aoIniciarArraste"
+              @end="salvarOrdemItens"
+            >
+              <template #item="{ element: item }">
+                <tr
+                  class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer"
+                  @click="modoSelecaoItens ? alternarSelecaoItem(item.id_item) : (itemSelecionado = item, modalDetalhesAberto = true)"
+                >
+                  <td v-if="modoSelecaoItens" class="py-3" @click.stop="alternarSelecaoItem(item.id_item)">
+                    <input
+                      type="checkbox"
+                      :checked="itensSelecionados.has(item.id_item)"
+                      class="pointer-events-none"
+                    />
+                  </td>
+                  <td class="py-3" @click.stop>
+                    <span class="drag-handle cursor-grab text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 select-none">⠿</span>
+                  </td>
+                  <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.produto?.sku || '—' }}</td>
+                  <td class="py-3 text-slate-900 dark:text-white font-medium">{{ item.produto?.nome || '—' }}</td>
 
-          <td class="py-3">
-            <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= (item.produto?.estoque_minimo ?? 0) ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
-              {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
-            </span>
-          </td>
+                  <td class="py-3">
+                    <span :class="item.quantidade === 0 ? 'text-red-600 dark:text-red-400 font-bold' : item.quantidade <= (item.produto?.estoque_minimo ?? 0) ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-green-600 dark:text-green-400 font-semibold'">
+                      {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
+                    </span>
+                  </td>
 
-          <td class="py-3 text-slate-600 dark:text-slate-300">
-            <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
-            <span v-else class="text-slate-400 dark:text-slate-500">—</span>
-          </td>
+                  <td class="py-3 text-slate-600 dark:text-slate-300">
+                    <span v-if="item.data_validade">{{ formatarData(item.data_validade) }}</span>
+                    <span v-else class="text-slate-400 dark:text-slate-500">—</span>
+                  </td>
 
-          <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.produto?.fornecedor?.nome || '—' }}</td>
-          <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
+                  <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.produto?.fornecedor?.nome || '—' }}</td>
+                  <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
 
-          <td class="py-3">
-            <div class="flex items-center gap-1 flex-wrap">
-              <span v-if="item.data_validade && estaVencido(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
-                Vencido
-              </span>
-              <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
-                Vencendo
-              </span>
-              <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-                OK
-              </span>
+                  <td class="py-3">
+                    <div class="flex items-center gap-1 flex-wrap">
+                      <span v-if="item.data_validade && estaVencido(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">
+                        Vencido
+                      </span>
+                      <span v-else-if="item.data_validade && proximoDoVencimento(item.data_validade)" class="px-2 py-0.5 rounded text-xs font-bold bg-yellow-600 text-white">
+                        Vencendo
+                      </span>
+                      <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+                        OK
+                      </span>
 
-              <span v-if="item.quantidade === 0 || item.quantidade <= (item.produto?.estoque_minimo ?? 0)" class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
-                Crítico
-              </span>
-              <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
-                OK
-              </span>
-            </div>
-          </td>
+                      <span v-if="item.quantidade === 0 || item.quantidade <= (item.produto?.estoque_minimo ?? 0)" class="px-2 py-0.5 rounded text-xs font-bold bg-orange-700 text-white">
+                        Crítico
+                      </span>
+                      <span v-else class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">
+                        OK
+                      </span>
+                    </div>
+                  </td>
 
-          <td class="py-3" @click.stop>
-            <div class="flex items-center gap-3">
-              <button class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar" @click="itemSelecionado = item; modalEditarAberto = true">
-                <Pencil :size="16" />
-              </button>
-              <button class="text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition" title="Transferir" @click="iniciarTransferenciaManual(item)">
-                <ArrowRightLeft :size="16" />
-              </button>
-              <button class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque" @click="itemSelecionado = item; modalBaixaAberto = true">
-                <PackageOpen :size="16" />
-              </button>
-              <button class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque" @click="itemSelecionado = item; modalEntradaAberto = true">
-                <PackagePlus :size="16" />
-              </button>
-              <button class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir" @click="itemSelecionado = item; modalExcluirAberto = true">
-                <Trash2 :size="16" />
-              </button>
-            </div>
-          </td>
-        </tr>
-      </template>
-    </draggable>
-  </table>
-</div>
+                  <td class="py-3" @click.stop>
+                    <div class="flex items-center gap-3">
+                      <button class="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition" title="Editar" @click="itemSelecionado = item; modalEditarAberto = true">
+                        <Pencil :size="16" />
+                      </button>
+                      <button class="text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition" title="Transferir" @click="iniciarTransferenciaManual(item)">
+                        <ArrowRightLeft :size="16" />
+                      </button>
+                      <button class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 transition" title="Baixa de estoque" @click="itemSelecionado = item; modalBaixaAberto = true">
+                        <PackageOpen :size="16" />
+                      </button>
+                      <button class="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 transition" title="Entrada de estoque" @click="itemSelecionado = item; modalEntradaAberto = true">
+                        <PackagePlus :size="16" />
+                      </button>
+                      <button class="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition" title="Excluir" @click="itemSelecionado = item; modalExcluirAberto = true">
+                        <Trash2 :size="16" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </draggable>
+          </table>
+        </div>
+
         <!-- Controles de paginação -->
         <div v-if="totalPaginas > 1" class="flex items-center justify-between mt-4 px-1">
           <p class="text-sm text-slate-500 dark:text-slate-400">
@@ -254,7 +331,7 @@
       </div>
     </div>
 
-    <!-- ===== MODAL CONFIRMAÇÃO EXCLUSÃO DE LOTE ===== -->
+    <!-- ===== MODAL CONFIRMAÇÃO EXCLUSÃO DE LOTE (individual) ===== -->
     <div v-if="modalExcluirLoteAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
         <div class="flex justify-between items-start mb-5">
@@ -287,6 +364,72 @@
       </div>
     </div>
 
+    <!-- ===== MODAL CONFIRMAÇÃO EXCLUSÃO EM MASSA DE LOTES ===== -->
+    <div v-if="modalExcluirVariosAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
+        <div class="flex justify-between items-start mb-5">
+          <div class="flex items-center gap-2">
+            <Shield class="text-red-600 dark:text-red-400" :size="20" />
+            <div>
+              <h2 class="text-slate-900 dark:text-white font-bold">Excluir Lotes</h2>
+              <p class="text-slate-500 dark:text-slate-400 text-xs">Esta ação não pode ser desfeita</p>
+            </div>
+          </div>
+          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="modalExcluirVariosAberto = false">
+            <X :size="18" />
+          </button>
+        </div>
+
+        <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+          <p class="text-slate-600 dark:text-slate-300 text-sm">
+            Você está prestes a excluir <strong class="text-slate-900 dark:text-white">{{ lotesSelecionados.size }}</strong> lote(s). Esta ação não pode ser desfeita.
+          </p>
+        </div>
+
+        <div class="flex gap-3">
+          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" @click="modalExcluirVariosAberto = false">
+            Cancelar
+          </button>
+          <button :disabled="excluindoVarios" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium disabled:opacity-50" @click="excluirLotesSelecionados">
+            {{ excluindoVarios ? 'Excluindo...' : 'Confirmar Exclusão' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL CONFIRMAÇÃO EXCLUSÃO EM MASSA DE ITENS ===== -->
+    <div v-if="modalExcluirItensAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
+        <div class="flex justify-between items-start mb-5">
+          <div class="flex items-center gap-2">
+            <Shield class="text-red-600 dark:text-red-400" :size="20" />
+            <div>
+              <h2 class="text-slate-900 dark:text-white font-bold">Excluir Itens</h2>
+              <p class="text-slate-500 dark:text-slate-400 text-xs">Esta ação não pode ser desfeita</p>
+            </div>
+          </div>
+          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="modalExcluirItensAberto = false">
+            <X :size="18" />
+          </button>
+        </div>
+
+        <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+          <p class="text-slate-600 dark:text-slate-300 text-sm">
+            Você está prestes a excluir <strong class="text-slate-900 dark:text-white">{{ itensSelecionados.size }}</strong> item(ns) deste lote. O estoque dos produtos será ajustado automaticamente. Esta ação não pode ser desfeita.
+          </p>
+        </div>
+
+        <div class="flex gap-3">
+          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" @click="modalExcluirItensAberto = false">
+            Cancelar
+          </button>
+          <button :disabled="excluindoItens" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium disabled:opacity-50" @click="excluirItensSelecionados">
+            {{ excluindoItens ? 'Excluindo...' : 'Confirmar Exclusão' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal criar/editar lote -->
     <ModalLote
       v-if="modalAberto"
@@ -311,15 +454,24 @@
       @salvo="modalEditarAberto = false; carregarLotes()"
     />
 
-    <!-- Modal transferir item -->
-    <ModalTransferirItem
-      v-if="modalTransferirAberto"
-      :item="itemParaTransferir"
-      :lotes="lotes"
-      :lote-destino-inicial="loteDestinoPreSelecionado"
-      @fechar="modalTransferirAberto = false"
-      @salvo="modalTransferirAberto = false; carregarLotes()"
-    />
+   <!-- Modal transferir item -->
+<ModalTransferirItem
+  v-if="modalTransferirAberto"
+  :item="itemParaTransferir"
+  :lotes="lotes"
+  :lote-destino-inicial="loteDestinoPreSelecionado"
+  @fechar="modalTransferirAberto = false"
+  @salvo="modalTransferirAberto = false; carregarLotes()"
+/>
+
+<!-- Modal transferir vários itens selecionados -->
+<ModalTransferirVarios
+  v-if="modalTransferirVariosAberto"
+  :itens="loteAtivo.itens.filter(i => itensSelecionados.has(i.id_item))"
+  :lotes="lotes"
+  @fechar="modalTransferirVariosAberto = false"
+  @salvo="aoConcluirTransferenciaVarios"
+/>
 
     <!-- Modal baixa de estoque -->
     <ModalBaixaEstoque
@@ -355,6 +507,7 @@
       @baixa="modalDetalhesAberto = false; itemSelecionado = $event; modalBaixaAberto = true"
       @entrada="modalDetalhesAberto = false; itemSelecionado = $event; modalEntradaAberto = true"
       @excluir="modalDetalhesAberto = false; itemSelecionado = $event; modalExcluirAberto = true"
+      @transferir="modalDetalhesAberto = false; iniciarTransferenciaManual($event)"
     />
 
   </div>
@@ -371,6 +524,7 @@ import ModalLote            from '@/componentes/ui/ModalLote.vue'
 import ModalAdicionarItem   from '@/componentes/ui/ModalAdicionarItem.vue'
 import ModalEditarItem      from '@/componentes/ui/ModalEditarItem.vue'
 import ModalTransferirItem  from '@/componentes/ui/ModalTransferirItem.vue'
+import ModalTransferirVarios from '@/componentes/ui/ModalTransferirVarios.vue'
 import ModalExcluirItem     from '@/componentes/ui/ModalExcluirItem.vue'
 import ModalDetalhesProduto from '@/componentes/ui/ModalDetalhesProduto.vue'
 import ModalBaixaEstoque    from '@/componentes/ui/ModalBaixaEstoque.vue'
@@ -393,6 +547,93 @@ const modalExcluirAberto  = ref(false)
 const loteSelecionado     = ref(null)
 const itemSelecionado     = ref(null)
 const tabAtiva            = ref(null)
+
+// ===== Seleção múltipla / exclusão em massa de lotes =====
+const modoSelecaoLotes         = ref(false)
+const lotesSelecionados        = ref(new Set())
+const modalExcluirVariosAberto = ref(false)
+const excluindoVarios          = ref(false)
+
+function alternarModoSelecao() {
+  modoSelecaoLotes.value  = !modoSelecaoLotes.value
+  lotesSelecionados.value = new Set()
+}
+
+function alternarSelecaoLote(idLote) {
+  const novo = new Set(lotesSelecionados.value)
+  novo.has(idLote) ? novo.delete(idLote) : novo.add(idLote)
+  lotesSelecionados.value = novo
+}
+
+async function excluirLotesSelecionados() {
+  excluindoVarios.value = true
+  try {
+    await api.delete('/lotes', { data: { ids: Array.from(lotesSelecionados.value) } })
+    sucesso(`${lotesSelecionados.value.size} lote(s) excluído(s) com sucesso.`)
+    modalExcluirVariosAberto.value = false
+    modoSelecaoLotes.value = false
+    lotesSelecionados.value = new Set()
+    tabAtiva.value = null
+    await carregarLotes()
+  } catch {
+    erro('Erro ao excluir lotes selecionados.')
+  } finally {
+    excluindoVarios.value = false
+  }
+}
+
+// ===== Seleção múltipla / exclusão em massa de ITENS do lote ativo =====
+const modoSelecaoItens        = ref(false)
+const itensSelecionados       = ref(new Set())
+const modalExcluirItensAberto = ref(false)
+const excluindoItens          = ref(false)
+
+function alternarModoSelecaoItens() {
+  modoSelecaoItens.value  = !modoSelecaoItens.value
+  itensSelecionados.value = new Set()
+}
+
+function alternarSelecaoItem(idItem) {
+  const novo = new Set(itensSelecionados.value)
+  novo.has(idItem) ? novo.delete(idItem) : novo.add(idItem)
+  itensSelecionados.value = novo
+}
+
+async function excluirItensSelecionados() {
+  excluindoItens.value = true
+  try {
+    await api.delete('/itens', { data: { ids: Array.from(itensSelecionados.value) } })
+    sucesso(`${itensSelecionados.value.size} item(ns) excluído(s) com sucesso.`)
+    modalExcluirItensAberto.value = false
+    modoSelecaoItens.value = false
+    itensSelecionados.value = new Set()
+    await carregarLotes()
+  } catch {
+    erro('Erro ao excluir itens selecionados.')
+  } finally {
+    excluindoItens.value = false
+  }
+}
+
+// ===== Transferência em massa de itens selecionados =====
+const modalTransferirVariosAberto = ref(false)
+
+function iniciarTransferenciaVarios() {
+  modalTransferirVariosAberto.value = true
+}
+
+async function aoConcluirTransferenciaVarios() {
+  modalTransferirVariosAberto.value = false
+  modoSelecaoItens.value = false
+  itensSelecionados.value = new Set()
+  await carregarLotes()
+}
+
+// reseta seleção de itens ao trocar de lote
+watch(tabAtiva, () => {
+  modoSelecaoItens.value  = false
+  itensSelecionados.value = new Set()
+})
 
 // ===== Transferência de item entre lotes =====
 const modalTransferirAberto     = ref(false)
@@ -432,8 +673,12 @@ watch(tabAtiva, () => {
   paginaAtual.value = 1
 })
 
-// ===== Troca de tab (sem PIN) =====
+// ===== Troca de tab (desvia pra seleção quando ativo) =====
 function aoClicarTab(idLote) {
+  if (modoSelecaoLotes.value) {
+    alternarSelecaoLote(idLote)
+    return
+  }
   tabAtiva.value = idLote
 }
 
@@ -494,6 +739,7 @@ async function aoSalvar() {
   fecharModal()
   await carregarLotes()
 }
+
 async function salvarOrdemItens() {
   if (!loteAtivo.value?.itens) return
 
@@ -509,6 +755,7 @@ async function salvarOrdemItens() {
     await carregarLotes()
   }
 }
+
 async function carregarLotes() {
   carregando.value = true
   try {

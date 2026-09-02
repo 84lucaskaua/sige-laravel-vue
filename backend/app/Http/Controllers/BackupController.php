@@ -26,40 +26,56 @@ class BackupController extends Controller
         ]);
     }
 
-    public function restaurarBackup(Request $request)
-    {
-        $request->validate(['arquivo' => 'required|file|mimes:json,txt']);
+ public function restaurarBackup(Request $request)
+{
+    $request->validate(['arquivo' => 'required|file|mimes:json,txt']);
 
-        $conteudo = json_decode(
-            file_get_contents($request->file('arquivo')->getRealPath()),
-            true
-        );
+    $conteudo = json_decode(
+        file_get_contents($request->file('arquivo')->getRealPath()),
+        true
+    );
 
-        if (!$conteudo) {
-            return response()->json(['message' => 'JSON inválido.'], 422);
-        }
-
-        DB::beginTransaction();
-        try {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0');
-            Movimentacao::truncate();
-            ItemLote::truncate();
-            Lote::truncate();
-            Produto::truncate();
-
-            foreach ($conteudo['produtos']      ?? [] as $p) Produto::insert($p);
-            foreach ($conteudo['lotes']         ?? [] as $l) Lote::insert($l);
-            foreach ($conteudo['item_lotes']    ?? [] as $i) ItemLote::insert($i);
-            foreach ($conteudo['movimentacoes'] ?? [] as $m) Movimentacao::insert($m);
-
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            DB::commit();
-
-            return response()->json(['message' => 'Backup restaurado com sucesso!']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            return response()->json(['message' => 'Erro ao restaurar: ' . $e->getMessage()], 500);
-        }
+    if (!$conteudo) {
+        return response()->json(['message' => 'JSON inválido.'], 422);
     }
+
+    $lotesBackup = $conteudo['lotes'] ?? [];
+    $idsLotesValidos = array_column($lotesBackup, 'id_lote');
+
+    $itensBackup = $conteudo['item_lotes'] ?? [];
+    $itensValidos = array_filter($itensBackup, fn($i) => in_array($i['id_lote'], $idsLotesValidos));
+    $itensDescartados = count($itensBackup) - count($itensValidos);
+
+    $produtosBackup = $conteudo['produtos'] ?? [];
+    $idsProdutosValidos = array_column($produtosBackup, 'id_produto');
+    $itensValidos = array_filter($itensValidos, fn($i) => in_array($i['id_produto'], $idsProdutosValidos));
+
+    DB::beginTransaction();
+    try {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        Movimentacao::truncate();
+        ItemLote::truncate();
+        Lote::truncate();
+        Produto::truncate();
+
+        foreach ($produtosBackup as $p) Produto::insert($p);
+        foreach ($lotesBackup    as $l) Lote::insert($l);
+        foreach ($itensValidos   as $i) ItemLote::insert($i);
+        foreach ($conteudo['movimentacoes'] ?? [] as $m) Movimentacao::insert($m);
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        DB::commit();
+
+        $mensagem = 'Backup restaurado com sucesso!';
+        if ($itensDescartados > 0) {
+            $mensagem .= " ({$itensDescartados} item(ns) órfão(s) do backup foram descartados por referenciar lotes inexistentes.)";
+        }
+
+        return response()->json(['message' => $mensagem]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        return response()->json(['message' => 'Erro ao restaurar: ' . $e->getMessage()], 500);
+    }
+}
 }

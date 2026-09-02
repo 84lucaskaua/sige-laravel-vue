@@ -39,10 +39,27 @@ class ProdutoController extends Controller
 
     public function destroy(int $id)
     {
-        // Agora exclui o Produto (e os item_lote em cascata, via FK cascadeOnDelete)
+        // Exclui o Produto (e os item_lote em cascata, via FK cascadeOnDelete)
         $produto = Produto::findOrFail($id);
         $produto->delete();
 
         return response()->json(['message' => 'Produto excluído com sucesso.']);
+    }
+
+    public function destroyMultiplos(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:produto,id_produto',
+        ], [
+            'ids.required' => 'Selecione ao menos um produto para excluir.',
+            'ids.*.exists' => 'Um dos produtos selecionados não existe.',
+        ]);
+
+        $produtos = Produto::whereIn('id_produto', $request->ids)->get();
+
+        Produto::whereIn('id_produto', $request->ids)->delete();
+
+        return response()->json(['message' => count($produtos) . ' produto(s) excluído(s) com sucesso.']);
     }
 }
