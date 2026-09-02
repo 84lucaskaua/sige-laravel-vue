@@ -2,7 +2,9 @@
   <div class="p-6 bg-white dark:bg-black min-h-screen">
 
     <!-- Cabeçalho -->
-    <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Registro de Perdas</h1>
+    <div class="flex justify-between items-center mb-1">
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Registro de Perdas</h1>
+    </div>
     <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Controle de perdas por vencimento, quebra, furto e outros motivos</p>
 
     <!-- Estatísticas -->
@@ -38,7 +40,36 @@
 
     <!-- Registrar Nova Perda -->
     <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 mb-6">
-      <h2 class="text-slate-900 dark:text-white font-bold mb-4">Registrar Nova Perda</h2>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-slate-900 dark:text-white font-bold">Registrar Nova Perda</h2>
+
+        <div class="flex items-center gap-2">
+          <template v-if="modoSelecao">
+            <span class="text-sm text-slate-500 dark:text-slate-400">{{ itensSelecionados.size }} selecionado(s)</span>
+            <button
+              class="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm px-4 py-2 rounded-lg transition font-medium"
+              :disabled="itensSelecionados.size === 0"
+              @click="abrirModalVarios"
+            >
+              <Trash2 :size="14" />
+              Registrar Perdas Selecionadas
+            </button>
+            <button
+              class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm font-medium"
+              @click="alternarModoSelecao"
+            >
+              Cancelar
+            </button>
+          </template>
+          <button
+            v-else-if="itens.length > 0"
+            class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm font-medium"
+            @click="alternarModoSelecao"
+          >
+            Selecionar
+          </button>
+        </div>
+      </div>
 
       <div v-if="carregandoItens" class="text-slate-500 dark:text-slate-400 text-sm text-center py-4">
         Carregando itens...
@@ -51,22 +82,33 @@
           class="flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3"
           :class="{ 'opacity-60': item.quantidade === 0 }"
         >
-          <div>
-            <div class="flex items-center gap-2">
-              <p class="text-slate-900 dark:text-white font-semibold text-sm">{{ item.nome }}</p>
-              <span
-                v-if="item.quantidade === 0"
-                class="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"
-              >
-                Sem estoque
-              </span>
+          <div class="flex items-center gap-3">
+            <input
+              v-if="modoSelecao"
+              type="checkbox"
+              :disabled="item.quantidade === 0"
+              :checked="itensSelecionados.has(item.id_item)"
+              @change="alternarSelecaoItem(item.id_item)"
+            />
+            <div>
+              <div class="flex items-center gap-2">
+                <p class="text-slate-900 dark:text-white font-semibold text-sm">{{ item.produto?.nome }}</p>
+                <span
+                  v-if="item.quantidade === 0"
+                  class="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"
+                >
+                  Sem estoque
+                </span>
+              </div>
+              <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+                SKU: {{ item.produto?.sku || '—' }}
+                &nbsp;&nbsp;Lote: {{ item.lote?.numero_lote || '—' }}
+                &nbsp;&nbsp;Estoque: {{ item.quantidade }} {{ item.unidade_medida }}
+              </p>
             </div>
-            <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
-              SKU: {{ item.sku || '—' }}
-              &nbsp;&nbsp;Estoque: {{ item.quantidade }} {{ item.unidade_medida }}
-            </p>
           </div>
           <button
+            v-if="!modoSelecao"
             class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-600"
             :disabled="item.quantidade === 0"
             @click="abrirModal(item)"
@@ -101,7 +143,7 @@
         </thead>
         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
           <tr v-for="perda in perdas" :key="perda.id_movimentacao" class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition">
-            <td class="py-3 text-slate-900 dark:text-white font-medium">{{ perda.item?.nome || '—' }}</td>
+            <td class="py-3 text-slate-900 dark:text-white font-medium">{{ perda.item?.produto?.nome || '—' }}</td>
             <td class="py-3 text-red-600 dark:text-red-400 font-bold">-{{ formatarNumero(perda.quantidade) }}</td>
             <td class="py-3 text-slate-600 dark:text-slate-300">{{ perda.observacao || '—' }}</td>
             <td class="py-3 text-slate-500 dark:text-slate-400">{{ formatarData(perda.data_movimentacao) }}</td>
@@ -110,7 +152,7 @@
       </table>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal: perda individual -->
     <div v-if="modalAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
 
       <!-- ETAPA 0: Formulário -->
@@ -122,7 +164,7 @@
 
         <div class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-4">
           <p class="text-slate-500 dark:text-slate-400 text-xs mb-1">Produto</p>
-          <p class="text-slate-900 dark:text-white font-bold">{{ itemSelecionado?.nome }}</p>
+          <p class="text-slate-900 dark:text-white font-bold">{{ itemSelecionado?.produto?.nome }}</p>
           <p class="text-slate-500 dark:text-slate-400 text-xs mt-2">Estoque disponível</p>
           <p class="text-slate-900 dark:text-white font-bold text-xl">{{ itemSelecionado?.quantidade }} {{ itemSelecionado?.unidade_medida }}</p>
         </div>
@@ -201,7 +243,7 @@
           </div>
           <p class="text-slate-600 dark:text-slate-300 text-sm">
             Confirmar perda de <strong class="text-slate-900 dark:text-white">{{ form.quantidade }} {{ itemSelecionado?.unidade_medida }}</strong>
-            de "<strong class="text-slate-900 dark:text-white">{{ itemSelecionado?.nome }}</strong>" por motivo de
+            de "<strong class="text-slate-900 dark:text-white">{{ itemSelecionado?.produto?.nome }}</strong>" por motivo de
             "<strong class="text-slate-900 dark:text-white">{{ motivoExibicao }}</strong>". Esta ação reduz o estoque e não pode ser desfeita.
           </p>
         </div>
@@ -216,6 +258,116 @@
             @click="confirmarPerda"
           >
             {{ salvando ? 'Confirmando...' : 'Confirmar Perda' }}
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Modal: perdas em massa -->
+    <div v-if="modalVariosAberto" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+
+      <!-- ETAPA 0: quantidade por item + motivo único -->
+      <div v-if="etapaVarios === 0" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-5">
+          <h2 class="text-slate-900 dark:text-white font-bold">Registrar Perdas ({{ itensParaVarios.length }} itens)</h2>
+          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="fecharModalVarios"><X :size="18" /></button>
+        </div>
+
+        <div class="space-y-3 mb-4">
+          <div
+            v-for="item in itensParaVarios"
+            :key="item.id_item"
+            class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-slate-900 dark:text-white font-semibold text-sm">{{ item.produto?.nome }}</p>
+              <p class="text-slate-500 dark:text-slate-400 text-xs">Estoque: {{ item.quantidade }} {{ item.unidade_medida }}</p>
+            </div>
+            <input
+              v-model.number="quantidadesVarios[item.id_item]"
+              type="number"
+              min="1"
+              :max="item.quantidade"
+              class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-red-500"
+              :placeholder="`Quantidade perdida (máx. ${item.quantidade})`"
+            />
+          </div>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm text-slate-600 dark:text-slate-300 font-medium mb-1">Motivo (aplicado a todos) *</label>
+          <select
+            v-model="formVarios.motivo"
+            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-red-500"
+            @change="formVarios.motivoOutro = ''"
+          >
+            <option value="">Selecione um motivo</option>
+            <option value="Vencimento">Vencimento</option>
+            <option value="Quebra">Quebra</option>
+            <option value="Furto">Furto</option>
+            <option value="Avaria">Avaria</option>
+            <option value="Uso interno">Uso interno</option>
+            <option value="Outro">Outro</option>
+          </select>
+          <input
+            v-if="formVarios.motivo === 'Outro'"
+            v-model="formVarios.motivoOutro"
+            type="text"
+            maxlength="150"
+            class="w-full mt-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-red-500"
+            placeholder="Descreva o motivo da perda"
+          />
+        </div>
+
+        <div v-if="erroVarios" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">{{ erroVarios }}</div>
+
+        <div class="flex gap-3">
+          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm" @click="fecharModalVarios">Cancelar</button>
+          <button
+            class="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-medium transition text-sm"
+            :disabled="!formVariosValido"
+            @click="etapaVarios = 1"
+          >
+            Confirmar Perdas
+          </button>
+        </div>
+      </div>
+
+      <!-- ETAPA 1: confirmação -->
+      <div v-else class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
+        <div class="flex justify-between items-start mb-5">
+          <div class="flex items-center gap-2">
+            <Shield class="text-red-600 dark:text-red-400" :size="20" />
+            <div>
+              <h2 class="text-slate-900 dark:text-white font-bold">Confirmação de Segurança</h2>
+              <p class="text-slate-500 dark:text-slate-400 text-xs">Confirme para prosseguir</p>
+            </div>
+          </div>
+          <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="fecharModalVarios"><X :size="18" /></button>
+        </div>
+
+        <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+          <div class="flex items-center gap-2 mb-1">
+            <AlertTriangle class="text-red-600 dark:text-red-400" :size="16" />
+            <span class="text-slate-900 dark:text-white font-medium text-sm">Registrar {{ itensParaVarios.length }} perda(s)</span>
+          </div>
+          <p class="text-slate-600 dark:text-slate-300 text-sm">
+            Confirmar perda de <strong class="text-slate-900 dark:text-white">{{ itensParaVarios.length }} item(ns)</strong> por motivo de
+            "<strong class="text-slate-900 dark:text-white">{{ motivoExibicaoVarios }}</strong>". Esta ação reduz o estoque de cada item e não pode ser desfeita.
+          </p>
+        </div>
+
+        <div v-if="erroVarios" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">{{ erroVarios }}</div>
+
+        <div class="flex gap-3">
+          <button class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm" @click="etapaVarios = 0">Voltar</button>
+          <button
+            class="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium transition text-sm"
+            :disabled="salvandoVarios"
+            @click="confirmarPerdasVarias"
+          >
+            {{ salvandoVarios ? 'Confirmando...' : 'Confirmar Perdas' }}
           </button>
         </div>
       </div>
@@ -247,6 +399,80 @@ const form = ref({ quantidade: null, motivo: '', motivoOutro: '' })
 const motivoExibicao = computed(() =>
   form.value.motivo === 'Outro' ? form.value.motivoOutro.trim() : form.value.motivo
 )
+
+// ===== Seleção múltipla / perda em massa =====
+const modoSelecao       = ref(false)
+const itensSelecionados = ref(new Set())
+const modalVariosAberto = ref(false)
+const etapaVarios       = ref(0)
+const salvandoVarios    = ref(false)
+const erroVarios        = ref('')
+const quantidadesVarios = ref({})
+const formVarios        = ref({ motivo: '', motivoOutro: '' })
+
+const itensParaVarios = computed(() =>
+  itens.value.filter(i => itensSelecionados.value.has(i.id_item))
+)
+
+const motivoExibicaoVarios = computed(() =>
+  formVarios.value.motivo === 'Outro' ? formVarios.value.motivoOutro.trim() : formVarios.value.motivo
+)
+
+const formVariosValido = computed(() => {
+  if (!formVarios.value.motivo) return false
+  if (formVarios.value.motivo === 'Outro' && !formVarios.value.motivoOutro.trim()) return false
+  return itensParaVarios.value.every(item => {
+    const qtd = quantidadesVarios.value[item.id_item]
+    return qtd > 0 && qtd <= item.quantidade
+  })
+})
+
+function alternarModoSelecao() {
+  modoSelecao.value       = !modoSelecao.value
+  itensSelecionados.value = new Set()
+}
+
+function alternarSelecaoItem(idItem) {
+  const novo = new Set(itensSelecionados.value)
+  novo.has(idItem) ? novo.delete(idItem) : novo.add(idItem)
+  itensSelecionados.value = novo
+}
+
+function abrirModalVarios() {
+  quantidadesVarios.value = {}
+  formVarios.value = { motivo: '', motivoOutro: '' }
+  erroVarios.value = ''
+  etapaVarios.value = 0
+  modalVariosAberto.value = true
+}
+
+function fecharModalVarios() {
+  modalVariosAberto.value = false
+  etapaVarios.value = 0
+}
+
+async function confirmarPerdasVarias() {
+  salvandoVarios.value = true
+  erroVarios.value = ''
+  try {
+    await api.post('/perdas/varios', {
+      motivo: motivoExibicaoVarios.value,
+      itens: itensParaVarios.value.map(item => ({
+        id_item:    item.id_item,
+        quantidade: quantidadesVarios.value[item.id_item],
+      })),
+    })
+    fecharModalVarios()
+    modoSelecao.value = false
+    itensSelecionados.value = new Set()
+    await Promise.all([carregarItens(), carregarPerdas(), carregarEstatisticas()])
+  } catch (e) {
+    erroVarios.value = e.response?.data?.message || 'Erro ao registrar perdas.'
+    etapaVarios.value = 0
+  } finally {
+    salvandoVarios.value = false
+  }
+}
 
 const formatarData = (data) => {
   if (!data) return '—'
@@ -301,7 +527,7 @@ function fecharModal() {
 async function carregarItens() {
   carregandoItens.value = true
   try {
-    const { data } = await api.get('/produtos')
+    const { data } = await api.get('/itens')
     itens.value = data
   } finally {
     carregandoItens.value = false

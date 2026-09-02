@@ -7,7 +7,7 @@
           <h2 class="text-lg font-bold text-slate-900 dark:text-white">Editar Item</h2>
           <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Modifique quantidade, unidade, validade e localização.</p>
         </div>
-        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="$emit('fechar')">
+        <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="tentarFechar">
           <X :size="20" />
         </button>
       </div>
@@ -75,7 +75,7 @@
           <button
             type="button"
             class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            @click="$emit('fechar')"
+            @click="tentarFechar"
           >
             Cancelar
           </button>
@@ -90,13 +90,27 @@
 
       </form>
     </div>
+
+    <!-- Modal de confirmação: descartar alterações -->
+    <ModalConfirmacao
+      v-if="modalDescartarAberto"
+      titulo="Descartar alterações?"
+      variante="aviso"
+      mensagem="Você tem alterações não salvas neste item. Deseja realmente descartar e fechar?"
+      texto-cancelar="Continuar Editando"
+      texto-confirmar="Descartar"
+      @cancelar="modalDescartarAberto = false"
+      @confirmar="confirmarDescarte"
+    />
+
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import api from '@/servicos/api'
+import ModalConfirmacao from '@/componentes/ui/ModalConfirmacao.vue'
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -107,13 +121,37 @@ const salvando = ref(false)
 const erro     = ref('')
 
 // Só campos que o backend (ItemLoteController@update) realmente salva
-const form = ref({
+const valoresOriginais = {
   quantidade:      props.item.quantidade     ?? null,
   unidade_medida:  props.item.unidade_medida || 'UN',
   data_validade:   props.item.data_validade  || '',
   localizacao:     props.item.localizacao    || '',
   prioridade_abc:  props.item.prioridade_abc || '',
+}
+
+const form = ref({ ...valoresOriginais })
+
+const temAlteracoes = computed(() => {
+  return Object.keys(valoresOriginais).some(
+    (chave) => form.value[chave] !== valoresOriginais[chave]
+  )
 })
+
+// ===== Confirmação de descarte =====
+const modalDescartarAberto = ref(false)
+
+function tentarFechar() {
+  if (temAlteracoes.value) {
+    modalDescartarAberto.value = true
+    return
+  }
+  emit('fechar')
+}
+
+function confirmarDescarte() {
+  modalDescartarAberto.value = false
+  emit('fechar')
+}
 
 async function salvar() {
   erro.value     = ''

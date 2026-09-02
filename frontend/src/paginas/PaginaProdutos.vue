@@ -16,7 +16,7 @@
         class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-slate-500"
         @input="buscarComAtraso"
       />
-          <div class="flex items-center gap-3 flex-wrap">
+      <div class="flex items-center gap-3 flex-wrap">
         <button
           :class="[
             'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors w-fit',
@@ -64,37 +64,74 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="item in produtosFiltrados"
-            :key="item.id_item"
-            class="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
-          >
-            <td class="px-4 py-3 text-slate-600 dark:text-slate-300 font-mono text-xs">{{ item.sku ?? '—' }}</td>
-            <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ item.nome }}</td>
-            <td class="px-4 py-3" :class="estoqueBaixo(item) ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-slate-900 dark:text-white'">
-              {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
-            </td>
-            <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ formatarData(item.data_validade) }}</td>
-            <td class="px-4 py-3">
-              <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded font-medium">
-                {{ item.lote?.numero_lote ?? 'Lote ' + item.id_lote }}
-              </span>
-            </td>
-            <td class="px-4 py-3">
-              <span :class="badgeValidade(item)">
-                {{ labelValidade(item) }}
-              </span>
-            </td>
-            <td class="px-4 py-3">
-              <span
-                :class="estoqueBaixo(item)
-                  ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 px-2 py-1 rounded text-xs font-semibold'
-                  : 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-semibold'"
-              >
-                {{ estoqueBaixo(item) ? '↓ Baixo' : 'OK' }}
-              </span>
-            </td>
-          </tr>
+          <template v-for="item in produtosFiltrados" :key="item.id_produto">
+            <tr
+              class="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+            >
+              <td class="px-4 py-3 text-slate-600 dark:text-slate-300 font-mono text-xs">{{ item.sku ?? '—' }}</td>
+              <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ item.nome }}</td>
+              <td class="px-4 py-3" :class="estoqueBaixo(item) ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-slate-900 dark:text-white'">
+                {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
+              </td>
+              <td class="px-4 py-3 text-slate-600 dark:text-slate-300">
+                <button
+                  v-if="datasUnicas(item).length > 1"
+                  class="text-left underline decoration-dotted decoration-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+                  @click="alternarExpandido(item.id_produto)"
+                >
+                  <span v-for="(data, index) in datasUnicas(item)" :key="data">
+                    {{ formatarDataCurta(data) }}<span v-if="index < datasUnicas(item).length - 1" class="mx-1 text-slate-400">•</span>
+                  </span>
+                </button>
+                <span v-else>{{ formatarData(item.data_validade) }}</span>
+              </td>
+              <td class="px-4 py-3">
+                <span v-if="!item.lotes || item.lotes.length === 0" class="text-slate-400 dark:text-slate-500 text-xs">—</span>
+                <template v-else v-for="(numeroLote, index) in item.lotes" :key="numeroLote">
+                  <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded font-medium">{{ numeroLote }}</span>
+                  <span v-if="index < item.lotes.length - 1" class="text-slate-400 dark:text-slate-500">, </span>
+                </template>
+              </td>
+              <td class="px-4 py-3">
+                <span :class="badgeValidade(item)">
+                  {{ labelValidade(item) }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span
+                  :class="estoqueBaixo(item)
+                    ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 px-2 py-1 rounded text-xs font-semibold'
+                    : 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-semibold'"
+                >
+                  {{ estoqueBaixo(item) ? '↓ Baixo' : 'OK' }}
+                </span>
+              </td>
+            </tr>
+
+            <!-- Linha expandida: detalhe de validade por lote -->
+            <tr v-if="expandido === item.id_produto" class="bg-slate-100 dark:bg-slate-900/50">
+              <td colspan="7" class="px-4 py-3">
+                <table class="w-full text-xs">
+                  <thead>
+                    <tr class="text-slate-500 dark:text-slate-400 text-left border-b border-slate-200 dark:border-slate-700">
+                      <th class="pb-2 pr-4">Validade</th>
+                      <th class="pb-2 pr-4">Quantidade</th>
+                      <th class="pb-2 pr-4">Lote</th>
+                      <th class="pb-2">Localização</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="v in item.validades" :key="v.id_item" class="border-b border-slate-200 dark:border-slate-800 last:border-0">
+                      <td class="py-2 pr-4 text-slate-700 dark:text-slate-200">{{ formatarData(v.data_validade) }}</td>
+                      <td class="py-2 pr-4 text-slate-700 dark:text-slate-200">{{ formatNumero(v.quantidade) }} {{ v.unidade }}</td>
+                      <td class="py-2 pr-4 text-slate-700 dark:text-slate-200">{{ v.numero_lote ?? '—' }}</td>
+                      <td class="py-2 text-slate-700 dark:text-slate-200">{{ v.localizacao ?? '—' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -127,12 +164,12 @@ const carregando         = ref(false)
 const termoDeBusca       = ref('')
 const filtroBaixo        = ref(false)
 const filtroCategoria    = ref('')
+const expandido          = ref(null)
 
 let temporizadorBusca = null
 
 const estoqueBaixo = (item) => item.quantidade <= item.estoque_minimo
 
-// Formata números com separador de milhar no padrão brasileiro (ex: 17050 -> 17.050)
 const formatNumero = (valor) => Number(valor ?? 0).toLocaleString('pt-BR')
 
 const diasParaVencer = (data) => {
@@ -165,9 +202,25 @@ const formatarData = (data) => {
   return dias !== null ? `${dataFmt} (${dias}d)` : dataFmt
 }
 
+// Versão curta (sem os dias entre parênteses), usada na lista compacta com "•"
+const formatarDataCurta = (data) => {
+  if (!data) return '—'
+  return new Date(data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
+
+// Datas distintas de validade que esse produto tem entre os itens de lote
+const datasUnicas = (item) => {
+  if (!item.validades || item.validades.length === 0) return []
+  return [...new Set(item.validades.map(v => v.data_validade))]
+}
+
+const alternarExpandido = (idProduto) => {
+  expandido.value = expandido.value === idProduto ? null : idProduto
+}
+
 const categoriasDisponiveis = computed(() => {
   const categorias = produtos.value
-    .map(item => item.categoria)
+    .map(item => item.categoria_nome)
     .filter(Boolean)
   return [...new Set(categorias)].sort()
 })
@@ -179,7 +232,7 @@ const produtosFiltrados = computed(() => {
       item.nome?.toLowerCase().includes(termo) ||
       item.sku?.toLowerCase().includes(termo)
     const baixoOk = !filtroBaixo.value || estoqueBaixo(item)
-    const categoriaOk = !filtroCategoria.value || item.categoria === filtroCategoria.value
+    const categoriaOk = !filtroCategoria.value || item.categoria_nome === filtroCategoria.value
     return buscaOk && baixoOk && categoriaOk
   })
 })

@@ -132,6 +132,19 @@
 
       </form>
     </div>
+
+    <!-- Modal de confirmação: descartar informações não salvas -->
+    <ModalConfirmacao
+      v-if="modalDescartarAberto"
+      titulo="Descartar alterações?"
+      variante="aviso"
+      mensagem="Você tem informações não salvas neste formulário. Deseja realmente descartar e fechar?"
+      texto-cancelar="Continuar Editando"
+      texto-confirmar="Descartar"
+      @cancelar="modalDescartarAberto = false"
+      @confirmar="confirmarDescarte"
+    />
+
   </div>
 </template>
 
@@ -139,6 +152,7 @@
 import { ref, computed, watch } from 'vue'
 import { X } from 'lucide-vue-next'
 import api from '@/servicos/api'
+import ModalConfirmacao from '@/componentes/ui/ModalConfirmacao.vue'
 
 const props = defineProps({
   lote: { type: Object, required: true },
@@ -148,7 +162,6 @@ const emit = defineEmits(['fechar', 'salvo'])
 const salvando = ref(false)
 const erro     = ref('')
 
-// form precisa ser declarado ANTES do watch que o usa
 const form = ref({
   sku:              '',
   nome:             '',
@@ -163,9 +176,8 @@ const form = ref({
   categoria_outros: '',
 })
 
-// ===== Busca de produto por SKU =====
 const buscandoProduto   = ref(false)
-const produtoEncontrado = ref(null) // null = ainda não buscou / não achou
+const produtoEncontrado = ref(null)
 let debounceTimer = null
 
 watch(() => form.value.sku, (sku) => {
@@ -177,9 +189,8 @@ watch(() => form.value.sku, (sku) => {
     buscandoProduto.value = true
     try {
       const { data } = await api.get('/produtos/buscar-por-sku', { params: { sku } })
-      produtoEncontrado.value = data // backend retorna null se não achar
+      produtoEncontrado.value = data
       if (produtoEncontrado.value) {
-        // autopreenche pra exibir, mas esses campos ficam readonly/ocultos no template
         form.value.nome = produtoEncontrado.value.nome
       }
     } catch {
@@ -205,11 +216,18 @@ const temAlteracoes = computed(() => {
   )
 })
 
+const modalDescartarAberto = ref(false)
+
 function tentarFechar() {
   if (temAlteracoes.value) {
-    const confirmar = window.confirm('Você tem informações não salvas. Deseja realmente descartar e fechar?')
-    if (!confirmar) return
+    modalDescartarAberto.value = true
+    return
   }
+  emit('fechar')
+}
+
+function confirmarDescarte() {
+  modalDescartarAberto.value = false
   emit('fechar')
 }
 
@@ -230,7 +248,6 @@ async function salvar() {
     const dados = { ...form.value }
 
     if (produtoEncontrado.value) {
-      // produto já existe: manda só o id_produto + quantidade/validade/localização
       dados.id_produto = produtoEncontrado.value.id_produto
       delete dados.nome
       delete dados.categoria
@@ -282,7 +299,6 @@ option {
   background: var(--card);
   color: var(--foreground);
 }
-/* input[type=date] usa ícone nativo do navegador — precisa inverter no dark */
 .campo-data {
   color-scheme: light;
 }

@@ -43,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/itens/{id}/baixa',      [ItemLoteController::class, 'baixa']);
     Route::patch('/itens/{id}/entrada',    [ItemLoteController::class, 'entrada']);
     Route::patch('/itens/{id}/transferir', [ItemLoteController::class, 'transferir']);
+    Route::get('/itens', [ItemLoteController::class, 'todos']);
     Route::delete('/itens/{id}',           [ItemLoteController::class, 'destroy']);
     Route::delete('/itens', [ItemLoteController::class, 'destroyMultiplos']);
     Route::get('/itens/{id}/historico',    [ItemLoteController::class, 'historico']);
@@ -54,12 +55,14 @@ Route::post('/itens/transferir-lote', [ItemLoteController::class, 'transferirEmL
 
     // ─── Produtos ────────────────────────────────────────────
     Route::get('/produtos',         [ProdutoController::class, 'index']);
+        Route::get('/produtos/buscar-por-sku',   [ProdutoController::class, 'buscarPorSku']);
     Route::delete('/produtos/{id}', [ProdutoController::class, 'destroy']);
     Route::delete('/produtos',      [ProdutoController::class, 'destroyMultiplos']);
 
     // ─── Perdas ──────────────────────────────────────────────
     Route::get('/perdas',              [PerdaController::class, 'index']);
     Route::post('/perdas',             [PerdaController::class, 'store']);
+     Route::post('/perdas/varios',      [PerdaController::class, 'storeVarios']);
     Route::get('/perdas/estatisticas', [PerdaController::class, 'estatisticas']);
 
     // ─── Movimentações ───────────────────────────────────────

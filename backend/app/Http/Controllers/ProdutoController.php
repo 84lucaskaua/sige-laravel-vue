@@ -12,12 +12,14 @@ class ProdutoController extends Controller
     {
         $query = Produto::query()
             ->withSum('itensLote', 'quantidade')
-            ->with(['itensLote' => function ($q) {
-                $q->whereNotNull('data_validade')->orderBy('data_validade', 'asc');
-            }]);
+            ->with([
+                'categoria',
+                'itensLote' => function ($q) {
+                    $q->with('lote')->orderBy('data_validade', 'asc');
+                },
+            ]);
 
         if ($request->boolean('estoque_baixo')) {
-            // agora compara o total agregado (via having, depois do withSum) em vez do campo por-lote
             $query->havingRaw('COALESCE(itens_lote_sum_quantidade, 0) <= estoque_minimo');
         }
 
@@ -29,17 +31,54 @@ class ProdutoController extends Controller
         }
 
         $produtos = $query->get()->map(function ($produto) {
-            $produto->quantidade_total   = $produto->itens_lote_sum_quantidade ?? 0;
-            $produto->proxima_validade   = optional($produto->itensLote->first())->data_validade;
+            $itensComValidade = $produto->itensLote->whereNotNull('data_validade')->sortBy('data_validade');
+
+            $produto->quantidade     = $produto->itens_lote_sum_quantidade ?? 0;
+            $produto->data_validade  = optional($itensComValidade->first())->data_validade;
+            $produto->categoria_nome = optional($produto->categoria)->nome;
+            $produto->lotes          = $produto->itensLote
+                ->pluck('lote.numero_lote')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $produto->validades = $itensComValidade
+                ->map(function ($item) {
+                    return [
+                        'id_item'       => $item->id_item,
+                        'data_validade' => $item->data_validade,
+                        'quantidade'    => $item->quantidade,
+                        'unidade'       => $item->unidade_medida,
+                        'numero_lote'   => optional($item->lote)->numero_lote,
+                        'localizacao'   => $item->localizacao,
+                    ];
+                })
+                ->values();
+
             return $produto;
         });
 
         return response()->json($produtos);
     }
 
+    // Usado pelo ModalAdicionarItem pra detectar se o SKU digitado já pertence
+    // a um produto existente (nesse caso, só adiciona um novo item de lote
+    // pra ele, com sua própria quantidade/validade/localização).
+    public function buscarPorSku(Request $request)
+    {
+        dd('CODIGO ATUAL', $request->sku, Produto::where('sku', $request->sku)->first());
+
+        $request->validate([
+            'sku' => 'required|string|max:50',
+        ]);
+
+        $produto = Produto::where('sku', $request->sku)->first();
+
+        return response()->json($produto);
+    }
+
     public function destroy(int $id)
     {
-        // Exclui o Produto (e os item_lote em cascata, via FK cascadeOnDelete)
         $produto = Produto::findOrFail($id);
         $produto->delete();
 

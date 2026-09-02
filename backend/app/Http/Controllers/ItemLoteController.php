@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ItemLote;
 use App\Models\Produto;
+use App\Models\Categoria;
+use App\Models\Fornecedor;
 use App\Models\Movimentacao;
 use App\Jobs\RecalcularAbcJob;
 use Illuminate\Http\Request;
@@ -38,18 +40,46 @@ class ItemLoteController extends Controller
         if ($request->id_produto) {
             $idProduto = $request->id_produto;
         } else {
+            $existente = Produto::where('sku', $request->sku)->first();
+
+            if ($existente) {
+                return response()->json([
+                    'message'              => "O SKU \"{$request->sku}\" já está cadastrado para o produto \"{$existente->nome}\". Selecione-o na lista em vez de criar um novo.",
+                    'id_produto_existente' => $existente->id_produto,
+                ], 422);
+            }
+
             try {
-                $produto = Produto::firstOrCreate(
-                    ['sku' => $request->sku],
-                    [
-                        'nome'           => $request->nome,
-                        'unidade_medida' => $request->unidade_medida ?? 'UN',
-                        'estoque_minimo' => $request->estoque_minimo,
-                        'estoque_atual'  => 0,
-                    ]
-                );
+                $dadosProduto = [
+                    'sku'            => $request->sku,
+                    'nome'           => $request->nome,
+                    'unidade_medida' => $request->unidade_medida ?? 'UN',
+                    'estoque_minimo' => $request->estoque_minimo,
+                    'estoque_atual'  => 0,
+                ];
+
+                if ($request->filled('categoria')) {
+                    $categoria = Categoria::firstOrCreate(
+                        ['nome' => trim($request->categoria)]
+                    );
+                    $dadosProduto['id_categoria'] = $categoria->id_categoria;
+                }
+
+                if ($request->filled('fornecedor')) {
+                    $fornecedor = Fornecedor::firstOrCreate(
+                        ['nome' => trim($request->fornecedor)]
+                    );
+                    $dadosProduto['id_fornecedor'] = $fornecedor->id_fornecedor;
+                }
+
+                $produto = Produto::create($dadosProduto);
             } catch (\Illuminate\Database\QueryException $e) {
-                $produto = Produto::where('sku', $request->sku)->firstOrFail();
+                // corrida: outro request criou o mesmo sku entre o SELECT acima e este INSERT
+                $existente = Produto::where('sku', $request->sku)->firstOrFail();
+                return response()->json([
+                    'message'              => "O SKU \"{$request->sku}\" já está cadastrado para o produto \"{$existente->nome}\". Selecione-o na lista em vez de criar um novo.",
+                    'id_produto_existente' => $existente->id_produto,
+                ], 422);
             }
             $idProduto = $produto->id_produto;
         }
@@ -273,12 +303,6 @@ class ItemLoteController extends Controller
         return response()->json($resultado);
     }
 
-    /**
-     * Transfere múltiplos itens de uma vez, cada um podendo ir para um lote
-     * de destino diferente (e com quantidade diferente). Cobre os 3 casos:
-     * vários itens -> 1 lote, vários itens -> vários lotes, e até dividir
-     * a quantidade de um mesmo item entre lotes diferentes.
-     */
     public function transferirEmLote(Request $request)
     {
         $request->validate([
@@ -327,11 +351,6 @@ class ItemLoteController extends Controller
         ]);
     }
 
-    /**
-     * Lógica central de transferência, compartilhada entre transferir() (individual)
-     * e transferirEmLote() (múltiplos). Assume que já foi validado: quantidade
-     * disponível, lote de destino diferente do atual, e data_validade presente.
-     */
     private function executarTransferencia(ItemLote $itemOrigem, int $idLoteDestino, int $qtd): array
     {
         $itemOrigem->decrement('quantidade', $qtd);
@@ -372,5 +391,15 @@ class ItemLoteController extends Controller
             'item_origem'  => $itemOrigem->refresh()->load('produto.fornecedor'),
             'item_destino' => $itemDestino->refresh()->load('produto.fornecedor'),
         ];
+    }
+
+    public function todos()
+    {
+        $itens = ItemLote::with(['produto', 'lote'])
+            ->where('quantidade', '>', 0)
+            ->orderBy('data_validade', 'asc')
+            ->get();
+
+        return response()->json($itens);
     }
 }

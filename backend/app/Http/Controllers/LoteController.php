@@ -8,12 +8,12 @@ use Illuminate\Support\Facades\DB;
 
 class LoteController extends Controller
 {
-    public function index()
-    {
-        // Precisa carregar 'itens.produto' — só 'itens' não traz nome/sku do produto
-        $lotes = Lote::with('itens.produto')->orderBy('id_lote', 'asc')->get();
-        return response()->json($lotes);
-    }
+   public function index()
+{
+    // Precisa carregar 'itens.produto.fornecedor' — sem isso, item.produto.fornecedor vem null no front
+    $lotes = Lote::with('itens.produto.fornecedor')->orderBy('id_lote', 'asc')->get();
+    return response()->json($lotes);
+}
 
     public function store(Request $request)
     {
