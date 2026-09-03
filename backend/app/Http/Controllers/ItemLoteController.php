@@ -74,13 +74,17 @@ class ItemLoteController extends Controller
 
                 $produto = Produto::create($dadosProduto);
             } catch (\Illuminate\Database\QueryException $e) {
-                // corrida: outro request criou o mesmo sku entre o SELECT acima e este INSERT
-                $existente = Produto::where('sku', $request->sku)->firstOrFail();
-                return response()->json([
-                    'message'              => "O SKU \"{$request->sku}\" já está cadastrado para o produto \"{$existente->nome}\". Selecione-o na lista em vez de criar um novo.",
-                    'id_produto_existente' => $existente->id_produto,
-                ], 422);
-            }
+    $existente = Produto::where('sku', $request->sku)->first();
+
+    if ($existente) {
+        return response()->json([
+            'message'              => "O SKU \"{$request->sku}\" já está cadastrado para o produto \"{$existente->nome}\". Selecione-o na lista em vez de criar um novo.",
+            'id_produto_existente' => $existente->id_produto,
+        ], 422);
+    }
+
+    throw $e;
+}
             $idProduto = $produto->id_produto;
         }
 

@@ -66,7 +66,7 @@ class ProdutoController extends Controller
     // pra ele, com sua própria quantidade/validade/localização).
     public function buscarPorSku(Request $request)
     {
-        dd('CODIGO ATUAL', $request->sku, Produto::where('sku', $request->sku)->first());
+       
 
         $request->validate([
             'sku' => 'required|string|max:50',
