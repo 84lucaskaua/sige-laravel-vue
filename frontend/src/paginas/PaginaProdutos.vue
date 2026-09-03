@@ -78,7 +78,7 @@
             <td class="px-4 py-3 text-slate-600 dark:text-slate-300">
               {{ formatarDataCurta(item.data_validade) }}<span v-if="datasUnicas(item).length > 1" class="text-slate-400"> +{{ datasUnicas(item).length - 1 }}</span>
             </td>
-            <td class="px-4 py-3 relative" @click.stop>
+            <td class="px-4 py-3" @click.stop>
               <span v-if="!item.lotes || item.lotes.length === 0" class="text-slate-400 dark:text-slate-500 text-xs">—</span>
               <button
                 v-else
@@ -90,70 +90,38 @@
                 <span class="text-[10px]">{{ dropdownAberto === item.id_produto ? '▲' : '▼' }}</span>
               </button>
 
-              <div
-                v-if="dropdownAberto === item.id_produto"
-                :class="[
-                  'absolute left-0 z-50 min-w-[160px] max-h-56 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-2 flex flex-col gap-1',
-                  dropdownDirecao === 'cima' ? 'bottom-full mb-1' : 'top-full mt-1'
-                ]"
-              >
-                <!-- Busca dentro do dropdown (só aparece com 10+ lotes) -->
-                <input
-                  v-if="item.lotes.length >= 10"
-                  v-model="buscaLotePorProduto[item.id_produto]"
-                  type="text"
-                  placeholder="Filtrar lote..."
-                  class="w-full mb-1 bg-slate-100 dark:bg-slate-700 border-none text-slate-900 dark:text-white placeholder-slate-400 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  @click.stop
-                />
-
-                <span v-if="lotesFiltrados(item).length === 0" class="text-slate-400 dark:text-slate-500 text-xs px-1 py-1">
-                  Nenhum lote encontrado.
-                </span>
-
+              <Teleport to="body">
                 <div
-                  v-for="numeroLote in lotesFiltrados(item)"
-                  :key="numeroLote"
-                  class="relative"
+                  v-if="dropdownAberto === item.id_produto"
+                  :style="{ position: 'fixed', top: posicaoDropdown.top + 'px', left: posicaoDropdown.left + 'px' }"
+                  class="z-[9999] min-w-[160px] max-h-56 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-2 flex flex-col gap-1"
+                  @click.stop
                 >
+                  <!-- Busca dentro do dropdown (só aparece com 10+ lotes) -->
+                  <input
+                    v-if="item.lotes.length >= 10"
+                    v-model="buscaLotePorProduto[item.id_produto]"
+                    type="text"
+                    placeholder="Filtrar lote..."
+                    class="w-full mb-1 bg-slate-100 dark:bg-slate-700 border-none text-slate-900 dark:text-white placeholder-slate-400 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    @click.stop
+                  />
+
+                  <span v-if="lotesFiltrados(item).length === 0" class="text-slate-400 dark:text-slate-500 text-xs px-1 py-1">
+                    Nenhum lote encontrado.
+                  </span>
+
                   <button
+                    v-for="numeroLote in lotesFiltrados(item)"
+                    :key="numeroLote"
                     type="button"
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded font-medium text-center transition-colors"
-                    @click.stop="toggleMenuLote(item, numeroLote)"
+                    @click.stop="toggleMenuLote(item, numeroLote, $event)"
                   >
                     {{ numeroLote }}
                   </button>
-
-                  <!-- Menu de ações rápidas do lote -->
-                  <div
-                    v-if="menuLoteAberto === chaveMenuLote(item, numeroLote)"
-                    class="absolute left-full top-0 ml-1 z-50 min-w-[150px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-1 flex flex-col"
-                    @click.stop
-                  >
-                    <button
-                      type="button"
-                      class="text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                      @click="acionarTransferir(item, numeroLote)"
-                    >
-                      ↔ Transferir
-                    </button>
-                    <button
-                      type="button"
-                      class="text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                      @click="acionarBaixa(item, numeroLote)"
-                    >
-                      ↓ Registrar Baixa
-                    </button>
-                    <button
-                      type="button"
-                      class="text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                      @click="acionarHistorico(item, numeroLote)"
-                    >
-                      🕒 Ver Histórico
-                    </button>
-                  </div>
                 </div>
-              </div>
+              </Teleport>
             </td>
             <td class="px-4 py-3">
               <span :class="badgeValidade(item)">
@@ -173,6 +141,38 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Submenu de ações rápidas do lote (único, fora do v-for, teleportado) -->
+    <Teleport to="body">
+      <div
+        v-if="menuLoteAtivo"
+        :style="{ position: 'fixed', top: posicaoMenuLote.top + 'px', left: posicaoMenuLote.left + 'px' }"
+        class="z-[9999] min-w-[150px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-1 flex flex-col"
+        @click.stop
+      >
+        <button
+          type="button"
+          class="text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+          @click="acionarTransferir(menuLoteAtivo.item, menuLoteAtivo.numeroLote)"
+        >
+          ↔ Transferir
+        </button>
+        <button
+          type="button"
+          class="text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+          @click="acionarBaixa(menuLoteAtivo.item, menuLoteAtivo.numeroLote)"
+        >
+          ↓ Registrar Baixa
+        </button>
+        <button
+          type="button"
+          class="text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+          @click="acionarHistorico(menuLoteAtivo.item, menuLoteAtivo.numeroLote)"
+        >
+          🕒 Ver Histórico
+        </button>
+      </div>
+    </Teleport>
 
     <!-- Rodapé -->
     <div class="grid grid-cols-3 gap-4 mt-6">
@@ -234,8 +234,9 @@ const filtroCategoria     = ref('')
 const produtoSelecionado  = ref(null)
 const loteDestaque        = ref(null)
 const dropdownAberto      = ref(null)
-const dropdownDirecao     = ref('baixo')
-const menuLoteAberto      = ref(null)
+const posicaoDropdown     = ref({ top: 0, left: 0 })
+const menuLoteAtivo       = ref(null) // { chave, item, numeroLote }
+const posicaoMenuLote     = ref({ top: 0, left: 0 })
 const buscaLotePorProduto = ref({})
 const modalBaixa          = ref(null) // { id_item, nome, quantidade, unidade_medida }
 const modalTransferir     = ref(null) // { item: {...}, lotes: [...] }
@@ -298,20 +299,30 @@ const fecharModalValidades = () => {
   loteDestaque.value = null
 }
 
-const ALTURA_ESTIMADA_DROPDOWN = 230 // px, cobre até ~8 lotes visíveis antes do scroll interno
-
 const toggleLotes = (item, evento) => {
   if (dropdownAberto.value === item.id_produto) {
     dropdownAberto.value = null
-    menuLoteAberto.value = null
+    menuLoteAtivo.value = null
     return
   }
 
   const rect = evento.currentTarget.getBoundingClientRect()
+  const linhasVisiveis = Math.min(item.lotes.length, 8)
+  const alturaEstimada = linhasVisiveis * 30 + (item.lotes.length >= 10 ? 36 : 0) + 20
   const espacoAbaixo = window.innerHeight - rect.bottom
-  dropdownDirecao.value = espacoAbaixo < ALTURA_ESTIMADA_DROPDOWN ? 'cima' : 'baixo'
+  const abrirParaCima = espacoAbaixo < alturaEstimada
+
+  const larguraMenu = 160
+  const espacoDireita = window.innerWidth - rect.left
+  const abrirParaEsquerda = espacoDireita < larguraMenu
+
+  posicaoDropdown.value = {
+    top: abrirParaCima ? rect.top - alturaEstimada - 4 : rect.bottom + 4,
+    left: abrirParaEsquerda ? rect.right - larguraMenu : rect.left,
+  }
+
   dropdownAberto.value = item.id_produto
-  menuLoteAberto.value = null
+  menuLoteAtivo.value = null
 }
 
 // --- Filtro de busca dentro do dropdown (10+ lotes) ---
@@ -324,9 +335,24 @@ const lotesFiltrados = (item) => {
 // --- Menu de ações rápidas por lote ---
 const chaveMenuLote = (item, numeroLote) => `${item.id_produto}-${numeroLote}`
 
-const toggleMenuLote = (item, numeroLote) => {
+const toggleMenuLote = (item, numeroLote, evento) => {
   const chave = chaveMenuLote(item, numeroLote)
-  menuLoteAberto.value = menuLoteAberto.value === chave ? null : chave
+  if (menuLoteAtivo.value?.chave === chave) {
+    menuLoteAtivo.value = null
+    return
+  }
+
+  const rect = evento.currentTarget.getBoundingClientRect()
+  const larguraMenu = 150
+  const espacoDireita = window.innerWidth - rect.right
+  const abrirParaEsquerda = espacoDireita < larguraMenu
+
+  posicaoMenuLote.value = {
+    top: rect.top,
+    left: abrirParaEsquerda ? rect.left - larguraMenu - 4 : rect.right + 4,
+  }
+
+  menuLoteAtivo.value = { chave, item, numeroLote }
 }
 
 // Busca a entrada de validade (item_lote) correspondente ao número do lote clicado
@@ -361,7 +387,7 @@ const acionarTransferir = (item, numeroLote) => {
     },
     lotes: lotesDoProduto(item),
   }
-  menuLoteAberto.value = null
+  menuLoteAtivo.value = null
   dropdownAberto.value = null
 }
 
@@ -377,14 +403,14 @@ const acionarBaixa = (item, numeroLote) => {
     quantidade:     validade.quantidade,
     unidade_medida: validade.unidade,
   }
-  menuLoteAberto.value = null
+  menuLoteAtivo.value = null
   dropdownAberto.value = null
 }
 
 const acionarHistorico = (item, numeroLote) => {
   loteDestaque.value = numeroLote
   produtoSelecionado.value = item
-  menuLoteAberto.value = null
+  menuLoteAtivo.value = null
   dropdownAberto.value = null
 }
 
@@ -396,7 +422,7 @@ const aoSalvarAcaoLote = () => {
 
 const fecharDropdownAoClicarFora = () => {
   dropdownAberto.value = null
-  menuLoteAberto.value = null
+  menuLoteAtivo.value = null
 }
 
 const categoriasDisponiveis = computed(() => {
