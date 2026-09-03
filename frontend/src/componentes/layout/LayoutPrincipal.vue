@@ -390,6 +390,11 @@
     <main class="flex-1 overflow-auto">
       <RouterView />
     </main>
+<GlobalBusca
+  :is-open="buscaGlobalAberta"
+  :itens-menu="itensDoMenu"
+  @fechar="buscaGlobalAberta = false"
+/>
 
     <ChatbotWidget />
   </div>
@@ -426,7 +431,11 @@ import { useTemaStore } from '@/servicos/tema.store';
 import { perfilPodeAcessarRota } from '@/servicos/permissoes';
 import logoSenac from '@/componentes/img/Senac_logo.svg.png';
 import api from '@/servicos/api';
+// Adicione o import
+import GlobalBusca from '@/componentes/ui/GlobalBusca.vue';
 
+// Adicione o estado, junto dos outros refs
+const buscaGlobalAberta = ref(false);
 const router = useRouter();
 const autenticacao = useAutenticacaoStore();
 const tema = useTemaStore();
@@ -482,7 +491,6 @@ const itensDoMenu = computed(() => {
 // ===== ATALHOS =====
 const atalhosBusca = [{ acao: 'Abrir busca global', teclas: ['Ctrl+K'] }];
 const atalhoNavegacao = [
-  { acao: 'Abrir busca global', teclas: ['Ctrl+K'] },
   { acao: 'Ir para Dashboard', teclas: ['Alt+D'] },
   { acao: 'Ir para Lotes', teclas: ['Alt+L'] },
   { acao: 'Ir para Produtos', teclas: ['Alt+P'] },
@@ -599,9 +607,10 @@ function handleKeyboard(e) {
   const shift = e.shiftKey;
   const key = e.key.toLowerCase();
 
-  if (e.ctrlKey && key === 'k') {
-    e.preventDefault();
-  }
+ if (e.ctrlKey && key === 'k') {
+  e.preventDefault();
+  buscaGlobalAberta.value = true;
+}
   if (alt && key === 'd') {
     e.preventDefault();
     irPara('dashboard', '/dashboard');
@@ -637,6 +646,7 @@ function handleKeyboard(e) {
   if (e.key === 'Escape') {
     painelAberto.value = false;
     painelAtalhosAberto.value = false;
+    buscaGlobalAberta.value = false; // ← adicione esta linha
   }
 }
 
