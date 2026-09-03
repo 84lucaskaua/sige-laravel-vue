@@ -151,6 +151,13 @@
                 Adicionar Item
               </button>
               <button
+                class="flex items-center gap-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-sm font-medium"
+                @click="iniciarEdicaoLote"
+              >
+                <Pencil :size="16" />
+                Editar Lote
+              </button>
+              <button
                 class="flex items-center gap-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition text-sm font-medium"
                 @click="iniciarExclusaoLote"
               >
@@ -171,11 +178,9 @@
         <div
           v-else
           ref="tabelaRef"
-          class="overflow-x-auto cursor-grab select-none"
+          class="overflow-auto cursor-grab select-none"
           @mousedown="aoIniciar"
-          @mousemove="aoMover"
-          @mouseup="aoSoltar"
-          @mouseleave="aoSoltar"
+          
         >
           <table class="w-full text-sm">
             <thead>
@@ -532,7 +537,8 @@ import ModalEntradaEstoque  from '@/componentes/ui/ModalEntradaEstoque.vue'
 import { formatarData, estaVencido, proximoDoVencimento } from '@/utils/date'
 import { useArrastarParaRolar } from '@/composables/useArrastarParaRolar'
 
-const { elementoRef: tabelaRef, aoIniciar, aoMover, aoSoltar } = useArrastarParaRolar()
+const { elementoRef: tabelaRef, aoIniciar } = useArrastarParaRolar()
+
 const autenticacao        = useAutenticacaoStore()
 const { sucesso, erro }   = useNotificacao()
 const lotes               = ref([])
@@ -688,6 +694,10 @@ function iniciarCriacaoLote() {
   modalAberto.value = true
 }
 
+function iniciarEdicaoLote() {
+  loteSelecionado.value = loteAtivo.value
+  modalAberto.value = true
+}
 function iniciarAdicaoItem() {
   modalItemAberto.value = true
 }

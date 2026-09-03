@@ -1,8 +1,8 @@
 <template>
   <div class="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-lg">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-lg" :style="estiloArraste">
 
-      <div class="flex justify-between items-center mb-6">
+      <div class="flex justify-between items-center mb-6 cursor-grab active:cursor-grabbing select-none" @mousedown="aoIniciarArraste">
         <h2 class="text-lg font-bold text-slate-900 dark:text-white">Transferir Item</h2>
         <button class="text-slate-400 hover:text-slate-900 dark:hover:text-white" @click="emit('fechar')">
           <X :size="20" />
@@ -69,6 +69,7 @@
 import { ref, computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import api from '@/servicos/api'
+import { useModalArrastavel } from '@/composables/useModalArrastavel'
 
 const props = defineProps({
   item:               { type: Object, required: true },
@@ -76,6 +77,8 @@ const props = defineProps({
   loteDestinoInicial: { type: [Number, String], default: null },
 })
 const emit = defineEmits(['fechar', 'salvo'])
+
+const { aoIniciarArraste, estiloArraste } = useModalArrastavel()
 
 const salvando = ref(false)
 const erro     = ref('')

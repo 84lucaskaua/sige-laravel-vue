@@ -2,9 +2,9 @@
   <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
 
     <!-- ===== ETAPA CONFIRMAÇÃO ===== -->
-    <div v-if="etapa === 1" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6">
+    <div v-if="etapa === 1" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6" :style="estiloArraste">
 
-      <div class="flex justify-between items-start mb-5">
+      <div class="flex justify-between items-start mb-5 cursor-grab active:cursor-grabbing select-none" @mousedown="aoIniciarArraste">
         <div class="flex items-center gap-2">
           <Shield class="text-yellow-600 dark:text-yellow-400" :size="20" />
           <div>
@@ -52,9 +52,9 @@
     </div>
 
     <!-- ===== ETAPA FORMULÁRIO DE BAIXA ===== -->
-    <div v-else class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-md">
+    <div v-else class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-md" :style="estiloArraste">
 
-      <div class="flex justify-between items-center mb-6">
+      <div class="flex justify-between items-center mb-6 cursor-grab active:cursor-grabbing select-none" @mousedown="aoIniciarArraste">
         <div>
           <h2 class="text-lg font-bold text-slate-900 dark:text-white">Baixa de Estoque</h2>
           <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Registre a saída de produtos do estoque.</p>
@@ -127,11 +127,14 @@
 import { ref } from 'vue'
 import { X, Shield } from 'lucide-vue-next'
 import api from '@/servicos/api'
+import { useModalArrastavel } from '@/composables/useModalArrastavel'
 
 const props = defineProps({
   item: { type: Object, required: true },
 })
 const emit = defineEmits(['fechar', 'salvo'])
+
+const { aoIniciarArraste, estiloArraste } = useModalArrastavel()
 
 const etapa    = ref(0)
 const salvando = ref(false)

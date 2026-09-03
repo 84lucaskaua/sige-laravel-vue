@@ -1,8 +1,8 @@
 <template>
   <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto" :style="estiloArraste">
 
-      <div class="flex justify-between items-start mb-5">
+      <div class="flex justify-between items-start mb-5 cursor-grab active:cursor-grabbing select-none" @mousedown="aoIniciarArraste">
         <div>
           <h2 class="text-slate-900 dark:text-white font-bold text-lg">Transferir Itens</h2>
           <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
@@ -54,7 +54,7 @@
             <label class="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Quantidade</label>
             <input
               type="number"
-              v-model.number="linha.quantidade"
+              v-model.number.="linha.quantidade"
               :min="1"
               :max="linha.quantidadeDisponivel"
               class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
@@ -112,6 +112,7 @@ import { ref, computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import api from '@/servicos/api'
 import { useNotificacao } from '@/composables/useNotificacao'
+import { useModalArrastavel } from '@/composables/useModalArrastavel'
 
 const props = defineProps({
   itens: { type: Array, required: true }, // itens de item_lote selecionados (com .produto carregado)
@@ -121,6 +122,7 @@ const props = defineProps({
 const emit = defineEmits(['fechar', 'salvo'])
 
 const { erro: notificarErro } = useNotificacao()
+const { aoIniciarArraste, estiloArraste } = useModalArrastavel()
 
 function numeroLote(idLote) {
   return props.lotes.find(l => l.id_lote === idLote)?.numero_lote || idLote

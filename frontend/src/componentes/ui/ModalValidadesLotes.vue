@@ -4,10 +4,10 @@
     class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
     @click.self="$emit('fechar')"
   >
-    <div class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6">
+    <div class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6" :style="estiloArraste">
 
       <!-- Cabeçalho -->
-      <div class="flex justify-between items-start mb-1">
+      <div class="flex justify-between items-start mb-1 cursor-grab active:cursor-grabbing select-none" @mousedown="aoIniciarArraste">
         <h2 class="text-xl font-bold">Detalhes do Produto</h2>
         <button
           class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl leading-none"
@@ -50,7 +50,13 @@
         <div
           v-for="v in produto.validades"
           :key="v.id_item"
-          class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-2 gap-3"
+          :data-numero-lote="v.numero_lote"
+          :class="[
+            'bg-slate-100 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-2 gap-3 transition-colors',
+            loteDestaque && String(v.numero_lote) === String(loteDestaque)
+              ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/30'
+              : ''
+          ]"
         >
           <div>
             <p class="text-blue-500 dark:text-blue-400 text-xs mb-1">Lote</p>
@@ -80,13 +86,31 @@
 </template>
 
 <script setup>
-defineProps({
-  produto: { type: Object, default: null },
-  formatNumero: { type: Function, required: true },
-  formatarData: { type: Function, required: true },
+import { watch, nextTick } from 'vue'
+import { useModalArrastavel } from '@/composables/useModalArrastavel'
+
+const props = defineProps({
+  produto:       { type: Object, default: null },
+  loteDestaque:  { type: [String, Number], default: null },
+  formatNumero:  { type: Function, required: true },
+  formatarData:  { type: Function, required: true },
   badgeValidade: { type: Function, required: true },
   labelValidade: { type: Function, required: true }
 })
 
 defineEmits(['fechar'])
+
+const { aoIniciarArraste, estiloArraste } = useModalArrastavel()
+
+// Ao abrir o modal com um lote específico destacado, rola até ele
+watch(
+  () => [props.produto, props.loteDestaque],
+  async () => {
+    if (!props.produto || !props.loteDestaque) return
+    await nextTick()
+    const alvo = document.querySelector(`[data-numero-lote="${props.loteDestaque}"]`)
+    alvo?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  },
+  { immediate: true }
+)
 </script>

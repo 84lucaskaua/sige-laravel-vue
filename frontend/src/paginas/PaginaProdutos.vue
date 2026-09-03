@@ -50,7 +50,7 @@
     </div>
 
     <!-- Tabela -->
-    <div v-else class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl overflow-hidden">
+    <div v-else class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-transparent rounded-xl overflow-visible">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-left">
@@ -65,46 +65,111 @@
         </thead>
         <tbody>
           <tr
-  v-for="item in produtosFiltrados"
-  :key="item.id_produto"
-  class="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
-  @click="abrirModalValidades(item)"
->
-  <td class="px-4 py-3 text-slate-600 dark:text-slate-300 font-mono text-xs">{{ item.sku ?? '—' }}</td>
-  <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ item.nome }}</td>
-  <td class="px-4 py-3" :class="estoqueBaixo(item) ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-slate-900 dark:text-white'">
-    {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
-  </td>
-  <td class="px-4 py-3 text-slate-600 dark:text-slate-300">
-    {{ formatarDataCurta(item.data_validade) }}<span v-if="datasUnicas(item).length > 1" class="text-slate-400"> +{{ datasUnicas(item).length - 1 }}</span>
-  </td>
-  <td class="px-4 py-3">
-    <span v-if="!item.lotes || item.lotes.length === 0" class="text-slate-400 dark:text-slate-500 text-xs">—</span>
-    <div v-else class="flex flex-wrap gap-1.5">
-      <span
-        v-for="numeroLote in item.lotes"
-        :key="numeroLote"
-        class="bg-blue-600 text-white text-xs px-2 py-1 rounded font-medium"
-      >
-        {{ numeroLote }}
-      </span>
-    </div>
-  </td>
-  <td class="px-4 py-3">
-    <span :class="badgeValidade(item)">
-      {{ labelValidade(item) }}
-    </span>
-  </td>
-  <td class="px-4 py-3">
-    <span
-      :class="estoqueBaixo(item)
-        ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 px-2 py-1 rounded text-xs font-semibold'
-        : 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-semibold'"
-    >
-      {{ estoqueBaixo(item) ? '↓ Baixo' : 'OK' }}
-    </span>
-  </td>
-</tr>
+            v-for="item in produtosFiltrados"
+            :key="item.id_produto"
+            class="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+            @click="abrirModalValidades(item)"
+          >
+            <td class="px-4 py-3 text-slate-600 dark:text-slate-300 font-mono text-xs">{{ item.sku ?? '—' }}</td>
+            <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ item.nome }}</td>
+            <td class="px-4 py-3" :class="estoqueBaixo(item) ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-slate-900 dark:text-white'">
+              {{ formatNumero(item.quantidade) }} {{ item.unidade_medida }}
+            </td>
+            <td class="px-4 py-3 text-slate-600 dark:text-slate-300">
+              {{ formatarDataCurta(item.data_validade) }}<span v-if="datasUnicas(item).length > 1" class="text-slate-400"> +{{ datasUnicas(item).length - 1 }}</span>
+            </td>
+            <td class="px-4 py-3 relative" @click.stop>
+              <span v-if="!item.lotes || item.lotes.length === 0" class="text-slate-400 dark:text-slate-500 text-xs">—</span>
+              <button
+                v-else
+                type="button"
+                class="flex items-center gap-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs px-2 py-1 rounded font-medium hover:bg-slate-300 dark:hover:bg-slate-600"
+                @click="toggleLotes(item, $event)"
+              >
+                {{ item.lotes.length }} {{ item.lotes.length === 1 ? 'lote' : 'lotes' }}
+                <span class="text-[10px]">{{ dropdownAberto === item.id_produto ? '▲' : '▼' }}</span>
+              </button>
+
+              <div
+                v-if="dropdownAberto === item.id_produto"
+                :class="[
+                  'absolute left-0 z-50 min-w-[160px] max-h-56 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-2 flex flex-col gap-1',
+                  dropdownDirecao === 'cima' ? 'bottom-full mb-1' : 'top-full mt-1'
+                ]"
+              >
+                <!-- Busca dentro do dropdown (só aparece com 10+ lotes) -->
+                <input
+                  v-if="item.lotes.length >= 10"
+                  v-model="buscaLotePorProduto[item.id_produto]"
+                  type="text"
+                  placeholder="Filtrar lote..."
+                  class="w-full mb-1 bg-slate-100 dark:bg-slate-700 border-none text-slate-900 dark:text-white placeholder-slate-400 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  @click.stop
+                />
+
+                <span v-if="lotesFiltrados(item).length === 0" class="text-slate-400 dark:text-slate-500 text-xs px-1 py-1">
+                  Nenhum lote encontrado.
+                </span>
+
+                <div
+                  v-for="numeroLote in lotesFiltrados(item)"
+                  :key="numeroLote"
+                  class="relative"
+                >
+                  <button
+                    type="button"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded font-medium text-center transition-colors"
+                    @click.stop="toggleMenuLote(item, numeroLote)"
+                  >
+                    {{ numeroLote }}
+                  </button>
+
+                  <!-- Menu de ações rápidas do lote -->
+                  <div
+                    v-if="menuLoteAberto === chaveMenuLote(item, numeroLote)"
+                    class="absolute left-full top-0 ml-1 z-50 min-w-[150px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-1 flex flex-col"
+                    @click.stop
+                  >
+                    <button
+                      type="button"
+                      class="text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                      @click="acionarTransferir(item, numeroLote)"
+                    >
+                      ↔ Transferir
+                    </button>
+                    <button
+                      type="button"
+                      class="text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                      @click="acionarBaixa(item, numeroLote)"
+                    >
+                      ↓ Registrar Baixa
+                    </button>
+                    <button
+                      type="button"
+                      class="text-left text-xs px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                      @click="acionarHistorico(item, numeroLote)"
+                    >
+                      🕒 Ver Histórico
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <span :class="badgeValidade(item)">
+                {{ labelValidade(item) }}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <span
+                :class="estoqueBaixo(item)
+                  ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 px-2 py-1 rounded text-xs font-semibold'
+                  : 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 px-2 py-1 rounded text-xs font-semibold'"
+              >
+                {{ estoqueBaixo(item) ? '↓ Baixo' : 'OK' }}
+              </span>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -127,27 +192,53 @@
 
     <ModalValidadesLotes
       :produto="produtoSelecionado"
+      :lote-destaque="loteDestaque"
       :format-numero="formatNumero"
       :formatar-data="formatarData"
       :badge-validade="badgeValidade"
       :label-validade="labelValidade"
-      @fechar="produtoSelecionado = null"
+      @fechar="fecharModalValidades"
+    />
+
+    <ModalBaixaEstoque
+      v-if="modalBaixa"
+      :item="modalBaixa"
+      @fechar="modalBaixa = null"
+      @salvo="aoSalvarAcaoLote"
+    />
+
+    <ModalTransferirItem
+      v-if="modalTransferir"
+      :item="modalTransferir.item"
+      :lotes="modalTransferir.lotes"
+      :lote-destino-inicial="null"
+      @fechar="modalTransferir = null"
+      @salvo="aoSalvarAcaoLote"
     />
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import api from '@/servicos/api'
 import ModalValidadesLotes from '@/componentes/ui/ModalValidadesLotes.vue'
+import ModalBaixaEstoque from '@/componentes/ui/ModalBaixaEstoque.vue'
+import ModalTransferirItem from '@/componentes/ui/ModalTransferirItem.vue'
 
-const produtos           = ref([])
-const carregando         = ref(false)
-const termoDeBusca       = ref('')
-const filtroBaixo        = ref(false)
-const filtroCategoria    = ref('')
-const produtoSelecionado = ref(null)
+const produtos            = ref([])
+const carregando          = ref(false)
+const termoDeBusca        = ref('')
+const filtroBaixo         = ref(false)
+const filtroCategoria     = ref('')
+const produtoSelecionado  = ref(null)
+const loteDestaque        = ref(null)
+const dropdownAberto      = ref(null)
+const dropdownDirecao     = ref('baixo')
+const menuLoteAberto      = ref(null)
+const buscaLotePorProduto = ref({})
+const modalBaixa          = ref(null) // { id_item, nome, quantidade, unidade_medida }
+const modalTransferir     = ref(null) // { item: {...}, lotes: [...] }
 
 let temporizadorBusca = null
 
@@ -185,7 +276,7 @@ const formatarData = (data) => {
   return dias !== null ? `${dataFmt} (${dias}d)` : dataFmt
 }
 
-// Versão curta (sem os dias entre parênteses), usada na lista compacta com "•"
+// Versão curta (sem os dias entre parênteses), usada na lista compacta
 const formatarDataCurta = (data) => {
   if (!data) return '—'
   return new Date(data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
@@ -198,7 +289,114 @@ const datasUnicas = (item) => {
 }
 
 const abrirModalValidades = (item) => {
+  loteDestaque.value = null
   produtoSelecionado.value = item
+}
+
+const fecharModalValidades = () => {
+  produtoSelecionado.value = null
+  loteDestaque.value = null
+}
+
+const ALTURA_ESTIMADA_DROPDOWN = 230 // px, cobre até ~8 lotes visíveis antes do scroll interno
+
+const toggleLotes = (item, evento) => {
+  if (dropdownAberto.value === item.id_produto) {
+    dropdownAberto.value = null
+    menuLoteAberto.value = null
+    return
+  }
+
+  const rect = evento.currentTarget.getBoundingClientRect()
+  const espacoAbaixo = window.innerHeight - rect.bottom
+  dropdownDirecao.value = espacoAbaixo < ALTURA_ESTIMADA_DROPDOWN ? 'cima' : 'baixo'
+  dropdownAberto.value = item.id_produto
+  menuLoteAberto.value = null
+}
+
+// --- Filtro de busca dentro do dropdown (10+ lotes) ---
+const lotesFiltrados = (item) => {
+  const termo = (buscaLotePorProduto.value[item.id_produto] || '').toLowerCase().trim()
+  if (!termo) return item.lotes
+  return item.lotes.filter(numeroLote => String(numeroLote).toLowerCase().includes(termo))
+}
+
+// --- Menu de ações rápidas por lote ---
+const chaveMenuLote = (item, numeroLote) => `${item.id_produto}-${numeroLote}`
+
+const toggleMenuLote = (item, numeroLote) => {
+  const chave = chaveMenuLote(item, numeroLote)
+  menuLoteAberto.value = menuLoteAberto.value === chave ? null : chave
+}
+
+// Busca a entrada de validade (item_lote) correspondente ao número do lote clicado
+const encontrarValidade = (item, numeroLote) =>
+  item.validades?.find(v => v.numero_lote === numeroLote)
+
+// Deriva a lista de lotes do produto (id_lote + numero_lote), sem duplicar
+const lotesDoProduto = (item) => {
+  if (!item.validades) return []
+  const mapa = new Map()
+  item.validades.forEach(v => {
+    if (v.id_lote && !mapa.has(v.id_lote)) {
+      mapa.set(v.id_lote, { id_lote: v.id_lote, numero_lote: v.numero_lote })
+    }
+  })
+  return [...mapa.values()]
+}
+
+const acionarTransferir = (item, numeroLote) => {
+  const validade = encontrarValidade(item, numeroLote)
+  if (!validade) {
+    alert('Não foi possível localizar os dados desse lote.')
+    return
+  }
+  modalTransferir.value = {
+    item: {
+      id_item:        validade.id_item,
+      id_lote:        validade.id_lote,
+      quantidade:     validade.quantidade,
+      unidade_medida: validade.unidade,
+      produto:        { nome: item.nome },
+    },
+    lotes: lotesDoProduto(item),
+  }
+  menuLoteAberto.value = null
+  dropdownAberto.value = null
+}
+
+const acionarBaixa = (item, numeroLote) => {
+  const validade = encontrarValidade(item, numeroLote)
+  if (!validade) {
+    alert('Não foi possível localizar os dados desse lote.')
+    return
+  }
+  modalBaixa.value = {
+    id_item:        validade.id_item,
+    nome:           item.nome,
+    quantidade:     validade.quantidade,
+    unidade_medida: validade.unidade,
+  }
+  menuLoteAberto.value = null
+  dropdownAberto.value = null
+}
+
+const acionarHistorico = (item, numeroLote) => {
+  loteDestaque.value = numeroLote
+  produtoSelecionado.value = item
+  menuLoteAberto.value = null
+  dropdownAberto.value = null
+}
+
+const aoSalvarAcaoLote = () => {
+  modalTransferir.value = null
+  modalBaixa.value = null
+  carregarProdutos()
+}
+
+const fecharDropdownAoClicarFora = () => {
+  dropdownAberto.value = null
+  menuLoteAberto.value = null
 }
 
 const categoriasDisponiveis = computed(() => {
@@ -253,5 +451,12 @@ function buscarComAtraso() {
   temporizadorBusca = setTimeout(carregarProdutos, 400)
 }
 
-onMounted(carregarProdutos)
+onMounted(() => {
+  carregarProdutos()
+  document.addEventListener('click', fecharDropdownAoClicarFora)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', fecharDropdownAoClicarFora)
+})
 </script>

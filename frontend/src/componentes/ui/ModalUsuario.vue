@@ -1,7 +1,7 @@
 <template>
   <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50" @click.self="$emit('fechar')">
-    <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-lg">
-      <div class="flex justify-between items-center mb-6">
+    <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-lg" :style="estiloArraste">
+      <div class="flex justify-between items-center mb-6 cursor-grab active:cursor-grabbing select-none" @mousedown="aoIniciarArraste">
         <h2 class="text-lg font-bold text-white">
           {{ ehEdicao ? 'Editar Usuário' : 'Novo Usuário' }}
         </h2>
@@ -88,11 +88,14 @@
 import { ref, computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import api from '@/servicos/api'
+import { useModalArrastavel } from '@/composables/useModalArrastavel'
 
 const props = defineProps({
   usuario: { type: Object, default: null },
 })
 const emit = defineEmits(['fechar', 'salvo'])
+
+const { aoIniciarArraste, estiloArraste } = useModalArrastavel()
 
 const ehEdicao = computed(() => !!props.usuario)
 const salvando = ref(false)

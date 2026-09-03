@@ -49,6 +49,7 @@ class ProdutoController extends Controller
                         'data_validade' => $item->data_validade,
                         'quantidade'    => $item->quantidade,
                         'unidade'       => $item->unidade_medida,
+                        'id_lote'       => $item->lote?->id_lote,
                         'numero_lote'   => optional($item->lote)->numero_lote,
                         'localizacao'   => $item->localizacao,
                     ];

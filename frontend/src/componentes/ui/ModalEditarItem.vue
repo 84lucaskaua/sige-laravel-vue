@@ -1,8 +1,8 @@
 <template>
   <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" :style="estiloArraste">
 
-      <div class="flex justify-between items-center mb-6">
+      <div class="flex justify-between items-center mb-6 cursor-grab active:cursor-grabbing select-none" @mousedown="aoIniciarArraste">
         <div>
           <h2 class="text-lg font-bold text-slate-900 dark:text-white">Editar Item</h2>
           <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Modifique quantidade, unidade, validade e localização.</p>
@@ -111,11 +111,14 @@ import { ref, computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import api from '@/servicos/api'
 import ModalConfirmacao from '@/componentes/ui/ModalConfirmacao.vue'
+import { useModalArrastavel } from '@/composables/useModalArrastavel'
 
 const props = defineProps({
   item: { type: Object, required: true },
 })
 const emit = defineEmits(['fechar', 'salvo'])
+
+const { aoIniciarArraste, estiloArraste } = useModalArrastavel()
 
 const salvando = ref(false)
 const erro     = ref('')

@@ -1,9 +1,9 @@
 <template>
   <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" :style="estiloArraste">
 
       <!-- Cabeçalho -->
-      <div class="flex justify-between items-start mb-6">
+      <div class="flex justify-between items-start mb-6 cursor-grab active:cursor-grabbing select-none" @mousedown="aoIniciarArraste">
         <div>
           <h2 class="text-slate-900 dark:text-white font-bold text-lg">Detalhes do Produto</h2>
           <p class="text-sky-600 dark:text-sky-400 text-xs mt-0.5">Visualize informações completas e histórico de movimentações do produto.</p>
@@ -166,6 +166,7 @@ import { ref, onMounted } from 'vue'
 import { X, Pencil, PackageOpen, PackagePlus, Trash2, ArrowRightLeft } from 'lucide-vue-next'
 import api from '@/servicos/api'
 import { formatarData, formatarDataHora, estaVencido, proximoDoVencimento } from '@/utils/date'
+import { useModalArrastavel } from '@/composables/useModalArrastavel'
 
 const props = defineProps({
   item:        { type: Object, required: true },
@@ -173,6 +174,8 @@ const props = defineProps({
 })
 
 defineEmits(['fechar', 'editar', 'baixa', 'entrada', 'excluir', 'transferir'])
+
+const { aoIniciarArraste, estiloArraste } = useModalArrastavel()
 
 const historico          = ref([])
 const carregandoHistorico = ref(false)
