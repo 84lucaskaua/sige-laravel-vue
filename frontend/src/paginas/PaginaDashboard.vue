@@ -210,25 +210,27 @@
          <!-- Filtros: quantidade e categoria -->
 <div class="flex items-center gap-3 flex-wrap">
   <div class="flex items-center gap-2">
-    <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">Mostrar</label>
-    <select
-      v-model="selecaoLimite"
-      class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
-    >
-      <option v-for="opcao in opcoesLimite" :key="opcao" :value="opcao">{{ opcao }}</option>
-      <option value="personalizado">Personalizado</option>
-    </select>
+  <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">Mostrar</label>
+  <select
+    :value="modoPersonalizado ? 'personalizado' : opcaoLimite"
+     class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
+    @change="aoMudarSelectLimite"
+   
+  >
+    <option v-for="opcao in opcoesLimite" :key="opcao" :value="opcao">{{ opcao }}</option>
+    <option value="personalizado">Personalizado</option>
+  </select>
 
-    <input
-      v-if="selecaoLimite === 'personalizado'"
-      v-model.number="limitePersonalizado"
-      type="number"
-      min="1"
-      max="1000"
-      placeholder="Qtd"
-      class="w-20 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
-    />
-  </div>
+  <input
+    v-if="modoPersonalizado"
+    v-model.number="limitePersonalizado"
+    type="number"
+    min="1"
+    max="1000"
+    placeholder="Qtd"
+    class="w-20 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
+  />
+</div>
 
   <div class="flex items-center gap-2">
     <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">Categoria</label>
@@ -311,20 +313,30 @@ const produtosVencendo      = ref([])
 const semDadosPizza         = ref(false)
 
 // ===== Filtro do Top Produtos =====
-const opcoesLimite          = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-const selecaoLimite         = ref(10)          // valor do <select>: número ou 'personalizado'
-const limitePersonalizado   = ref(50)          // valor digitado quando 'personalizado' está ativo
-const filtroCategoria       = ref('todas')
-const carregandoTopProdutos = ref(false)
-const categoriasDisponiveis = ref([])
+const opcaoLimite          = ref(10)     // sempre número, só as opções fixas
+const modoPersonalizado    = ref(false)  // toggle separado, sem misturar tipos no select
+const limitePersonalizado  = ref(50)
+const filtroCategoria      = ref('todas')        // ← faltava
+const categoriasDisponiveis = ref([])            // ← faltava
+const carregandoTopProdutos = ref(false)         // ← confirme que esta também está presente
 
 const filtroLimite = computed(() => {
-  if (selecaoLimite.value === 'personalizado') {
+  if (modoPersonalizado.value) {
     const valor = Number(limitePersonalizado.value)
-    return valor > 0 ? valor : 10
+    return valor > 0 ? valor : opcaoLimite.value
   }
-  return selecaoLimite.value
+  return opcaoLimite.value
 })
+
+function aoMudarSelectLimite(event) {
+  const valor = event.target.value
+  if (valor === 'personalizado') {
+    modoPersonalizado.value = true
+  } else {
+    modoPersonalizado.value = false
+    opcaoLimite.value = Number(valor)
+  }
+}
 
 const resumo = ref({
   totalProdutos:    0,
