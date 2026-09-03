@@ -207,29 +207,40 @@
             </div>
           </div>
 
-          <!-- Filtros: quantidade e categoria -->
-          <div class="flex items-center gap-3 flex-wrap">
-            <div class="flex items-center gap-2">
-              <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">Mostrar</label>
-              <select
-                v-model.number="filtroLimite"
-                class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
-              >
-                <option v-for="opcao in opcoesLimite" :key="opcao" :value="opcao">{{ opcao }}</option>
-              </select>
-            </div>
+         <!-- Filtros: quantidade e categoria -->
+<div class="flex items-center gap-3 flex-wrap">
+  <div class="flex items-center gap-2">
+    <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">Mostrar</label>
+    <select
+      v-model="selecaoLimite"
+      class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
+    >
+      <option v-for="opcao in opcoesLimite" :key="opcao" :value="opcao">{{ opcao }}</option>
+      <option value="personalizado">Personalizado</option>
+    </select>
 
-            <div class="flex items-center gap-2">
-              <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">Categoria</label>
-              <select
-                v-model="filtroCategoria"
-                class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none max-w-[180px]"
-              >
-                <option value="todas">Todas</option>
-                <option v-for="cat in categoriasDisponiveis" :key="cat" :value="cat">{{ cat }}</option>
-              </select>
-            </div>
-          </div>
+    <input
+      v-if="selecaoLimite === 'personalizado'"
+      v-model.number="limitePersonalizado"
+      type="number"
+      min="1"
+      max="1000"
+      placeholder="Qtd"
+      class="w-20 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
+    />
+  </div>
+
+  <div class="flex items-center gap-2">
+    <label class="text-xs text-slate-500 dark:text-slate-400 font-medium">Categoria</label>
+    <select
+      v-model="filtroCategoria"
+      class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none max-w-[180px]"
+    >
+      <option value="todas">Todas</option>
+      <option v-for="cat in categoriasDisponiveis" :key="cat" :value="cat">{{ cat }}</option>
+    </select>
+  </div>
+</div>
         </div>
 
         <div v-if="carregandoTopProdutos" class="flex items-center justify-center h-40 text-slate-400 dark:text-slate-500">
@@ -300,11 +311,20 @@ const produtosVencendo      = ref([])
 const semDadosPizza         = ref(false)
 
 // ===== Filtro do Top Produtos =====
-const opcoesLimite         = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-const filtroLimite         = ref(10)
-const filtroCategoria      = ref('todas')
+const opcoesLimite          = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+const selecaoLimite         = ref(10)          // valor do <select>: número ou 'personalizado'
+const limitePersonalizado   = ref(50)          // valor digitado quando 'personalizado' está ativo
+const filtroCategoria       = ref('todas')
 const carregandoTopProdutos = ref(false)
-const categoriasDisponiveis = ref([]) // populado a partir da distribuição por categoria já retornada pelo /dashboard
+const categoriasDisponiveis = ref([])
+
+const filtroLimite = computed(() => {
+  if (selecaoLimite.value === 'personalizado') {
+    const valor = Number(limitePersonalizado.value)
+    return valor > 0 ? valor : 10
+  }
+  return selecaoLimite.value
+})
 
 const resumo = ref({
   totalProdutos:    0,
@@ -367,7 +387,6 @@ async function carregarDashboard({ mostrarLoading = true } = {}) {
     dadosEvolucao                = recortarDiasVazios(resposta.data.evolucaoEstoque || [])
     dadosDistribuicao            = resposta.data.distribuicaoCategorias || []
 
-    // Popula as opções do filtro de categoria a partir dos dados já carregados
     categoriasDisponiveis.value = dadosDistribuicao.map(c => c.categoria).filter(Boolean)
   } catch (erro) {
     console.error('Erro ao carregar dashboard:', erro)
@@ -383,7 +402,6 @@ async function carregarDashboard({ mostrarLoading = true } = {}) {
   montarGraficoPizza(dadosDistribuicao)
 }
 
-// Busca só o Top Produtos filtrado, sem recarregar o resto do dashboard
 async function carregarTopProdutosFiltrado() {
   carregandoTopProdutos.value = true
   try {
@@ -401,9 +419,17 @@ async function carregarTopProdutosFiltrado() {
   }
 }
 
-// Sempre que o usuário mudar o limite ou a categoria, refaz só essa consulta
+// Debounce manual — evita disparar uma requisição a cada tecla no campo personalizado
+let idDebounceTopProdutos = null
+function agendarCarregarTopProdutosFiltrado() {
+  clearTimeout(idDebounceTopProdutos)
+  idDebounceTopProdutos = setTimeout(() => {
+    carregarTopProdutosFiltrado()
+  }, 400)
+}
+
 watch([filtroLimite, filtroCategoria], () => {
-  carregarTopProdutosFiltrado()
+  agendarCarregarTopProdutosFiltrado()
 })
 
 function coresDoTema() {
@@ -565,5 +591,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (idIntervaloPolling) clearInterval(idIntervaloPolling)
+  if (idDebounceTopProdutos) clearTimeout(idDebounceTopProdutos)
 })
 </script>
