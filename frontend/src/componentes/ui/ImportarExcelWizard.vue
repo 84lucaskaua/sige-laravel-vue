@@ -109,10 +109,10 @@
 
           <div class="grid grid-cols-2 gap-4 mb-6">
             <div>
-              <label class="text-slate-500 dark:text-slate-400 text-sm block mb-1">Número do lote (opcional)</label>
+              <label class="text-slate-500 dark:text-slate-400 text-sm block mb-1">Nome ou Número do lote</label>
               <input
                 v-model="loteUnico.numero_lote"
-                placeholder="Gerado automaticamente se vazio"
+                placeholder="Ex: LOTE-001"
                 class="campo"
               />
             </div>
