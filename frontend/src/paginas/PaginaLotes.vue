@@ -185,7 +185,15 @@
           <table class="w-full text-sm">
             <thead>
               <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <th v-if="modoSelecaoItens" class="text-left pb-3 font-medium w-6"></th>
+          <th v-if="modoSelecaoItens" class="text-left pb-3 font-medium w-6">
+  <input
+    ref="inputSelecionarTodosItens"
+    type="checkbox"
+    :checked="todosItensSelecionados"
+    class="cursor-pointer"
+    @change="alternarSelecaoTodosItens"
+  />
+</th>
                 <th class="text-left pb-3 font-medium w-6"></th>
                 <th class="text-left pb-3 font-medium">SKU</th>
                 <th class="text-left pb-3 font-medium">Nome</th>
@@ -520,7 +528,7 @@
 
 <script setup>
 import draggable from 'vuedraggable'
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, watchEffect } from 'vue'
 import { Plus, Shield, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus, ChevronLeft, ChevronRight, ArrowRightLeft } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
@@ -593,6 +601,35 @@ const modoSelecaoItens        = ref(false)
 const itensSelecionados       = ref(new Set())
 const modalExcluirItensAberto = ref(false)
 const excluindoItens          = ref(false)
+// ===== Selecionar todos os itens do lote =====
+const inputSelecionarTodosItens = ref(null)
+
+const todosItensSelecionados = computed(() => {
+  if (!loteAtivo.value?.itens?.length) return false
+  return loteAtivo.value.itens.every((i) => itensSelecionados.value.has(i.id_item))
+})
+
+const algunsItensSelecionados = computed(() => {
+  if (!loteAtivo.value?.itens?.length) return false
+  return (
+    loteAtivo.value.itens.some((i) => itensSelecionados.value.has(i.id_item)) &&
+    !todosItensSelecionados.value
+  )
+})
+
+function alternarSelecaoTodosItens() {
+  if (!loteAtivo.value?.itens) return
+  itensSelecionados.value = todosItensSelecionados.value
+    ? new Set()
+    : new Set(loteAtivo.value.itens.map((i) => i.id_item))
+}
+
+// checkbox nativo não tem v-model pra "indeterminate" — seta via DOM direto
+watchEffect(() => {
+  if (inputSelecionarTodosItens.value) {
+    inputSelecionarTodosItens.value.indeterminate = algunsItensSelecionados.value
+  }
+})
 
 function alternarModoSelecaoItens() {
   modoSelecaoItens.value  = !modoSelecaoItens.value

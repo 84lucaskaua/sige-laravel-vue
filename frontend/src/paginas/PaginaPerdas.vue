@@ -45,7 +45,17 @@
 
         <div class="flex items-center gap-2">
           <template v-if="modoSelecao">
-            <span class="text-sm text-slate-500 dark:text-slate-400">{{ itensSelecionados.size }} selecionado(s)</span>
+  <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+    <input
+      ref="inputSelecionarTodos"
+      type="checkbox"
+      :checked="todosSelecionados"
+      :disabled="itensSelecionaveis.length === 0"
+      @change="alternarSelecaoTodos"
+    />
+    Selecionar todos
+  </label>
+  <span class="text-sm text-slate-500 dark:text-slate-400">{{ itensSelecionados.size }} selecionado(s)</span>
             <button
               class="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm px-4 py-2 rounded-lg transition font-medium"
               :disabled="itensSelecionados.size === 0"
@@ -378,7 +388,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watchEffect } from 'vue'
 import { AlertTriangle, Trash2, Calendar, X, Shield } from 'lucide-vue-next'
 import api from '@/servicos/api'
 
@@ -403,6 +413,37 @@ const motivoExibicao = computed(() =>
 // ===== Seleção múltipla / perda em massa =====
 const modoSelecao       = ref(false)
 const itensSelecionados = ref(new Set())
+// ===== Selecionar todos os itens (ignora os sem estoque) =====
+const inputSelecionarTodos = ref(null)
+
+const itensSelecionaveis = computed(() =>
+  itens.value.filter((i) => i.quantidade > 0)
+)
+
+const todosSelecionados = computed(() => {
+  if (itensSelecionaveis.value.length === 0) return false
+  return itensSelecionaveis.value.every((i) => itensSelecionados.value.has(i.id_item))
+})
+
+const algunsSelecionados = computed(() => {
+  if (itensSelecionaveis.value.length === 0) return false
+  return (
+    itensSelecionaveis.value.some((i) => itensSelecionados.value.has(i.id_item)) &&
+    !todosSelecionados.value
+  )
+})
+
+function alternarSelecaoTodos() {
+  itensSelecionados.value = todosSelecionados.value
+    ? new Set()
+    : new Set(itensSelecionaveis.value.map((i) => i.id_item))
+}
+
+watchEffect(() => {
+  if (inputSelecionarTodos.value) {
+    inputSelecionarTodos.value.indeterminate = algunsSelecionados.value
+  }
+})
 const modalVariosAberto = ref(false)
 const etapaVarios       = ref(0)
 const salvandoVarios    = ref(false)
