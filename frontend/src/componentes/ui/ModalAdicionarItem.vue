@@ -183,23 +183,30 @@ const buscandoProduto   = ref(false)
 const produtoEncontrado = ref(null)
 let debounceTimer = null
 
+let idBuscaAtual = 0
+
 watch(() => form.value.sku, (sku) => {
   produtoEncontrado.value = null
   clearTimeout(debounceTimer)
   if (!sku || sku.trim().length < 2) return
 
   debounceTimer = setTimeout(async () => {
+    const idDestaBusca = ++idBuscaAtual   // marca esta busca como "a mais recente"
     buscandoProduto.value = true
     try {
       const { data } = await api.get('/produtos/buscar-por-sku', { params: { sku } })
-      produtoEncontrado.value = data
+
+      // se outra busca começou depois desta, ignora essa resposta atrasada
+      if (idDestaBusca !== idBuscaAtual) return
+
+      produtoEncontrado.value = data && data.id_produto ? data : null
       if (produtoEncontrado.value) {
         form.value.nome = produtoEncontrado.value.nome
       }
     } catch {
-      produtoEncontrado.value = null
+      if (idDestaBusca === idBuscaAtual) produtoEncontrado.value = null
     } finally {
-      buscandoProduto.value = false
+      if (idDestaBusca === idBuscaAtual) buscandoProduto.value = false
     }
   }, 400)
 })
