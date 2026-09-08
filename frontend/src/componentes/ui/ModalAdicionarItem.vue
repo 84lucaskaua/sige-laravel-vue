@@ -209,7 +209,7 @@ watch(() => form.value.sku, (sku) => {
       if (idDestaBusca === idBuscaAtual) buscandoProduto.value = false
     }
   }, 400)
-})
+}) 
 
 const temAlteracoes = computed(() => {
   return !!(

@@ -48,7 +48,7 @@
       aria-label="Abrir opções de acessibilidade"
       @click="painelAberto = !painelAberto"
     >
-      <Accessibility :size="22" />
+      <ALargeSmall :size="22" />
     </button>
 
   </div>
@@ -56,7 +56,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Accessibility } from 'lucide-vue-next'
+import { ALargeSmall } from 'lucide-vue-next'
 import { useAcessibilidade } from '@/composables/useAcessibilidade'
 
 const painelAberto = ref(false)
