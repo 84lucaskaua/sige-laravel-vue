@@ -107,4 +107,5 @@ Route::post('/itens/transferir-lote', [ItemLoteController::class, 'transferirEmL
 
     // ─── Chatbot ─────────────────────────────────────────────
     Route::post('/chatbot', [ChatbotController::class, 'perguntar']);
+    Route::post('/chatbot/stream', [ChatbotController::class, 'perguntarStream']);
 });

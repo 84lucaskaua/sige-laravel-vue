@@ -14,7 +14,7 @@ class ChatbotController extends Controller
     public function perguntar(Request $request)
     {
         $request->validate([
-            'mensagem' => 'required|string|max:500',
+            'mensagem' => 'required|string|max:800',
         ]);
 
         $mensagemOriginal = trim($request->input('mensagem'));
@@ -30,17 +30,273 @@ class ChatbotController extends Controller
             }
         }
 
-        // Fallback: motor de regras (sempre funciona, mesmo sem internet/API)
-        return $this->responderComRegras($mensagemOriginal);
+        return $this->responder($this->gerarRespostaRegras($mensagemOriginal));
     }
 
     // =========================================================
-    // ===================  MOTOR COM IA  =========================
+    // ===================  STREAMING (SSE)  ======================
+    // =========================================================
+
+    public function perguntarStream(Request $request)
+    {
+        $request->validate([
+            'mensagem' => 'required|string|max:800',
+        ]);
+
+        $mensagemOriginal = trim($request->input('mensagem'));
+
+        return response()->stream(function () use ($mensagemOriginal) {
+            if (config('services.anthropic.api_key')) {
+                try {
+                    $this->responderStreamComIA($mensagemOriginal);
+                    $this->enviarFimStream();
+                    return;
+                } catch (\Throwable $e) {
+                    Log::warning('Chatbot stream IA falhou, usando fallback', ['erro' => $e->getMessage()]);
+                }
+            }
+
+            $this->streamTextoSimulado($this->gerarRespostaRegras($mensagemOriginal));
+            $this->enviarFimStream();
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+            'Connection' => 'keep-alive',
+        ]);
+    }
+
+    private function responderStreamComIA(string $mensagem): void
+    {
+        $ferramentas = $this->ferramentasDisponiveis();
+        $systemPrompt = $this->systemPromptPadrao();
+        $messages = [['role' => 'user', 'content' => $mensagem]];
+
+        $resposta = $this->chamarAnthropic($systemPrompt, $messages, $ferramentas);
+
+        if ($resposta === null) {
+            throw new \RuntimeException('Sem resposta da IA na etapa de decisão');
+        }
+
+        // Não precisou de ferramenta: já temos o texto final, só "digitamos" ele
+        if ($resposta['stop_reason'] !== 'tool_use') {
+            $texto = $this->extrairTexto($resposta) ?? 'Não consegui gerar uma resposta agora.';
+            $this->streamTextoSimulado($texto);
+            return;
+        }
+
+        // Precisou de ferramenta: executa e faz a chamada final já em streaming real
+        $blocosDeUso = array_filter($resposta['content'], fn($b) => $b['type'] === 'tool_use');
+
+        $resultadosFerramentas = [];
+        foreach ($blocosDeUso as $bloco) {
+            $dados = $this->executarFerramenta($bloco['name'], $bloco['input'] ?? []);
+            $resultadosFerramentas[] = [
+                'type' => 'tool_result',
+                'tool_use_id' => $bloco['id'],
+                'content' => json_encode($dados, JSON_UNESCAPED_UNICODE),
+            ];
+        }
+
+        $messages[] = ['role' => 'assistant', 'content' => $resposta['content']];
+        $messages[] = ['role' => 'user', 'content' => $resultadosFerramentas];
+
+        $this->chamarAnthropicStream($systemPrompt, $messages, $ferramentas);
+    }
+
+    private function chamarAnthropicStream(string $systemPrompt, array $messages, array $tools): void
+    {
+        $response = Http::withHeaders([
+            'x-api-key' => config('services.anthropic.api_key'),
+            'anthropic-version' => '2023-06-01',
+            'content-type' => 'application/json',
+        ])
+            ->withOptions(['stream' => true])
+            ->timeout(30)
+            ->post('https://api.anthropic.com/v1/messages', [
+                'model' => self::MODELO,
+                'max_tokens' => 1024,
+                'system' => $systemPrompt,
+                'messages' => $messages,
+                'tools' => $tools,
+                'stream' => true,
+            ]);
+
+        $body = $response->toPsrResponse()->getBody();
+        $buffer = '';
+        $textoRecebido = false;
+
+        while (!$body->eof()) {
+            $buffer .= $body->read(1024);
+
+            while (($posicao = strpos($buffer, "\n")) !== false) {
+                $linha = trim(substr($buffer, 0, $posicao));
+                $buffer = substr($buffer, $posicao + 1);
+
+                if (!str_starts_with($linha, 'data:')) {
+                    continue;
+                }
+
+                $json = trim(substr($linha, 5));
+                if ($json === '' || $json === '[DONE]') {
+                    continue;
+                }
+
+                $evento = json_decode($json, true);
+                if (!$evento) {
+                    continue;
+                }
+
+                if (($evento['type'] ?? '') === 'content_block_delta'
+                    && ($evento['delta']['type'] ?? '') === 'text_delta') {
+                    $textoRecebido = true;
+                    $this->enviarChunkStream($evento['delta']['text']);
+                }
+            }
+        }
+
+        if (!$textoRecebido) {
+            $this->enviarChunkStream('Não consegui montar uma resposta com os dados encontrados.');
+        }
+    }
+
+    private function enviarChunkStream(string $texto): void
+    {
+        echo 'data: ' . json_encode(['delta' => $texto], JSON_UNESCAPED_UNICODE) . "\n\n";
+        if (ob_get_level() > 0) {
+            @ob_flush();
+        }
+        flush();
+    }
+
+    private function enviarFimStream(): void
+    {
+        echo 'data: ' . json_encode(['done' => true]) . "\n\n";
+        if (ob_get_level() > 0) {
+            @ob_flush();
+        }
+        flush();
+    }
+
+    private function streamTextoSimulado(string $texto): void
+    {
+        $partes = preg_split('/(\s+)/u', $texto, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$texto];
+        foreach ($partes as $parte) {
+            if ($parte === '') continue;
+            $this->enviarChunkStream($parte);
+            usleep(16000); // ~16ms por palavra, efeito de digitação
+        }
+    }
+
+    // =========================================================
+    // ===================  MOTOR COM IA (não-stream)  ============
     // =========================================================
 
     private function perguntarComIA(string $mensagem): ?string
     {
-        $ferramentas = [
+        $ferramentas = $this->ferramentasDisponiveis();
+        $systemPrompt = $this->systemPromptPadrao();
+        $messages = [['role' => 'user', 'content' => $mensagem]];
+
+        $resposta = $this->chamarAnthropic($systemPrompt, $messages, $ferramentas);
+        if ($resposta === null) return null;
+
+        if ($resposta['stop_reason'] !== 'tool_use') {
+            return $this->extrairTexto($resposta);
+        }
+
+        $blocosDeUso = array_filter($resposta['content'], fn($b) => $b['type'] === 'tool_use');
+
+        $resultadosFerramentas = [];
+        foreach ($blocosDeUso as $bloco) {
+            $dados = $this->executarFerramenta($bloco['name'], $bloco['input'] ?? []);
+            $resultadosFerramentas[] = [
+                'type' => 'tool_result',
+                'tool_use_id' => $bloco['id'],
+                'content' => json_encode($dados, JSON_UNESCAPED_UNICODE),
+            ];
+        }
+
+        $messages[] = ['role' => 'assistant', 'content' => $resposta['content']];
+        $messages[] = ['role' => 'user', 'content' => $resultadosFerramentas];
+
+        $respostaFinal = $this->chamarAnthropic($systemPrompt, $messages, $ferramentas);
+        if ($respostaFinal === null) return null;
+
+        return $this->extrairTexto($respostaFinal);
+    }
+
+    private function chamarAnthropic(string $systemPrompt, array $messages, array $tools): ?array
+    {
+        $response = Http::withHeaders([
+            'x-api-key' => config('services.anthropic.api_key'),
+            'anthropic-version' => '2023-06-01',
+            'content-type' => 'application/json',
+        ])
+            ->timeout(20)
+            ->post('https://api.anthropic.com/v1/messages', [
+                'model' => self::MODELO,
+                'max_tokens' => 1024,
+                'system' => $systemPrompt,
+                'messages' => $messages,
+                'tools' => $tools,
+            ]);
+
+        if (!$response->successful()) {
+            Log::warning('Anthropic API retornou erro', ['status' => $response->status(), 'body' => $response->body()]);
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    private function extrairTexto(array $resposta): ?string
+    {
+        foreach ($resposta['content'] ?? [] as $bloco) {
+            if ($bloco['type'] === 'text') {
+                return trim($bloco['text']);
+            }
+        }
+        return null;
+    }
+
+    private function executarFerramenta(string $nome, array $input): array
+    {
+        return match ($nome) {
+            'buscar_produto' => $this->dadosBuscarProduto($input['termo'] ?? ''),
+            'listar_produtos' => $this->dadosListarProdutos(),
+            'consultar_vencimentos' => $this->dadosVencimentos(),
+            'consultar_estoque_critico' => $this->dadosEstoqueCritico(),
+            'consultar_perdas' => $this->dadosPerdas(),
+            'consultar_movimentacoes' => $this->dadosMovimentacoes(),
+            default => ['erro' => 'Ferramenta desconhecida'],
+        };
+    }
+
+    // =========================================================
+    // ==================  PROMPT E FERRAMENTAS  ===================
+    // =========================================================
+
+    private function systemPromptPadrao(): string
+    {
+        return <<<PROMPT
+Você é o Assistente SIGE, um assistente de IA completo integrado ao sistema de gestão de estoque do almoxarifado.
+
+Você tem duas frentes:
+1. Consultar dados reais do estoque (quantidades, validades, perdas, movimentações, lista de produtos) usando as ferramentas disponíveis. Nunca invente números de estoque — sempre use a ferramenta correta.
+2. Para qualquer outro assunto (dúvidas gerais, explicações, ajuda com texto, conversa casual, etc.), responda normalmente com seu próprio conhecimento, como uma IA completa e útil, sem se limitar apenas a estoque.
+
+Regras de formatação e tom:
+- Formate listas de itens com marcadores "•", incluindo nome, quantidade e unidade de medida quando fizer sentido.
+- Pode usar markdown (negrito, listas, títulos curtos) quando isso deixar a resposta mais organizada.
+- Seja direto, natural e simpático. Responda em português do Brasil.
+- Nunca mencione nomes de ferramentas, tabelas do banco de dados ou detalhes técnicos internos na resposta ao usuário.
+PROMPT;
+    }
+
+    private function ferramentasDisponiveis(): array
+    {
+        return [
             [
                 'name' => 'buscar_produto',
                 'description' => 'Busca a quantidade em estoque de um ou mais produtos específicos pelo nome. Use quando o usuário perguntar sobre um item em particular (ex: "quantas luvas temos", "cadê o álcool em gel", "tem máscara?").',
@@ -81,108 +337,6 @@ class ChatbotController extends Controller
                 'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
         ];
-
-        $systemPrompt = <<<PROMPT
-Você é o assistente virtual do SIGE, um sistema de gestão de estoque para almoxarifado.
-Seu trabalho é responder perguntas dos usuários sobre estoque, validades, perdas e movimentações
-usando as ferramentas disponíveis para consultar dados reais do sistema.
-
-Regras importantes:
-- Sempre que a pergunta envolver dados reais do estoque (quantidade, validade, perdas, movimentações, lista de produtos), use a ferramenta apropriada. Nunca invente números.
-- Se a pergunta for só uma saudação, agradecimento, despedida ou pergunta sobre você mesmo, responda diretamente em texto, sem usar ferramentas, de forma breve e amigável.
-- Se a pergunta não tiver relação nenhuma com estoque e não for conversa casual (ex: perguntas sobre assuntos totalmente aleatórios), explique educadamente que você só pode ajudar com informações do estoque.
-- Formate listas de itens com marcadores "•", sempre incluindo nome, quantidade e unidade de medida quando disponíveis.
-- Seja direto e objetivo. Responda em português do Brasil, tom amigável mas profissional.
-- Nunca mencione nomes de ferramentas, tabelas do banco de dados ou detalhes técnicos internos na resposta ao usuário.
-PROMPT;
-
-        $messages = [
-            ['role' => 'user', 'content' => $mensagem],
-        ];
-
-        // Primeira chamada: Claude decide se precisa de ferramenta
-        $resposta = $this->chamarAnthropic($systemPrompt, $messages, $ferramentas);
-
-        if ($resposta === null) {
-            return null;
-        }
-
-        // Se não pediu ferramenta, a resposta em texto já é final
-        if ($resposta['stop_reason'] !== 'tool_use') {
-            return $this->extrairTexto($resposta);
-        }
-
-        // Executa TODAS as ferramentas solicitadas nesta rodada
-        $blocosDeUso = array_filter($resposta['content'], fn($b) => $b['type'] === 'tool_use');
-
-        $resultadosFerramentas = [];
-        foreach ($blocosDeUso as $bloco) {
-            $dados = $this->executarFerramenta($bloco['name'], $bloco['input'] ?? []);
-            $resultadosFerramentas[] = [
-                'type' => 'tool_result',
-                'tool_use_id' => $bloco['id'],
-                'content' => json_encode($dados, JSON_UNESCAPED_UNICODE),
-            ];
-        }
-
-        $messages[] = ['role' => 'assistant', 'content' => $resposta['content']];
-        $messages[] = ['role' => 'user', 'content' => $resultadosFerramentas];
-
-        // Segunda chamada: Claude formata a resposta final com os dados reais
-        $respostaFinal = $this->chamarAnthropic($systemPrompt, $messages, $ferramentas);
-
-        if ($respostaFinal === null) {
-            return null;
-        }
-
-        return $this->extrairTexto($respostaFinal);
-    }
-
-    private function chamarAnthropic(string $systemPrompt, array $messages, array $tools): ?array
-    {
-        $response = Http::withHeaders([
-            'x-api-key' => config('services.anthropic.api_key'),
-            'anthropic-version' => '2023-06-01',
-            'content-type' => 'application/json',
-        ])
-            ->timeout(15)
-            ->post('https://api.anthropic.com/v1/messages', [
-                'model' => self::MODELO,
-                'max_tokens' => 1024,
-                'system' => $systemPrompt,
-                'messages' => $messages,
-                'tools' => $tools,
-            ]);
-
-        if (!$response->successful()) {
-            Log::warning('Anthropic API retornou erro', ['status' => $response->status(), 'body' => $response->body()]);
-            return null;
-        }
-
-        return $response->json();
-    }
-
-    private function extrairTexto(array $resposta): ?string
-    {
-        foreach ($resposta['content'] ?? [] as $bloco) {
-            if ($bloco['type'] === 'text') {
-                return trim($bloco['text']);
-            }
-        }
-        return null;
-    }
-
-    private function executarFerramenta(string $nome, array $input): array
-    {
-        return match ($nome) {
-            'buscar_produto' => $this->dadosBuscarProduto($input['termo'] ?? ''),
-            'listar_produtos' => $this->dadosListarProdutos(),
-            'consultar_vencimentos' => $this->dadosVencimentos(),
-            'consultar_estoque_critico' => $this->dadosEstoqueCritico(),
-            'consultar_perdas' => $this->dadosPerdas(),
-            'consultar_movimentacoes' => $this->dadosMovimentacoes(),
-            default => ['erro' => 'Ferramenta desconhecida'],
-        };
     }
 
     // =========================================================
@@ -268,7 +422,6 @@ PROMPT;
         return $this->buscarProdutoFuzzy($termo)->toArray();
     }
 
-
     private function buscarProdutoFuzzy(string $termo)
     {
         $termoNorm = $this->singularizar($this->normalizar($termo));
@@ -304,200 +457,107 @@ PROMPT;
 
     private function responderComRegras(string $mensagemOriginal)
     {
+        return $this->responder($this->gerarRespostaRegras($mensagemOriginal));
+    }
+
+    private function gerarRespostaRegras(string $mensagemOriginal): string
+    {
         $pergunta = $this->normalizar($mensagemOriginal);
 
         if ($this->contem($pergunta, [
-            'obrigado',
-            'obrigada',
-            'valeu',
-            'vlw',
-            'brigado',
-            'brigada',
-            'thanks',
-            'tchau',
-            'ate mais',
-            'ate logo',
-            'falou',
-            'flw',
+            'obrigado', 'obrigada', 'valeu', 'vlw', 'brigado', 'brigada', 'thanks',
+            'tchau', 'ate mais', 'ate logo', 'falou', 'flw',
         ])) {
-            return $this->responder('De nada! Qualquer coisa é só chamar. 😊');
+            return 'De nada! Qualquer coisa é só chamar. 😊';
         }
 
         if ($this->contem($pergunta, [
-            'oi',
-            'ola',
-            'bom dia',
-            'boa tarde',
-            'boa noite',
-            'eae',
-            'e ai',
-            'tudo bem',
-            'blz',
-            'beleza',
-            'salve',
-            'opa',
-            'fala',
-            'como vc esta',
-            'como voce esta',
-            'como vc ta',
-            'como voce ta',
-            'tudo certo',
-            'tudo joia',
-            'tudo tranquilo',
-            'suave',
-            'quem e vc',
-            'quem e voce',
-            'o que vc faz',
-            'o que voce faz',
-            'me ajuda',
-            'pode me ajudar',
-            'preciso de ajuda',
-            'o que vc sabe fazer',
-            'quais comandos',
-            'como funciona',
+            'oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'eae', 'e ai', 'tudo bem',
+            'blz', 'beleza', 'salve', 'opa', 'fala', 'como vc esta', 'como voce esta',
+            'como vc ta', 'como voce ta', 'tudo certo', 'tudo joia', 'tudo tranquilo',
+            'suave', 'quem e vc', 'quem e voce', 'o que vc faz', 'o que voce faz',
+            'me ajuda', 'pode me ajudar', 'preciso de ajuda', 'o que vc sabe fazer',
+            'quais comandos', 'como funciona',
         ])) {
-            return $this->responder('Oi! Posso te ajudar com informações sobre estoque, validades, perdas e movimentações. O que você quer saber?');
+            return 'Oi! Posso te ajudar com informações sobre estoque, validades, perdas, movimentações — e também com qualquer outra dúvida. O que você quer saber?';
         }
 
         if ($this->contem($pergunta, [
-            'quais sao os produtos',
-            'quais os produtos',
-            'liste os produtos',
-            'listar produtos',
-            'lista de produtos',
-            'todos os produtos',
-            'quais produtos',
-            'me mostra os produtos',
-            'produtos cadastrados',
-            'quais itens',
-            'lista de itens',
-            'o que tem no estoque',
-            'o que tem em estoque',
+            'quais sao os produtos', 'quais os produtos', 'liste os produtos', 'listar produtos',
+            'lista de produtos', 'todos os produtos', 'quais produtos', 'me mostra os produtos',
+            'produtos cadastrados', 'quais itens', 'lista de itens', 'o que tem no estoque', 'o que tem em estoque',
         ])) {
             $itens = $this->dadosListarProdutos();
-            if (empty($itens)) {
-                return $this->responder('Nenhum produto cadastrado no estoque ainda.');
-            }
+            if (empty($itens)) return 'Nenhum produto cadastrado no estoque ainda.';
             $linhas = collect($itens)->map(fn($i) => "• {$i->nome} — {$i->quantidade} {$i->unidade_medida}")->implode("\n");
-            return $this->responder("Produtos no estoque:\n\n{$linhas}");
+            return "Produtos no estoque:\n\n{$linhas}";
         }
 
         if ($this->contem($pergunta, [
-            'vence',
-            'vencendo',
-            'vencimento',
-            'validade',
-            'expirando',
-            'expira',
-            'prazo',
-            'venc',
-            'vai vencer',
+            'vence', 'vencendo', 'vencimento', 'validade', 'expirando', 'expira', 'prazo', 'venc', 'vai vencer',
         ])) {
             $itens = $this->dadosVencimentos();
-            if (empty($itens)) {
-                return $this->responder('Nenhum item vencendo nos próximos 7 dias. 👍');
-            }
+            if (empty($itens)) return 'Nenhum item vencendo nos próximos 7 dias. 👍';
             $linhas = collect($itens)->map(function ($i) {
                 $data = \Carbon\Carbon::parse($i->data_validade)->format('d/m/Y');
                 return "• {$i->nome} — {$i->quantidade} {$i->unidade_medida} (vence em {$data})";
             })->implode("\n");
-            return $this->responder("Itens vencendo nos próximos 7 dias:\n\n{$linhas}");
+            return "Itens vencendo nos próximos 7 dias:\n\n{$linhas}";
         }
 
         if ($this->contem($pergunta, [
-            'critico',
-            'criticos',
-            'acabando',
-            'minimo',
-            'baixo estoque',
-            'estoque baixo',
-            'faltando',
-            'em falta',
-            'zerado',
-            'no vermelho',
+            'critico', 'criticos', 'acabando', 'minimo', 'baixo estoque', 'estoque baixo',
+            'faltando', 'em falta', 'zerado', 'no vermelho',
         ])) {
             $itens = $this->dadosEstoqueCritico();
-            if (empty($itens)) {
-                return $this->responder('Nenhum item em estoque crítico no momento. 👍');
-            }
+            if (empty($itens)) return 'Nenhum item em estoque crítico no momento. 👍';
             $linhas = collect($itens)->map(fn($i) => "• {$i->nome} — {$i->quantidade} {$i->unidade_medida} (mínimo: {$i->estoque_minimo})")->implode("\n");
-            return $this->responder("Itens com estoque crítico:\n\n{$linhas}");
+            return "Itens com estoque crítico:\n\n{$linhas}";
         }
 
         if ($this->contem($pergunta, ['perda', 'perdas', 'perdi', 'descarte', 'desperdicio', 'quebra', 'estragou'])) {
             $perdas = $this->dadosPerdas();
-            if (empty($perdas)) {
-                return $this->responder('Nenhuma perda registrada nos últimos 30 dias.');
-            }
+            if (empty($perdas)) return 'Nenhuma perda registrada nos últimos 30 dias.';
             $total = collect($perdas)->sum('quantidade');
             $linhas = collect($perdas)->map(function ($p) {
                 $data = \Carbon\Carbon::parse($p->data_perda)->format('d/m/Y');
                 return "• {$p->nome} — {$p->quantidade} un ({$p->razao}, {$data})";
             })->implode("\n");
-            return $this->responder("Perdas nos últimos 30 dias ({$total} unidades no total):\n\n{$linhas}");
+            return "Perdas nos últimos 30 dias ({$total} unidades no total):\n\n{$linhas}";
         }
 
         if ($this->contem($pergunta, ['movimenta', 'entrada', 'saida', 'ultima', 'historico', 'quem mexeu'])) {
             $movs = $this->dadosMovimentacoes();
-            if (empty($movs)) {
-                return $this->responder('Nenhuma movimentação registrada ainda.');
-            }
+            if (empty($movs)) return 'Nenhuma movimentação registrada ainda.';
             $linhas = collect($movs)->map(function ($m) {
                 $data = \Carbon\Carbon::parse($m->data_movimentacao)->format('d/m/Y H:i');
                 return "• {$m->tipo} — {$m->nome} ({$m->quantidade} un, {$data})";
             })->implode("\n");
-            return $this->responder("Últimas movimentações:\n\n{$linhas}");
+            return "Últimas movimentações:\n\n{$linhas}";
         }
 
         if (preg_match('/\b(quant[ao]s?|quantidade|estoque de|tem |tenho |temos|possui|existe|disponivel|onde esta|cade)\b/u', $pergunta)) {
             $termo = $this->extrairTermoBusca($pergunta);
-            if (strlen($termo) < 2) {
-                return $this->responder('Qual produto você quer consultar?');
-            }
+            if (strlen($termo) < 2) return 'Qual produto você quer consultar?';
             $itens = $this->dadosBuscarProduto($termo);
-            if (empty($itens)) {
-                return $this->responder("Não encontrei nenhum item parecido com \"{$termo}\".");
-            }
+            if (empty($itens)) return "Não encontrei nenhum item parecido com \"{$termo}\".";
             $linhas = collect($itens)->map(fn($i) => "• {$i->nome} — {$i->quantidade} {$i->unidade_medida} (mínimo: {$i->estoque_minimo})")->implode("\n");
-            return $this->responder("Encontrei:\n\n{$linhas}");
+            return "Encontrei:\n\n{$linhas}";
         }
 
-        return $this->responder(
-            "Não entendi bem. Você pode perguntar coisas como:\n" .
-                "• \"o que vence essa semana?\"\n" .
-                "• \"estoque crítico\"\n" .
-                "• \"perdas do mês\"\n" .
-                "• \"quantas luvas temos?\""
-        );
+        return "Não entendi bem. Você pode perguntar coisas como:\n" .
+            "• \"o que vence essa semana?\"\n" .
+            "• \"estoque crítico\"\n" .
+            "• \"perdas do mês\"\n" .
+            "• \"quantas luvas temos?\"";
     }
 
     private function extrairTermoBusca(string $pergunta): string
     {
         $palavras = [
-            'quantas?',
-            'quantidade de',
-            'quantidade',
-            'estoque de',
-            'estoque',
-            'tenho',
-            'temos',
-            'tem',
-            'possui',
-            'existe',
-            'ha',
-            'disponivel',
-            'onde esta',
-            'onde estao',
-            'cade',
-            'de',
-            'do',
-            'da',
-            'no',
-            'na',
-            'o',
-            'a',
-            'os',
-            'as',
+            'quantas?', 'quantidade de', 'quantidade', 'estoque de', 'estoque', 'tenho', 'temos',
+            'tem', 'possui', 'existe', 'ha', 'disponivel', 'onde esta', 'onde estao', 'cade',
+            'de', 'do', 'da', 'no', 'na', 'o', 'a', 'os', 'as',
         ];
         $padrao = '/\b(' . implode('|', $palavras) . ')\b/u';
         $termo = preg_replace($padrao, '', $pergunta);
@@ -520,6 +580,7 @@ PROMPT;
         $texto = str_replace(['"', "'", "\u{201C}", "\u{201D}", "\u{2018}", "\u{2019}"], '', $texto);
         return trim(preg_replace('/\s+/', ' ', $texto));
     }
+
     private function singularizar(string $texto): string
     {
         return preg_replace('/s\b/u', '', $texto);
