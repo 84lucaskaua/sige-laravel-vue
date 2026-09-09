@@ -265,6 +265,7 @@ class ChatbotController extends Controller
         return match ($nome) {
             'buscar_produto' => $this->dadosBuscarProduto($input['termo'] ?? ''),
             'listar_produtos' => $this->dadosListarProdutos(),
+            'contar_produtos' => $this->dadosTotalProdutos(),
             'consultar_vencimentos' => $this->dadosVencimentos(),
             'consultar_estoque_critico' => $this->dadosEstoqueCritico(),
             'consultar_perdas' => $this->dadosPerdas(),
@@ -317,8 +318,13 @@ PROMPT;
                 'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [
+                'name' => 'contar_produtos',
+                'description' => 'Retorna o número total de produtos distintos cadastrados no sistema. Use quando o usuário perguntar quantos produtos existem/tem cadastrado no total (ex: "quantos produtos tem no sistema", "quantos itens cadastrados").',
+                'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
+            ],
+            [
                 'name' => 'consultar_vencimentos',
-                'description' => 'Lista os itens que estão vencendo ou já venceram nos próximos 7 dias. Use para perguntas sobre validade, vencimento, prazo de itens.',
+                'description' => 'Lista todos os itens que possuem data de validade cadastrada, ordenados do vencimento mais próximo para o mais distante. Use para perguntas sobre validade, vencimento, prazo de itens.',
                 'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [
@@ -354,15 +360,19 @@ PROMPT;
             ->toArray();
     }
 
+    private function dadosTotalProdutos(): array
+    {
+        return ['total' => DB::table('produto')->count()];
+    }
+
     private function dadosVencimentos(): array
     {
         return DB::table('item_lote')
             ->join('produto', 'item_lote.id_produto', '=', 'produto.id_produto')
             ->whereNotNull('item_lote.data_validade')
-            ->where('item_lote.data_validade', '<=', now()->addDays(7))
             ->orderBy('item_lote.data_validade')
             ->select('produto.nome', 'item_lote.quantidade', 'item_lote.unidade_medida', 'item_lote.data_validade')
-            ->limit(15)
+            ->limit(50)
             ->get()
             ->toArray();
     }
@@ -395,7 +405,8 @@ PROMPT;
     {
         return DB::table('movimentacao')
             ->join('item_lote', 'movimentacao.id_item', '=', 'item_lote.id_item')
-            ->select('item_lote.nome', 'movimentacao.tipo', 'movimentacao.quantidade', 'movimentacao.data_movimentacao')
+            ->join('produto', 'item_lote.id_produto', '=', 'produto.id_produto')
+            ->select('produto.nome', 'movimentacao.tipo', 'movimentacao.quantidade', 'movimentacao.data_movimentacao')
             ->orderByDesc('movimentacao.data_movimentacao')
             ->limit(15)
             ->get()
@@ -483,6 +494,14 @@ PROMPT;
         }
 
         if ($this->contem($pergunta, [
+            'quantos produtos', 'quantos itens', 'total de produtos', 'quantidade de produtos',
+            'numero de produtos', 'quantos produtos cadastrados', 'quantos produtos existem',
+        ])) {
+            $total = DB::table('produto')->count();
+            return "Atualmente há {$total} produtos cadastrados no sistema.";
+        }
+
+        if ($this->contem($pergunta, [
             'quais sao os produtos', 'quais os produtos', 'liste os produtos', 'listar produtos',
             'lista de produtos', 'todos os produtos', 'quais produtos', 'me mostra os produtos',
             'produtos cadastrados', 'quais itens', 'lista de itens', 'o que tem no estoque', 'o que tem em estoque',
@@ -497,12 +516,12 @@ PROMPT;
             'vence', 'vencendo', 'vencimento', 'validade', 'expirando', 'expira', 'prazo', 'venc', 'vai vencer',
         ])) {
             $itens = $this->dadosVencimentos();
-            if (empty($itens)) return 'Nenhum item vencendo nos próximos 7 dias. 👍';
+            if (empty($itens)) return 'Nenhum item com data de validade cadastrada. 👍';
             $linhas = collect($itens)->map(function ($i) {
                 $data = \Carbon\Carbon::parse($i->data_validade)->format('d/m/Y');
                 return "• {$i->nome} — {$i->quantidade} {$i->unidade_medida} (vence em {$data})";
             })->implode("\n");
-            return "Itens vencendo nos próximos 7 dias:\n\n{$linhas}";
+            return "Itens com validade cadastrada, do vencimento mais próximo ao mais distante:\n\n{$linhas}";
         }
 
         if ($this->contem($pergunta, [

@@ -206,16 +206,15 @@ async function enviarMensagem(textoForcado) {
   mensagens.value.push(msgBot)
   rolarParaFinal()
 
-  try {
+    try {
     const baseURL = api.defaults.baseURL || ''
+    const token = localStorage.getItem('token')
     const resposta = await fetch(`${baseURL}/chatbot/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
-        ...(api.defaults.headers?.common?.Authorization
-          ? { Authorization: api.defaults.headers.common.Authorization }
-          : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ mensagem: texto }),
       credentials: 'include',

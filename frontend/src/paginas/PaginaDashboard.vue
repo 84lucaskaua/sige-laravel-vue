@@ -313,6 +313,7 @@ const produtosVencendo      = ref([])
 const semDadosPizza         = ref(false)
 
 // ===== Filtro do Top Produtos =====
+const opcoesLimite          = ref([5, 10, 20, 50, 100]) // opções fixas do select
 const opcaoLimite          = ref(10)     // sempre número, só as opções fixas
 const modoPersonalizado    = ref(false)  // toggle separado, sem misturar tipos no select
 const limitePersonalizado  = ref(50)
