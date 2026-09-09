@@ -146,6 +146,9 @@ import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalUsuario from '@/componentes/ui/ModalUsuario.vue'
 import { formatarData } from '@/utils/date'
+import { useNotificacao } from '@/composables/useNotificacao'
+
+const { erro: notificarErro } = useNotificacao()
 
 const autenticacao = useAutenticacaoStore()
 
@@ -190,7 +193,7 @@ async function carregarUsuarios() {
     const resposta = await api.get('/usuarios')
     usuarios.value = resposta.data
   } catch {
-    alert('Erro ao carregar usuários.')
+    erro('Erro ao carregar usuários.')
   } finally {
     carregando.value = false
   }
@@ -224,7 +227,7 @@ async function alternarStatusUsuario(usuario) {
     await api.patch(`/usuarios/${usuario.id}/status`, { ativo: !usuario.ativo })
     await carregarUsuarios()
   } catch (erro) {
-    alert(erro.response?.data?.mensagem || erro.response?.data?.message || `Erro ao ${acao} usuário.`)
+    notificarErro(erro.response?.data?.mensagem || erro.response?.data?.message || `Erro ao ${acao} usuário.`)
   }
 }
 

@@ -148,7 +148,8 @@ class ChatbotController extends Controller
                 }
 
                 if (($evento['type'] ?? '') === 'content_block_delta'
-                    && ($evento['delta']['type'] ?? '') === 'text_delta') {
+                    && ($evento['delta']['type'] ?? '') === 'text_delta'
+                ) {
                     $textoRecebido = true;
                     $this->enviarChunkStream($evento['delta']['text']);
                 }
@@ -324,7 +325,7 @@ PROMPT;
             ],
             [
                 'name' => 'consultar_vencimentos',
-                'description' => 'Lista todos os itens que possuem data de validade cadastrada, ordenados do vencimento mais próximo para o mais distante. Use para perguntas sobre validade, vencimento, prazo de itens.',
+                'description' => 'Lista os itens que vencem nos próximos 30 dias, ordenados do vencimento mais próximo para o mais distante. Use para perguntas sobre validade, vencimento, prazo de itens.',
                 'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [
@@ -370,6 +371,7 @@ PROMPT;
         return DB::table('item_lote')
             ->join('produto', 'item_lote.id_produto', '=', 'produto.id_produto')
             ->whereNotNull('item_lote.data_validade')
+            ->whereBetween('item_lote.data_validade', [now()->startOfDay(), now()->addDays(30)->endOfDay()])
             ->orderBy('item_lote.data_validade')
             ->select('produto.nome', 'item_lote.quantidade', 'item_lote.unidade_medida', 'item_lote.data_validade')
             ->limit(50)
@@ -390,12 +392,18 @@ PROMPT;
 
     private function dadosPerdas(): array
     {
-        return DB::table('perda')
-            ->join('lote', 'perda.id_lote', '=', 'lote.id_lote')
-            ->join('produto', 'lote.id_produto', '=', 'produto.id_produto')
-            ->where('perda.data_perda', '>=', now()->subDays(30))
-            ->select('produto.nome', 'perda.quantidade', 'perda.razao', 'perda.data_perda')
-            ->orderByDesc('perda.data_perda')
+        return DB::table('movimentacao')
+            ->join('item_lote', 'movimentacao.id_item', '=', 'item_lote.id_item')
+            ->join('produto', 'item_lote.id_produto', '=', 'produto.id_produto')
+            ->where('movimentacao.tipo', 'PERDA')
+            ->where('movimentacao.data_movimentacao', '>=', now()->subDays(30))
+            ->select(
+                'produto.nome',
+                'movimentacao.quantidade',
+                'movimentacao.observacao as razao',
+                'movimentacao.data_movimentacao as data_perda'
+            )
+            ->orderByDesc('movimentacao.data_movimentacao')
             ->limit(15)
             ->get()
             ->toArray();
@@ -475,58 +483,108 @@ PROMPT;
     {
         $pergunta = $this->normalizar($mensagemOriginal);
 
+        // 1) Despedida
         if ($this->contem($pergunta, [
-            'obrigado', 'obrigada', 'valeu', 'vlw', 'brigado', 'brigada', 'thanks',
-            'tchau', 'ate mais', 'ate logo', 'falou', 'flw',
+            'obrigado',
+            'obrigada',
+            'valeu',
+            'vlw',
+            'brigado',
+            'brigada',
+            'thanks',
+            'tchau',
+            'ate mais',
+            'ate logo',
+            'falou',
+            'flw',
         ])) {
             return 'De nada! Qualquer coisa é só chamar. 😊';
         }
 
+        // 2) Saudação / ajuda genérica
         if ($this->contem($pergunta, [
-            'oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'eae', 'e ai', 'tudo bem',
-            'blz', 'beleza', 'salve', 'opa', 'fala', 'como vc esta', 'como voce esta',
-            'como vc ta', 'como voce ta', 'tudo certo', 'tudo joia', 'tudo tranquilo',
-            'suave', 'quem e vc', 'quem e voce', 'o que vc faz', 'o que voce faz',
-            'me ajuda', 'pode me ajudar', 'preciso de ajuda', 'o que vc sabe fazer',
-            'quais comandos', 'como funciona',
+            'oi',
+            'ola',
+            'bom dia',
+            'boa tarde',
+            'boa noite',
+            'eae',
+            'e ai',
+            'tudo bem',
+            'blz',
+            'beleza',
+            'salve',
+            'opa',
+            'fala',
+            'como vc esta',
+            'como voce esta',
+            'como vc ta',
+            'como voce ta',
+            'tudo certo',
+            'tudo joia',
+            'tudo tranquilo',
+            'suave',
+            'quem e vc',
+            'quem e voce',
+            'o que vc faz',
+            'o que voce faz',
+            'me ajuda',
+            'pode me ajudar',
+            'preciso de ajuda',
+            'o que vc sabe fazer',
+            'quais comandos',
+            'como funciona',
         ])) {
             return 'Oi! Posso te ajudar com informações sobre estoque, validades, perdas, movimentações — e também com qualquer outra dúvida. O que você quer saber?';
         }
 
+        // 3) Contagem total de produtos
         if ($this->contem($pergunta, [
-            'quantos produtos', 'quantos itens', 'total de produtos', 'quantidade de produtos',
-            'numero de produtos', 'quantos produtos cadastrados', 'quantos produtos existem',
+            'quantos produtos',
+            'quantos itens',
+            'total de produtos',
+            'quantidade de produtos',
+            'numero de produtos',
+            'quantos produtos cadastrados',
+            'quantos produtos existem',
         ])) {
             $total = DB::table('produto')->count();
             return "Atualmente há {$total} produtos cadastrados no sistema.";
         }
 
+        // 4) Vencimentos (checagem específica antes da listagem genérica)
         if ($this->contem($pergunta, [
-            'quais sao os produtos', 'quais os produtos', 'liste os produtos', 'listar produtos',
-            'lista de produtos', 'todos os produtos', 'quais produtos', 'me mostra os produtos',
-            'produtos cadastrados', 'quais itens', 'lista de itens', 'o que tem no estoque', 'o que tem em estoque',
-        ])) {
-            $itens = $this->dadosListarProdutos();
-            if (empty($itens)) return 'Nenhum produto cadastrado no estoque ainda.';
-            $linhas = collect($itens)->map(fn($i) => "• {$i->nome} — {$i->quantidade} {$i->unidade_medida}")->implode("\n");
-            return "Produtos no estoque:\n\n{$linhas}";
-        }
-
-        if ($this->contem($pergunta, [
-            'vence', 'vencendo', 'vencimento', 'validade', 'expirando', 'expira', 'prazo', 'venc', 'vai vencer',
+            'vence',
+            'vencendo',
+            'vencimento',
+            'validade',
+            'expirando',
+            'expira',
+            'prazo',
+            'venc',
+            'vai vencer',
         ])) {
             $itens = $this->dadosVencimentos();
-            if (empty($itens)) return 'Nenhum item com data de validade cadastrada. 👍';
+            if (empty($itens)) return 'Nenhum item vencendo nos próximos 30 dias. 👍';
             $linhas = collect($itens)->map(function ($i) {
                 $data = \Carbon\Carbon::parse($i->data_validade)->format('d/m/Y');
                 return "• {$i->nome} — {$i->quantidade} {$i->unidade_medida} (vence em {$data})";
             })->implode("\n");
-            return "Itens com validade cadastrada, do vencimento mais próximo ao mais distante:\n\n{$linhas}";
+            return "Itens vencendo nos próximos 30 dias:\n\n{$linhas}";
         }
 
+        // 5) Estoque crítico (checagem específica antes da listagem genérica)
         if ($this->contem($pergunta, [
-            'critico', 'criticos', 'acabando', 'minimo', 'baixo estoque', 'estoque baixo',
-            'faltando', 'em falta', 'zerado', 'no vermelho',
+            'critico',
+            'criticos',
+            'acabando',
+            'minimo',
+            'baixo estoque',
+            'estoque baixo',
+            'faltando',
+            'em falta',
+            'zerado',
+            'no vermelho',
         ])) {
             $itens = $this->dadosEstoqueCritico();
             if (empty($itens)) return 'Nenhum item em estoque crítico no momento. 👍';
@@ -534,6 +592,7 @@ PROMPT;
             return "Itens com estoque crítico:\n\n{$linhas}";
         }
 
+        // 6) Perdas (checagem específica antes da listagem genérica)
         if ($this->contem($pergunta, ['perda', 'perdas', 'perdi', 'descarte', 'desperdicio', 'quebra', 'estragou'])) {
             $perdas = $this->dadosPerdas();
             if (empty($perdas)) return 'Nenhuma perda registrada nos últimos 30 dias.';
@@ -545,6 +604,7 @@ PROMPT;
             return "Perdas nos últimos 30 dias ({$total} unidades no total):\n\n{$linhas}";
         }
 
+        // 7) Movimentações (checagem específica antes da listagem genérica)
         if ($this->contem($pergunta, ['movimenta', 'entrada', 'saida', 'ultima', 'historico', 'quem mexeu'])) {
             $movs = $this->dadosMovimentacoes();
             if (empty($movs)) return 'Nenhuma movimentação registrada ainda.';
@@ -555,6 +615,30 @@ PROMPT;
             return "Últimas movimentações:\n\n{$linhas}";
         }
 
+        // 8) Listar TODOS os produtos — regra mais genérica, agora por último
+        // (movida pra cá porque "quais itens" batia antes de "critico", "vence" etc.)
+        if ($this->contem($pergunta, [
+            'quais sao os produtos',
+            'quais os produtos',
+            'liste os produtos',
+            'listar produtos',
+            'lista de produtos',
+            'todos os produtos',
+            'quais produtos',
+            'me mostra os produtos',
+            'produtos cadastrados',
+            'quais itens',
+            'lista de itens',
+            'o que tem no estoque',
+            'o que tem em estoque',
+        ])) {
+            $itens = $this->dadosListarProdutos();
+            if (empty($itens)) return 'Nenhum produto cadastrado no estoque ainda.';
+            $linhas = collect($itens)->map(fn($i) => "• {$i->nome} — {$i->quantidade} {$i->unidade_medida}")->implode("\n");
+            return "Produtos no estoque:\n\n{$linhas}";
+        }
+
+        // 9) Busca por produto específico (regex de "quanto/tem/cadê ...")
         if (preg_match('/\b(quant[ao]s?|quantidade|estoque de|tem |tenho |temos|possui|existe|disponivel|onde esta|cade)\b/u', $pergunta)) {
             $termo = $this->extrairTermoBusca($pergunta);
             if (strlen($termo) < 2) return 'Qual produto você quer consultar?';
@@ -574,9 +658,30 @@ PROMPT;
     private function extrairTermoBusca(string $pergunta): string
     {
         $palavras = [
-            'quantas?', 'quantidade de', 'quantidade', 'estoque de', 'estoque', 'tenho', 'temos',
-            'tem', 'possui', 'existe', 'ha', 'disponivel', 'onde esta', 'onde estao', 'cade',
-            'de', 'do', 'da', 'no', 'na', 'o', 'a', 'os', 'as',
+            'quantas?',
+            'quantidade de',
+            'quantidade',
+            'estoque de',
+            'estoque',
+            'tenho',
+            'temos',
+            'tem',
+            'possui',
+            'existe',
+            'ha',
+            'disponivel',
+            'onde esta',
+            'onde estao',
+            'cade',
+            'de',
+            'do',
+            'da',
+            'no',
+            'na',
+            'o',
+            'a',
+            'os',
+            'as',
         ];
         $padrao = '/\b(' . implode('|', $palavras) . ')\b/u';
         $termo = preg_replace($padrao, '', $pergunta);

@@ -87,6 +87,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
+import { useNotificacao } from '@/composables/useNotificacao'
+// ...
+const { erro } = useNotificacao()
 
 const autenticacao = useAutenticacaoStore()
 
@@ -112,7 +115,7 @@ async function carregarMovimentos() {
     const { data } = await api.get('/movimentacoes')
     movimentos.value = data
   } catch {
-    alert('Não foi possível carregar os movimentos.')
+    erro('Não foi possível carregar os movimentos.')
   } finally {
     carregando.value = false
   }

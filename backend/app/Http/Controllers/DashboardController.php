@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\ItemLote;
@@ -48,11 +49,11 @@ class DashboardController extends Controller
      */
     public function topProdutos(Request $request)
     {
-        $limitesPermitidos = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
-
         $limite = (int) $request->query('limite', 10);
-        if (!in_array($limite, $limitesPermitidos, true)) {
+        if ($limite < 1) {
             $limite = 10;
+        } elseif ($limite > 1000) {
+            $limite = 1000;
         }
 
         $categoria = $request->query('categoria');

@@ -71,6 +71,7 @@ export const useAutenticacaoStore = defineStore('autenticacao', () => {
 
       localStorage.removeItem('token')
       localStorage.removeItem('usuario')
+      localStorage.removeItem('sige_chat_historico')
       sessionStorage.removeItem('lotes_pin_valido')
     }
   }

@@ -225,7 +225,9 @@ import api from '@/servicos/api'
 import ModalValidadesLotes from '@/componentes/ui/ModalValidadesLotes.vue'
 import ModalBaixaEstoque from '@/componentes/ui/ModalBaixaEstoque.vue'
 import ModalTransferirItem from '@/componentes/ui/ModalTransferirItem.vue'
+import { useNotificacao } from '@/composables/useNotificacao'
 
+const { erro } = useNotificacao()
 const produtos            = ref([])
 const carregando          = ref(false)
 const termoDeBusca        = ref('')
@@ -374,7 +376,7 @@ const lotesDoProduto = (item) => {
 const acionarTransferir = (item, numeroLote) => {
   const validade = encontrarValidade(item, numeroLote)
   if (!validade) {
-    alert('Não foi possível localizar os dados desse lote.')
+    erro('Não foi possível localizar os dados desse lote.')
     return
   }
   modalTransferir.value = {
@@ -394,7 +396,7 @@ const acionarTransferir = (item, numeroLote) => {
 const acionarBaixa = (item, numeroLote) => {
   const validade = encontrarValidade(item, numeroLote)
   if (!validade) {
-    alert('Não foi possível localizar os dados desse lote.')
+    erro('Não foi possível localizar os dados desse lote.')
     return
   }
   modalBaixa.value = {
