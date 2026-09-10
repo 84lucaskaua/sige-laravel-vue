@@ -6,7 +6,17 @@
       v-if="painelAberto"
       class="mb-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-3 flex flex-col gap-2 w-48"
     >
-      <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 px-1">Tamanho da fonte</p>
+      <div class="flex items-center justify-between px-1">
+        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Tamanho da fonte</p>
+        <button
+          class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+          title="Fechar"
+          aria-label="Fechar opções de fonte"
+          @click="painelAberto = false"
+        >
+          <X :size="16" />
+        </button>
+      </div>
 
       <div class="flex items-center gap-1">
         <button
@@ -56,7 +66,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { ALargeSmall } from 'lucide-vue-next'
+import { ALargeSmall, X } from 'lucide-vue-next'
 import { useAcessibilidade } from '@/composables/useAcessibilidade'
 
 const painelAberto = ref(false)
