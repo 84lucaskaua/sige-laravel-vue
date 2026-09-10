@@ -14,19 +14,19 @@ class RelatorioAvancadoController extends Controller
         $dias  = $request->input('dias', 30);
         $desde = Carbon::now()->subDays($dias);
 
-        $perdas = Movimentacao::with(['item', 'usuario'])
+        $perdas = Movimentacao::with(['item.produto', 'usuario'])
             ->where('tipo', 'PERDA')
             ->where('data_movimentacao', '>=', $desde)
             ->orderBy('data_movimentacao', 'desc')
             ->get()
             ->map(fn($m) => [
-                'id'        => $m->id_movimentacao,
-                'data'      => $m->data_movimentacao,
-                'produto'   => $m->item?->nome     ?? '—',
-                'sku'       => $m->item?->sku       ?? '—',
-                'motivo'    => $m->observacao       ?? '—',
-                'quantidade'=> $m->quantidade,
-                'usuario'   => $m->usuario?->name   ?? '—',
+                'id'         => $m->id_movimentacao,
+                'data'       => $m->data_movimentacao,
+                'produto'    => $m->item?->produto?->nome ?? '—',
+                'sku'        => $m->item?->produto?->sku  ?? '—',
+                'motivo'     => $m->observacao ?? '—',
+                'quantidade' => $m->quantidade,
+                'usuario'    => $m->usuario?->name ?? '—',
             ]);
 
         // Agrupa por motivo
@@ -50,23 +50,18 @@ class RelatorioAvancadoController extends Controller
     public function abc()
     {
         // Soma total de movimentações (ENTRADA + SAIDA) por item.
-        // Usado só para os números informativos (movimento, % do total, % acumulado),
-        // não para decidir a classe — a classe já vem pronta do item_lote.
         $movimentos = Movimentacao::whereIn('tipo', ['ENTRADA', 'SAIDA'])
             ->selectRaw('id_item, SUM(quantidade) as total')
             ->groupBy('id_item')
             ->get()
             ->keyBy('id_item');
 
-        $itens = ItemLote::all()->map(function ($item) use ($movimentos) {
+        $itens = ItemLote::with('produto')->get()->map(function ($item) use ($movimentos) {
             return [
                 'id_item'           => $item->id_item,
-                'nome'              => $item->nome,
-                'sku'               => $item->sku,
+                'nome'              => $item->produto?->nome,
+                'sku'               => $item->produto?->sku,
                 'movimento'         => $movimentos[$item->id_item]->total ?? 0,
-                // Classe real do item: respeita o que foi definido manualmente
-                // (prioridade_manual = true) ou o que o AbcPriorityService já
-                // calculou automaticamente (prioridade_manual = false).
                 'classe'            => $item->prioridade_abc ?? 'C',
                 'prioridade_manual' => $item->prioridade_manual,
             ];

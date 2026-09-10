@@ -10,15 +10,14 @@ use Illuminate\Support\Facades\DB;
 class PerdaController extends Controller
 {
     public function index()
-    {
-        $perdas = Movimentacao::with('item')
-            ->where('tipo', 'PERDA')
-            ->orderBy('data_movimentacao', 'desc')
-            ->get();
+{
+    $perdas = Movimentacao::with('item.produto')
+        ->where('tipo', 'PERDA')
+        ->orderBy('data_movimentacao', 'desc')
+        ->get();
 
-        return response()->json($perdas);
-    }
-
+    return response()->json($perdas);
+}
     public function store(Request $request)
     {
         $request->validate([

@@ -19,7 +19,7 @@ class ItemLote extends Model {
 
     // liga o item de lote ao produto-mãe (identidade única)
     public function produto() {
-        return $this->belongsTo(Produto::class, 'id_produto');
+        return $this->belongsTo(Produto::class, 'id_produto', 'id_produto');
     }
 
     public function lote() {
