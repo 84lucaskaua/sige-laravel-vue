@@ -78,6 +78,8 @@
         <option value="Criação">Criação</option>
         <option value="Edição">Edição</option>
         <option value="Exclusão">Exclusão</option>
+        <option value="Ativação">Ativação</option>
+        <option value="Inativação">Inativação</option>
       </select>
 
       <!-- Botão de exportação com opções -->
@@ -309,6 +311,8 @@ function actionClass(action) {
     'Criação':  'bg-green-900 text-green-300',
     'Edição':   'bg-yellow-900 text-yellow-300',
     'Exclusão': 'bg-red-900 text-red-300',
+    'Ativação':   'bg-teal-900 text-teal-300',
+    'Inativação': 'bg-zinc-700 text-zinc-300',
   }
   return map[action] ?? 'bg-gray-700 text-gray-300'
 }
