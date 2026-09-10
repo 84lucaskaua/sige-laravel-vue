@@ -8,6 +8,8 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class ExportController extends Controller
 {
@@ -60,10 +62,28 @@ class ExportController extends Controller
                 $p->preco_custo,
                 $p->prioridade_abc,
             ], null, "A{$row}");
+
+            // Estoque atual e mínimo como número inteiro alinhado à direita
+            $sheet->getStyle("F{$row}:G{$row}")->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle("F{$row}:G{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+            // Preço custo como moeda
+            $sheet->getStyle("H{$row}")->getNumberFormat()->setFormatCode('"R$" #,##0.00');
+            $sheet->getStyle("H{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+            // Destaque se estoque atual está no mínimo ou abaixo
+            if ($p->estoque_atual <= $p->estoque_minimo) {
+                $sheet->getStyle("F{$row}")->getFont()->setBold(true)->getColor()->setRGB('C62828');
+            }
+
+            // Cor da Prioridade ABC (I)
+            $this->colorirCelula($sheet, "I{$row}", $this->corAbc($p->prioridade_abc));
+
             $row++;
         }
 
         $this->ajustarColunas($sheet, ['A' => 20, 'B' => 40, 'C' => 18, 'D' => 18, 'E' => 10, 'F' => 14, 'G' => 14, 'H' => 14, 'I' => 14]);
+        $sheet->setAutoFilter("A1:I{$row}");
 
         return $this->baixarXlsx($spreadsheet, 'produtos_' . now()->format('Ymd') . '.xlsx');
     }
@@ -113,10 +133,20 @@ class ExportController extends Controller
                 $m->quantidade,
                 $m->observacao ?? '',
             ], null, "A{$row}");
+
+            $sheet->getStyle("E{$row}")->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle("E{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+            // Cor do Tipo: verde para entrada, vermelho para saída
+            $tipoNorm = mb_strtolower((string) $m->tipo);
+            $corTipo = str_contains($tipoNorm, 'entrada') ? '2E7D32' : (str_contains($tipoNorm, 'saida') || str_contains($tipoNorm, 'saída') ? 'C62828' : '64748B');
+            $this->colorirCelula($sheet, "B{$row}", $corTipo);
+
             $row++;
         }
 
         $this->ajustarColunas($sheet, ['A' => 14, 'B' => 12, 'C' => 32, 'D' => 20, 'E' => 12, 'F' => 40]);
+        $sheet->setAutoFilter("A1:F{$row}");
 
         return $this->baixarXlsx($spreadsheet, 'movimentacoes_' . now()->format('Ymd') . '.xlsx');
     }
@@ -126,10 +156,31 @@ class ExportController extends Controller
     private function estilizarCabecalho(Worksheet $sheet, array $headers, string $ultimaCelula): void
     {
         $sheet->fromArray($headers, null, 'A1');
-        $sheet->getStyle("A1:{$ultimaCelula}")->getFont()->setBold(true);
+        $sheet->getStyle("A1:{$ultimaCelula}")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
         $sheet->getStyle("A1:{$ultimaCelula}")->getFill()
             ->setFillType(Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('D9E2F3');
+            ->getStartColor()->setRGB('3A6EA5');
+        $sheet->getStyle("A1:{$ultimaCelula}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getRowDimension(1)->setRowHeight(20);
+    }
+
+    private function colorirCelula(Worksheet $sheet, string $celula, string $corRGB): void
+    {
+        $sheet->getStyle($celula)->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle($celula)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB($corRGB);
+        $sheet->getStyle($celula)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    }
+
+    private function corAbc(?string $prioridade): string
+    {
+        return match (mb_strtoupper((string) $prioridade)) {
+            'A' => '2E7D32',
+            'B' => 'EF6C00',
+            'C' => 'C62828',
+            default => '64748B',
+        };
     }
 
     private function ajustarColunas(Worksheet $sheet, array $larguras): void

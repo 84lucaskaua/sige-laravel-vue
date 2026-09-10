@@ -27,12 +27,34 @@
             </div>
           </div>
         </div>
-        <button
-          class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-          @click="exportar"
-        >
-          <Download :size="16" /> Exportar
-        </button>
+        <div class="relative">
+          <button
+            class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            @click="dropdownExportAberto = !dropdownExportAberto"
+          >
+            <Download :size="16" /> Exportar <ChevronDown :size="16" />
+          </button>
+          <div v-if="dropdownExportAberto" class="absolute right-0 z-10 mt-1 w-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
+            <div
+              class="px-3 py-2 text-sm cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              @click="exportarCSV(); dropdownExportAberto = false"
+            >
+              CSV
+            </div>
+            <div
+              class="px-3 py-2 text-sm cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              @click="exportarExcel(); dropdownExportAberto = false"
+            >
+              Excel
+            </div>
+            <div
+              class="px-3 py-2 text-sm cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              @click="exportarPDF(); dropdownExportAberto = false"
+            >
+              PDF
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -253,7 +275,9 @@ import { storeToRefs } from 'pinia'
 import api from '@/servicos/api'
 import { useTemaStore } from '@/servicos/tema.store'
 import { Calendar, ChevronDown, Download, TrendingDown, PieChart, AlertCircle, Package, FileText } from 'lucide-vue-next'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const temaStore     = useTemaStore()
 const { temaClaro }  = storeToRefs(temaStore)
@@ -261,6 +285,7 @@ const { temaClaro }  = storeToRefs(temaStore)
 const aba = ref('perdas')
 const carregando = ref(false)
 const dropdownPeriodoAberto = ref(false)
+const dropdownExportAberto  = ref(false)
 
 const opcoesPeriodo = [
   { label: 'Últimos 7 dias',  dias: 7  },
@@ -371,27 +396,177 @@ function formatarDataHora(dataISO) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
-function exportar() {
+// =========================================================
+// ======================  EXPORTAÇÃO  ========================
+// =========================================================
+
+function cabecalhosExport() {
+  return aba.value === 'perdas'
+    ? ['Data', 'Produto', 'Motivo', 'Quantidade', 'Responsável']
+    : ['Classe', 'Produto', 'SKU', 'Movimento Total', '% do Total', '% Acumulado']
+}
+
+function linhasExport() {
   if (aba.value === 'perdas') {
-    const ws = XLSX.utils.aoa_to_sheet([
-      ['Data', 'Produto', 'Motivo', 'Quantidade', 'Responsável'],
-      ...(dadosPerdas.value.perdas ?? []).map(p => [
-        formatarDataHora(p.data), p.produto, p.motivo, formatNumero(p.quantidade), p.usuario
-      ])
+    return (dadosPerdas.value.perdas ?? []).map(p => [
+      formatarDataHora(p.data), p.produto, p.motivo, formatNumero(p.quantidade), p.usuario,
     ])
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Perdas')
-    XLSX.writeFile(wb, `perdas-${periodo.value.dias}dias.xlsx`)
-  } else {
-    const ws = XLSX.utils.aoa_to_sheet([
-      ['Classe', 'Produto', 'SKU', 'Movimento Total', '% do Total', '% Acumulado'],
-      ...(dadosAbc.value.itens ?? []).map(i => [
-        i.classe, i.nome, i.sku, formatNumero(i.movimento), i.percentual + '%', i.acumulado + '%'
-      ])
-    ])
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'ABC')
-    XLSX.writeFile(wb, 'analise-abc.xlsx')
   }
+  return (dadosAbc.value.itens ?? []).map(i => [
+    i.classe, i.nome, i.sku, formatNumero(i.movimento), i.percentual + '%', i.acumulado + '%',
+  ])
+}
+
+function tituloExport() {
+  return aba.value === 'perdas'
+    ? `Relatório de Perdas — ${periodoLabel.value}`
+    : 'Análise ABC de Produtos'
+}
+
+function nomeArquivoExport(ext) {
+  return aba.value === 'perdas'
+    ? `perdas-${periodo.value.dias}dias.${ext}`
+    : `analise-abc.${ext}`
+}
+
+function baixar(blob, nome) {
+  const url  = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url; link.download = nome
+  document.body.appendChild(link); link.click()
+  document.body.removeChild(link); URL.revokeObjectURL(url)
+}
+
+// ---- CSV ----
+
+function exportarCSV() {
+  const csv = [cabecalhosExport(), ...linhasExport()]
+    .map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+  baixar(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }), nomeArquivoExport('csv'))
+}
+
+// ---- Excel (ExcelJS, com estilo) ----
+
+async function exportarExcel() {
+  const wb = new ExcelJS.Workbook()
+  const ehPerdas = aba.value === 'perdas'
+  const ws = wb.addWorksheet(ehPerdas ? 'Perdas' : 'ABC')
+
+  ws.columns = ehPerdas
+    ? [
+        { header: 'Data', key: 'data', width: 18 },
+        { header: 'Produto', key: 'produto', width: 30 },
+        { header: 'Motivo', key: 'motivo', width: 22 },
+        { header: 'Quantidade', key: 'quantidade', width: 14 },
+        { header: 'Responsável', key: 'responsavel', width: 20 },
+      ]
+    : [
+        { header: 'Classe', key: 'classe', width: 10 },
+        { header: 'Produto', key: 'produto', width: 30 },
+        { header: 'SKU', key: 'sku', width: 14 },
+        { header: 'Movimento Total', key: 'movimento', width: 16 },
+        { header: '% do Total', key: 'percentual', width: 12 },
+        { header: '% Acumulado', key: 'acumulado', width: 14 },
+      ]
+
+  ws.getRow(1).eachCell((celula) => {
+    celula.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    celula.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3A6EA5' } }
+    celula.alignment = { vertical: 'middle', horizontal: 'left' }
+  })
+
+  if (ehPerdas) {
+    ;(dadosPerdas.value.perdas ?? []).forEach((p) => {
+      const linha = ws.addRow({
+        data: formatarDataHora(p.data),
+        produto: p.produto,
+        motivo: p.motivo,
+        quantidade: Number(p.quantidade ?? 0),
+        responsavel: p.usuario,
+      })
+      linha.getCell('quantidade').numFmt = '#,##0'
+      linha.getCell('quantidade').alignment = { horizontal: 'right' }
+      linha.getCell('quantidade').font = { color: { argb: 'FFC62828' }, bold: true }
+    })
+  } else {
+    ;(dadosAbc.value.itens ?? []).forEach((i) => {
+      const linha = ws.addRow({
+        classe: i.classe,
+        produto: i.nome,
+        sku: i.sku,
+        movimento: Number(i.movimento ?? 0),
+        percentual: i.percentual / 100,
+        acumulado: i.acumulado / 100,
+      })
+      linha.getCell('movimento').numFmt = '#,##0'
+      linha.getCell('movimento').alignment = { horizontal: 'right' }
+      linha.getCell('percentual').numFmt = '0.0%'
+      linha.getCell('acumulado').numFmt = '0.0%'
+
+      const cores = { A: 'FF2E7D32', B: 'FFEF6C00', C: 'FFC62828' }
+      const celulaClasse = linha.getCell('classe')
+      celulaClasse.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      celulaClasse.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cores[i.classe] ?? 'FF64748B' } }
+      celulaClasse.alignment = { horizontal: 'center' }
+    })
+  }
+
+  const ultimaColuna = ehPerdas ? 'E1' : 'F1'
+  ws.autoFilter = { from: 'A1', to: ultimaColuna }
+  ws.views = [{ state: 'frozen', ySplit: 1 }]
+
+  const buffer = await wb.xlsx.writeBuffer()
+  baixar(
+    new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    nomeArquivoExport('xlsx')
+  )
+}
+
+// ---- PDF (jsPDF + autoTable, com estilo) ----
+
+function exportarPDF() {
+  const ehPerdas = aba.value === 'perdas'
+  const doc = new jsPDF({ orientation: 'landscape' })
+
+  doc.setFontSize(16)
+  doc.text('SIGE — Relatórios Avançados', 14, 15)
+  doc.setFontSize(11)
+  doc.setTextColor(80)
+  doc.text(tituloExport(), 14, 22)
+  doc.setFontSize(9)
+  doc.setTextColor(140)
+  doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')}`, 14, 27)
+
+  autoTable(doc, {
+    head: [cabecalhosExport()],
+    body: linhasExport(),
+    startY: 32,
+    theme: 'striped',
+    headStyles: { fillColor: [58, 110, 165], textColor: [255, 255, 255], fontStyle: 'bold' },
+    styles: { fontSize: 9, cellPadding: 3 },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    columnStyles: ehPerdas
+      ? { 3: { halign: 'right' } }                                  // Quantidade
+      : { 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' } }, // Movimento/%/%
+    didParseCell: (data) => {
+      if (data.section !== 'body') return
+
+      if (ehPerdas && data.column.index === 3) {
+        data.cell.styles.textColor = [198, 40, 40]
+        data.cell.styles.fontStyle = 'bold'
+      }
+
+      if (!ehPerdas && data.column.index === 0) {
+        const classe = String(data.cell.raw)
+        const cores = { A: [46, 125, 50], B: [239, 108, 0], C: [198, 40, 40] }
+        data.cell.styles.fillColor = cores[classe] ?? [100, 116, 139]
+        data.cell.styles.textColor = [255, 255, 255]
+        data.cell.styles.fontStyle = 'bold'
+        data.cell.styles.halign = 'center'
+      }
+    },
+  })
+
+  doc.save(nomeArquivoExport('pdf'))
 }
 </script>

@@ -223,7 +223,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/servicos/api'
 import { formatarData } from '@/utils/date'
 import { Filter, Search, ChevronDown, Check, Download, FileSpreadsheet, FileText } from 'lucide-vue-next'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -414,23 +414,102 @@ function exportarCSV() {
   baixar(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }), nomeArquivo('csv'))
 }
 
-function exportarExcel() {
-  const ws = XLSX.utils.aoa_to_sheet([CABECALHOS, ...linhas()])
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Relatório')
-  XLSX.writeFile(wb, nomeArquivo('xlsx'))
+async function exportarExcel() {
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('Relatório')
+
+  ws.columns = [
+    { header: 'Lote', key: 'lote', width: 12 },
+    { header: 'SKU', key: 'sku', width: 14 },
+    { header: 'Produto', key: 'produto', width: 32 },
+    { header: 'Quantidade', key: 'quantidade', width: 14 },
+    { header: 'Validade', key: 'validade', width: 14 },
+    { header: 'Fornecedor', key: 'fornecedor', width: 20 },
+    { header: 'Localização', key: 'localizacao', width: 18 },
+    { header: 'Status', key: 'status', width: 16 },
+  ]
+
+  ws.getRow(1).eachCell((celula) => {
+    celula.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    celula.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3A6EA5' } }
+    celula.alignment = { vertical: 'middle', horizontal: 'left' }
+  })
+
+  itensParaExportar().forEach((item) => {
+    const dias = diasParaVencer(item.data_validade)
+
+    const linha = ws.addRow({
+      lote: item.lote?.numero_lote ?? '—',
+      sku: item.sku ?? '—',
+      produto: item.nome,
+      quantidade: Number(item.quantidade ?? 0),
+      validade: item.data_validade ? formatarData(item.data_validade) : '—',
+      fornecedor: item.fornecedor ?? '—',
+      localizacao: item.localizacao ?? '—',
+      status: statusTexto(item),
+    })
+
+    linha.getCell('quantidade').numFmt = '#,##0'
+    linha.getCell('quantidade').alignment = { horizontal: 'right' }
+
+    let cor = 'FF2E7D32' // verde (OK)
+    if (item.data_validade) {
+      if (dias < 0) cor = 'FFC62828'       // vermelho (vencido)
+      else if (dias <= 30) cor = 'FFEF6C00' // laranja (vencendo)
+    }
+
+    const celulaStatus = linha.getCell('status')
+    celulaStatus.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    celulaStatus.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cor } }
+    celulaStatus.alignment = { horizontal: 'center' }
+  })
+
+  ws.autoFilter = { from: 'A1', to: 'H1' }
+  ws.views = [{ state: 'frozen', ySplit: 1 }]
+
+  const buffer = await wb.xlsx.writeBuffer()
+  baixar(
+    new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    nomeArquivo('xlsx')
+  )
 }
 
 function exportarPDF() {
   const doc = new jsPDF({ orientation: 'landscape' })
   doc.setFontSize(16)
   doc.text('Relatório de Estoque - SIGE', 14, 15)
+  doc.setFontSize(10)
+  doc.setTextColor(120)
+  doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} — ${itensParaExportar().length} item(ns)`, 14, 21)
+
   autoTable(doc, {
-    head: [CABECALHOS], body: linhas(), startY: 22, theme: 'striped',
-    headStyles: { fillColor: [58, 110, 165], textColor: [255,255,255], fontStyle: 'bold' },
+    head: [CABECALHOS],
+    body: linhas(),
+    startY: 26,
+    theme: 'striped',
+    headStyles: { fillColor: [58, 110, 165], textColor: [255, 255, 255], fontStyle: 'bold' },
     styles: { fontSize: 9, cellPadding: 3 },
-    alternateRowStyles: { fillColor: [240,240,240] }
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    columnStyles: {
+      3: { halign: 'right' }, // Quantidade
+    },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.column.index === 7) {
+        const texto = String(data.cell.raw)
+        if (texto.startsWith('Vencido')) {
+          data.cell.styles.fillColor = [198, 40, 40]
+        } else if (texto.startsWith('Vencendo')) {
+          data.cell.styles.fillColor = [239, 108, 0]
+        } else {
+          data.cell.styles.fillColor = [46, 125, 50]
+        }
+        data.cell.styles.textColor = [255, 255, 255]
+        data.cell.styles.fontStyle = 'bold'
+        data.cell.styles.halign = 'center'
+      }
+    },
   })
+
   doc.save(nomeArquivo('pdf'))
 }
 </script>

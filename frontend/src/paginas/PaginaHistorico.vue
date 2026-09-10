@@ -199,7 +199,7 @@ import { ref, computed, onMounted } from 'vue'
 import api from '@/servicos/api'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import { Download, FileSpreadsheet, FileText, Search, ChevronDown, Check, PackageMinus, Trash2 } from 'lucide-vue-next'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -318,11 +318,59 @@ function exportarCSV() {
   baixarArquivo(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }), nomeArquivo('csv'))
 }
 
-function exportarExcel() {
-  const planilha = XLSX.utils.aoa_to_sheet([CABECALHOS, ...linhasParaExportar()])
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, planilha, 'Movimentações')
-  XLSX.writeFile(workbook, nomeArquivo('xlsx'))
+async function exportarExcel() {
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('Movimentações')
+
+  ws.columns = [
+    { header: 'Data', key: 'data', width: 18 },
+    { header: 'Produto', key: 'produto', width: 30 },
+    { header: 'SKU', key: 'sku', width: 16 },
+    { header: 'Lote', key: 'lote', width: 14 },
+    { header: 'Tipo', key: 'tipo', width: 12 },
+    { header: 'Quantidade', key: 'quantidade', width: 14 },
+    { header: 'Fornecedor/Motivo', key: 'motivo', width: 24 },
+    { header: 'Usuário', key: 'usuario', width: 18 },
+  ]
+
+  ws.getRow(1).eachCell((celula) => {
+    celula.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    celula.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3A6EA5' } }
+    celula.alignment = { vertical: 'middle', horizontal: 'left' }
+  })
+
+  movimentacoesFiltradas.value.forEach((mov) => {
+    const linha = ws.addRow({
+      data: formatarDataHora(mov.data),
+      produto: mov.produto,
+      sku: mov.sku,
+      lote: mov.lote,
+      tipo: mov.tipo,
+      quantidade: Number(mov.quantidade ?? 0),
+      motivo: mov.motivo,
+      usuario: mov.usuario,
+    })
+
+    linha.getCell('quantidade').numFmt = '#,##0'
+    linha.getCell('quantidade').alignment = { horizontal: 'right' }
+
+    const ehEntrada = mov.tipo === 'Entrada'
+    const celulaTipo = linha.getCell('tipo')
+    celulaTipo.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    celulaTipo.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ehEntrada ? 'FF2E7D32' : 'FFC62828' } }
+    celulaTipo.alignment = { horizontal: 'center' }
+
+    linha.getCell('quantidade').font = { color: { argb: ehEntrada ? 'FF2E7D32' : 'FFC62828' }, bold: true }
+  })
+
+  ws.autoFilter = { from: 'A1', to: 'H1' }
+  ws.views = [{ state: 'frozen', ySplit: 1 }]
+
+  const buffer = await wb.xlsx.writeBuffer()
+  baixarArquivo(
+    new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    nomeArquivo('xlsx')
+  )
 }
 
 function exportarPDF() {
@@ -330,10 +378,25 @@ function exportarPDF() {
   doc.setFontSize(16)
   doc.text('Histórico de Movimentações - SIGE', 14, 15)
   autoTable(doc, {
-    head: [CABECALHOS_PDF], body: linhasParaExportar(), startY: 22, theme: 'striped',
+    head: [CABECALHOS_PDF],
+    body: linhasParaExportar(),
+    startY: 22,
+    theme: 'striped',
     headStyles: { fillColor: [58, 110, 165], textColor: [255, 255, 255], fontStyle: 'bold' },
     styles: { fontSize: 9, cellPadding: 3 },
-    alternateRowStyles: { fillColor: [240, 240, 240] }
+    alternateRowStyles: { fillColor: [240, 240, 240] },
+    columnStyles: {
+      5: { halign: 'right' }, // Quantidade
+    },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.column.index === 4) {
+        const ehEntrada = String(data.cell.raw) === 'Entrada'
+        data.cell.styles.fillColor = ehEntrada ? [46, 125, 50] : [198, 40, 40]
+        data.cell.styles.textColor = [255, 255, 255]
+        data.cell.styles.fontStyle = 'bold'
+        data.cell.styles.halign = 'center'
+      }
+    },
   })
   doc.save(nomeArquivo('pdf'))
 }

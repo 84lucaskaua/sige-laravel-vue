@@ -1,5 +1,7 @@
 {
     "require": {
-        "league/csv": "^9.28"
+        "league/csv": "^9.28",
+        "maatwebsite/excel": "^3.1",
+        "barryvdh/laravel-dompdf": "^3.1"
     }
 }
