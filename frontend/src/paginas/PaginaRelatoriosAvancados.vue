@@ -7,51 +7,57 @@
         <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Relatórios Avançados</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400">Análises detalhadas de perdas e classificação ABC</p>
       </div>
-      <div class="flex gap-2">
+      <div ref="menusRoot" class="flex gap-2">
         <div class="relative">
           <button
-            class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg"
-            @click="dropdownPeriodoAberto = !dropdownPeriodoAberto"
+            class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg hover:border-blue-500 transition"
+            @click="dropdownPeriodoAberto = !dropdownPeriodoAberto; dropdownExportAberto = false"
           >
-            <Calendar :size="16" /> {{ periodoLabel }} <ChevronDown :size="16" />
+            <Calendar :size="16" /> {{ periodoLabel }}
+            <ChevronDown :size="16" :class="['transition-transform', dropdownPeriodoAberto ? 'rotate-180' : '']" />
           </button>
-          <div v-if="dropdownPeriodoAberto" class="absolute right-0 z-10 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
+          <div
+            v-if="dropdownPeriodoAberto"
+            class="absolute right-0 z-10 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-1"
+          >
             <div
               v-for="p in opcoesPeriodo"
               :key="p.dias"
-              class="px-3 py-2 text-sm cursor-pointer transition"
-              :class="periodo.dias === p.dias ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'"
+              class="flex items-center justify-between px-3 py-2 text-sm rounded-md cursor-pointer transition"
+              :class="periodo.dias === p.dias
+                ? 'bg-blue-600 text-white'
+                : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'"
               @click="selecionarPeriodo(p)"
             >
               {{ p.label }}
+              <Check v-if="periodo.dias === p.dias" :size="14" />
             </div>
           </div>
         </div>
+
         <div class="relative">
           <button
-            class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-            @click="dropdownExportAberto = !dropdownExportAberto"
+            class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-4 py-2 rounded-lg hover:border-blue-500 transition"
+            @click="dropdownExportAberto = !dropdownExportAberto; dropdownPeriodoAberto = false"
           >
-            <Download :size="16" /> Exportar <ChevronDown :size="16" />
+            <Download :size="16" /> Exportar
+            <ChevronDown :size="16" :class="['transition-transform', dropdownExportAberto ? 'rotate-180' : '']" />
           </button>
-          <div v-if="dropdownExportAberto" class="absolute right-0 z-10 mt-1 w-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
+          <div
+            v-if="dropdownExportAberto"
+            class="absolute right-0 z-10 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-1"
+          >
             <div
-              class="px-3 py-2 text-sm cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-              @click="exportarCSV(); dropdownExportAberto = false"
+              v-for="opt in opcoesExport"
+              :key="opt.formato"
+              class="flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              @click="opt.acao(); dropdownExportAberto = false"
             >
-              CSV
-            </div>
-            <div
-              class="px-3 py-2 text-sm cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-              @click="exportarExcel(); dropdownExportAberto = false"
-            >
-              Excel
-            </div>
-            <div
-              class="px-3 py-2 text-sm cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-              @click="exportarPDF(); dropdownExportAberto = false"
-            >
-              PDF
+              <component :is="opt.icone" :size="16" :class="opt.cor" />
+              <div class="leading-tight">
+                <p class="font-medium">{{ opt.label }}</p>
+                <p class="text-xs text-slate-400 dark:text-slate-500">{{ opt.descricao }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -270,11 +276,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import api from '@/servicos/api'
 import { useTemaStore } from '@/servicos/tema.store'
-import { Calendar, ChevronDown, Download, TrendingDown, PieChart, AlertCircle, Package, FileText } from 'lucide-vue-next'
+import {
+  Calendar, ChevronDown, Download, TrendingDown, PieChart, AlertCircle, Package, FileText,
+  Check, Table as TableIcon, FileSpreadsheet, FileType2 as FilePdfIcon,
+} from 'lucide-vue-next'
 import ExcelJS from 'exceljs'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -286,6 +295,7 @@ const aba = ref('perdas')
 const carregando = ref(false)
 const dropdownPeriodoAberto = ref(false)
 const dropdownExportAberto  = ref(false)
+const menusRoot = ref(null)
 
 const opcoesPeriodo = [
   { label: 'Últimos 7 dias',  dias: 7  },
@@ -295,6 +305,12 @@ const opcoesPeriodo = [
 ]
 const periodo = ref(opcoesPeriodo[1])
 const periodoLabel = computed(() => periodo.value.label)
+
+const opcoesExport = [
+  { formato: 'csv',  label: 'CSV',   descricao: 'Texto separado por vírgula', icone: TableIcon,       cor: 'text-green-500',   acao: () => exportarCSV() },
+  { formato: 'xlsx', label: 'Excel', descricao: 'Planilha formatada',          icone: FileSpreadsheet,  cor: 'text-emerald-500', acao: () => exportarExcel() },
+  { formato: 'pdf',  label: 'PDF',   descricao: 'Documento para impressão',    icone: FilePdfIcon,      cor: 'text-red-500',     acao: () => exportarPDF() },
+]
 
 const dadosPerdas = ref({ perdas: [], porMotivo: [], resumo: {} })
 const dadosAbc    = ref({ itens: [], resumo: {} })
@@ -319,6 +335,13 @@ function selecionarPeriodo(p) {
   dropdownPeriodoAberto.value = false
 }
 
+function fecharMenusAoClicarFora(evento) {
+  if (menusRoot.value && !menusRoot.value.contains(evento.target)) {
+    dropdownPeriodoAberto.value = false
+    dropdownExportAberto.value  = false
+  }
+}
+
 async function carregarDados() {
   carregando.value = true
   try {
@@ -337,7 +360,15 @@ async function carregarDados() {
 }
 
 watch([aba, periodo], carregarDados)
-onMounted(carregarDados)
+
+onMounted(() => {
+  carregarDados()
+  document.addEventListener('click', fecharMenusAoClicarFora)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', fecharMenusAoClicarFora)
+})
 
 // Gráfico de pizza SVG
 const fatiasPizza = computed(() => {
