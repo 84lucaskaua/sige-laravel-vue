@@ -13,33 +13,46 @@ use Illuminate\Support\Facades\DB;
 
 class ItemLoteController extends Controller
 {
-    public function store(Request $request, int $idLote)
-    {
-        $request->validate([
-            'id_produto'     => 'nullable|integer|exists:produto,id_produto',
-            'nome'           => 'required_without:id_produto|string|min:2|max:255',
-            'sku'            => 'required_without:id_produto|string|max:50',
-            'quantidade'     => 'required|integer|min:1',
-            'categoria'      => 'required_without:id_produto|string',
-            'data_validade'  => 'nullable|date|after:today|before:2100-01-01',
-            'estoque_minimo' => 'required_without:id_produto|integer|min:1',
-        ], [
-            'nome.required_without'           => 'Informe o produto (id_produto) ou os dados de um produto novo.',
-            'categoria.required_without'      => 'A categoria é obrigatória ao cadastrar um produto novo.',
-            'quantidade.required'             => 'A quantidade é obrigatória.',
-            'quantidade.integer'              => 'A quantidade deve ser um número inteiro.',
-            'quantidade.min'                  => 'A quantidade não pode ser negativa.',
-            'data_validade.date'              => 'Informe uma data válida.',
-            'data_validade.after'             => 'A data de validade deve ser futura.',
-            'data_validade.before'            => 'A data de validade informada é inválida.',
-            'estoque_minimo.required_without' => 'O estoque mínimo é obrigatório ao cadastrar um produto novo.',
-            'estoque_minimo.integer'          => 'O estoque mínimo deve ser um número inteiro.',
-            'estoque_minimo.min'              => 'O estoque mínimo deve ser pelo menos 1.',
-        ]);
+   public function store(Request $request, int $idLote)
+{
+    // Se um produto existente foi selecionado, descarta os campos
+    // de "produto novo" que o formulário possa ter enviado junto
+    // (ex: nome="" reaproveitado do mesmo input), evitando que a
+    // validação abaixo falhe por causa de um campo que não deveria
+    // nem ser exigido.
+    if ($request->filled('id_produto')) {
+        $request->request->remove('nome');
+        $request->request->remove('sku');
+        $request->request->remove('categoria');
+        $request->request->remove('estoque_minimo');
+    }
 
-        if ($request->id_produto) {
-            $idProduto = $request->id_produto;
-        } else {
+    $request->validate([
+        'id_produto'     => 'nullable|integer|exists:produto,id_produto',
+        'nome'           => 'required_without:id_produto|string|min:2|max:255',
+        'sku'            => 'required_without:id_produto|string|max:50',
+        'quantidade'     => 'required|integer|min:1',
+        'categoria'      => 'required_without:id_produto|string',
+        'data_validade'  => 'nullable|date|after:today|before:2100-01-01',
+        'estoque_minimo' => 'required_without:id_produto|integer|min:1',
+    ], [
+        'nome.required_without'           => 'Informe o produto (id_produto) ou os dados de um produto novo.',
+        'categoria.required_without'      => 'A categoria é obrigatória ao cadastrar um produto novo.',
+        'quantidade.required'             => 'A quantidade é obrigatória.',
+        'quantidade.integer'              => 'A quantidade deve ser um número inteiro.',
+        'quantidade.min'                  => 'A quantidade não pode ser negativa.',
+        'data_validade.date'              => 'Informe uma data válida.',
+        'data_validade.after'             => 'A data de validade deve ser futura.',
+        'data_validade.before'            => 'A data de validade informada é inválida.',
+        'estoque_minimo.required_without' => 'O estoque mínimo é obrigatório ao cadastrar um produto novo.',
+        'estoque_minimo.integer'          => 'O estoque mínimo deve ser um número inteiro.',
+        'estoque_minimo.min'              => 'O estoque mínimo deve ser pelo menos 1.',
+    ]);
+
+    if ($request->id_produto) {
+        $idProduto = $request->id_produto;
+    } else {
+        // ...
             $existente = Produto::where('sku', $request->sku)->first();
 
             if ($existente) {
@@ -233,42 +246,56 @@ class ItemLoteController extends Controller
         return response()->json(['message' => 'Ordem atualizada com sucesso.']);
     }
 
-    public function destroy(int $id)
-    {
-        $item = ItemLote::findOrFail($id);
+   public function destroy(int $id)
+{
+    $item = ItemLote::findOrFail($id);
+    $idProduto = $item->id_produto;
 
-        Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+    Produto::whereKey($idProduto)->decrement('estoque_atual', $item->quantidade);
 
-        $item->delete();
+    $item->delete();
 
-        RecalcularAbcJob::dispatch();
-
-        return response()->json(['message' => 'Item excluído com sucesso.']);
+    // Se o produto ficou sem nenhum lote, remove o cadastro também.
+    if (!ItemLote::where('id_produto', $idProduto)->exists()) {
+        Produto::whereKey($idProduto)->delete();
     }
 
-    public function destroyMultiplos(Request $request)
-    {
-        $request->validate([
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer|exists:item_lote,id_item',
-        ], [
-            'ids.required' => 'Selecione ao menos um item para excluir.',
-            'ids.*.exists' => 'Um dos itens selecionados não existe.',
-        ]);
+    RecalcularAbcJob::dispatch();
 
-        $itens = ItemLote::whereIn('id_item', $request->ids)->get();
+    return response()->json(['message' => 'Item excluído com sucesso.']);
+}
 
-        DB::transaction(function () use ($itens) {
-            foreach ($itens as $item) {
-                Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+  public function destroyMultiplos(Request $request)
+{
+    $request->validate([
+        'ids'   => 'required|array|min:1',
+        'ids.*' => 'integer|exists:item_lote,id_item',
+    ], [
+        'ids.required' => 'Selecione ao menos um item para excluir.',
+        'ids.*.exists' => 'Um dos itens selecionados não existe.',
+    ]);
+
+    $itens = ItemLote::whereIn('id_item', $request->ids)->get();
+    $idsProdutosAfetados = $itens->pluck('id_produto')->unique();
+
+    DB::transaction(function () use ($itens, $idsProdutosAfetados) {
+        foreach ($itens as $item) {
+            Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+        }
+        ItemLote::whereIn('id_item', $itens->pluck('id_item'))->delete();
+
+        // Remove produtos que ficaram sem nenhum lote.
+        foreach ($idsProdutosAfetados as $idProduto) {
+            if (!ItemLote::where('id_produto', $idProduto)->exists()) {
+                Produto::whereKey($idProduto)->delete();
             }
-            ItemLote::whereIn('id_item', $itens->pluck('id_item'))->delete();
-        });
+        }
+    });
 
-        RecalcularAbcJob::dispatch();
+    RecalcularAbcJob::dispatch();
 
-        return response()->json(['message' => count($itens) . ' item(ns) excluído(s) com sucesso.']);
-    }
+    return response()->json(['message' => count($itens) . ' item(ns) excluído(s) com sucesso.']);
+}
 
     public function historico(int $id)
     {
