@@ -23,7 +23,7 @@ class UsuarioController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
-            'perfil'   => 'required|in:root,operador,visualizador',
+            'perfil'   => 'required|in:admin,operador,visualizador',
         ]);
 
         $usuario = User::create([
@@ -46,7 +46,7 @@ class UsuarioController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email,' . $id,
             'password' => 'nullable|string|min:6|confirmed',
-            'perfil'   => 'required|in:root,operador,visualizador',
+            'perfil'   => 'required|in:admin,operador,visualizador',
         ]);
 
         $dados = [

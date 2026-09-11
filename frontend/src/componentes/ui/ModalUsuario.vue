@@ -37,7 +37,7 @@
           <select v-model="formulario.perfil" required class="campo">
             <option value="visualizador">Visualizador — só leitura</option>
             <option value="operador">Operador — pode movimentar estoque</option>
-            <option value="root">Root — acesso total</option>
+            <option value="admin">Admin — acesso total</option>
           </select>
         </div>
 

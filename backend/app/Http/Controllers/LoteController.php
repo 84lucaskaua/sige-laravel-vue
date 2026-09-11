@@ -2,7 +2,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lote;
+use App\Models\Produto;
 use App\Helpers\AuditHelper;
+use App\Jobs\RecalcularAbcJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -57,37 +59,58 @@ class LoteController extends Controller
 
     public function destroy(int $id)
     {
-        $lote = Lote::findOrFail($id);
+        $lote = Lote::with('itens')->findOrFail($id);
 
-        DB::table('movimentacao')->where('id_lote', $id)->delete();
+        DB::transaction(function () use ($lote, $id) {
+            // Antes do cascade apagar os item_lote, desconta cada quantidade
+            // do estoque_atual do produto correspondente — senão o produto
+            // fica com estoque "fantasma" (valor antigo nunca decrementado).
+            foreach ($lote->itens as $item) {
+                Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+            }
 
-        AuditHelper::log('Exclusao', 'Lote "' . $lote->numero_lote . '" excluido.');
+            DB::table('movimentacao')->where('id_lote', $id)->delete();
 
-        $lote->delete();
+            AuditHelper::log('Exclusao', 'Lote "' . $lote->numero_lote . '" excluido.');
+
+            $lote->delete();
+        });
+
+        RecalcularAbcJob::dispatch();
+
         return response()->json(['message' => 'Lote excluido com sucesso.']);
     }
+
     public function destroyMultiplos(Request $request)
-{
-    $request->validate([
-        'ids'   => 'required|array|min:1',
-        'ids.*' => 'integer|exists:lote,id_lote',
-    ], [
-        'ids.required' => 'Selecione ao menos um lote para excluir.',
-        'ids.*.exists' => 'Um dos lotes selecionados não existe.',
-    ]);
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:lote,id_lote',
+        ], [
+            'ids.required' => 'Selecione ao menos um lote para excluir.',
+            'ids.*.exists' => 'Um dos lotes selecionados não existe.',
+        ]);
 
-    $lotes = Lote::whereIn('id_lote', $request->ids)->get();
+        $lotes = Lote::with('itens')->whereIn('id_lote', $request->ids)->get();
 
-    DB::transaction(function () use ($request, $lotes) {
-        DB::table('movimentacao')->whereIn('id_lote', $request->ids)->delete();
+        DB::transaction(function () use ($request, $lotes) {
+            foreach ($lotes as $lote) {
+                foreach ($lote->itens as $item) {
+                    Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+                }
+            }
 
-        foreach ($lotes as $lote) {
-            AuditHelper::log('Exclusao', 'Lote "' . $lote->numero_lote . '" excluído (exclusão em massa).');
-        }
+            DB::table('movimentacao')->whereIn('id_lote', $request->ids)->delete();
 
-        Lote::whereIn('id_lote', $request->ids)->delete();
-    });
+            foreach ($lotes as $lote) {
+                AuditHelper::log('Exclusao', 'Lote "' . $lote->numero_lote . '" excluído (exclusão em massa).');
+            }
 
-    return response()->json(['message' => count($lotes) . ' lote(s) excluído(s) com sucesso.']);
-}
+            Lote::whereIn('id_lote', $request->ids)->delete();
+        });
+
+        RecalcularAbcJob::dispatch();
+
+        return response()->json(['message' => count($lotes) . ' lote(s) excluído(s) com sucesso.']);
+    }
 }

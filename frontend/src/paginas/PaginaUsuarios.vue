@@ -159,13 +159,13 @@ const modalAberto        = ref(false)
 const usuarioSelecionado = ref(null)
 
 const corDoPerfil = {
-  root:         'bg-blue-600 text-white',
+  admin:        'bg-blue-600 text-white',
   operador:     'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200',
   visualizador: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200',
 }
 
 const nomeDoPerfil = {
-  root:         'Administrador',
+  admin:        'Administrador',
   operador:     'Operador',
   visualizador: 'Visualizador',
 }
@@ -180,7 +180,7 @@ const usuariosFiltrados = computed(() => {
 })
 
 const totalAdministradores = computed(() =>
-  usuarios.value.filter(u => u.perfil === 'root').length
+  usuarios.value.filter(u => u.perfil === 'admin').length
 )
 
 const totalInativos = computed(() =>
@@ -193,7 +193,7 @@ async function carregarUsuarios() {
     const resposta = await api.get('/usuarios')
     usuarios.value = resposta.data
   } catch {
-    erro('Erro ao carregar usuários.')
+    notificarErro('Erro ao carregar usuários.')
   } finally {
     carregando.value = false
   }
