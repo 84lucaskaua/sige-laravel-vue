@@ -87,7 +87,7 @@
 
       <div v-else class="space-y-2">
         <div
-          v-for="item in itens"
+          v-for="item in itensPaginados"
           :key="item.id_item"
           class="flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3"
           :class="{ 'opacity-60': item.quantidade === 0 }"
@@ -128,6 +128,53 @@
           </button>
         </div>
       </div>
+
+      <!-- Paginação: lista de itens -->
+      <div v-if="totalPaginasItens > 1" class="flex items-center justify-between mt-4 px-1">
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          Página {{ paginaAtualItens }} de {{ totalPaginasItens }} — {{ formatarNumero(itens.length) }} itens
+        </p>
+
+        <div class="flex items-center gap-1">
+          <button
+            class="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            :disabled="paginaAtualItens === 1"
+            @click="irParaPaginaItens(paginaAtualItens - 1)"
+          >
+            <ChevronLeft :size="16" />
+          </button>
+
+          <button
+            v-for="pagina in totalPaginasItens"
+            :key="pagina"
+            :class="pagina === paginaAtualItens
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'"
+            class="w-9 h-9 rounded-lg text-sm font-medium transition"
+            @click="irParaPaginaItens(pagina)"
+          >
+            {{ pagina }}
+          </button>
+
+          <button
+            class="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            :disabled="paginaAtualItens === totalPaginasItens"
+            @click="irParaPaginaItens(paginaAtualItens + 1)"
+          >
+            <ChevronRight :size="16" />
+          </button>
+        </div>
+
+        <select
+          v-model="itensPorPaginaItens"
+          class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
+          @change="paginaAtualItens = 1"
+        >
+          <option :value="10">10 por página</option>
+          <option :value="25">25 por página</option>
+          <option :value="50">50 por página</option>
+        </select>
+      </div>
     </div>
 
     <!-- Perdas Recentes -->
@@ -152,7 +199,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-          <tr v-for="perda in perdas" :key="perda.id_movimentacao" class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition">
+          <tr v-for="perda in perdasPaginadas" :key="perda.id_movimentacao" class="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition">
             <td class="py-3 text-slate-900 dark:text-white font-medium">{{ perda.item?.produto?.nome || '—' }}</td>
             <td class="py-3 text-red-600 dark:text-red-400 font-bold">-{{ formatarNumero(perda.quantidade) }}</td>
             <td class="py-3 text-slate-600 dark:text-slate-300">{{ perda.observacao || '—' }}</td>
@@ -160,6 +207,53 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Paginação: perdas recentes -->
+      <div v-if="totalPaginasPerdas > 1" class="flex items-center justify-between mt-4 px-1">
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          Página {{ paginaAtualPerdas }} de {{ totalPaginasPerdas }} — {{ formatarNumero(perdas.length) }} registros
+        </p>
+
+        <div class="flex items-center gap-1">
+          <button
+            class="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            :disabled="paginaAtualPerdas === 1"
+            @click="irParaPaginaPerdas(paginaAtualPerdas - 1)"
+          >
+            <ChevronLeft :size="16" />
+          </button>
+
+          <button
+            v-for="pagina in totalPaginasPerdas"
+            :key="pagina"
+            :class="pagina === paginaAtualPerdas
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'"
+            class="w-9 h-9 rounded-lg text-sm font-medium transition"
+            @click="irParaPaginaPerdas(pagina)"
+          >
+            {{ pagina }}
+          </button>
+
+          <button
+            class="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            :disabled="paginaAtualPerdas === totalPaginasPerdas"
+            @click="irParaPaginaPerdas(paginaAtualPerdas + 1)"
+          >
+            <ChevronRight :size="16" />
+          </button>
+        </div>
+
+        <select
+          v-model="itensPorPaginaPerdas"
+          class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2 py-1.5 text-sm outline-none"
+          @change="paginaAtualPerdas = 1"
+        >
+          <option :value="10">10 por página</option>
+          <option :value="25">25 por página</option>
+          <option :value="50">50 por página</option>
+        </select>
+      </div>
     </div>
 
     <!-- Modal: perda individual -->
@@ -389,7 +483,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watchEffect } from 'vue'
-import { AlertTriangle, Trash2, Calendar, X, Shield } from 'lucide-vue-next'
+import { AlertTriangle, Trash2, Calendar, X, Shield, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import api from '@/servicos/api'
 
 const itens            = ref([])
@@ -409,6 +503,55 @@ const form = ref({ quantidade: null, motivo: '', motivoOutro: '' })
 const motivoExibicao = computed(() =>
   form.value.motivo === 'Outro' ? form.value.motivoOutro.trim() : form.value.motivo
 )
+
+// ===== Paginação: lista de itens (Registrar Nova Perda) =====
+const itensPorPaginaItens = ref(10)
+const paginaAtualItens    = ref(1)
+
+const totalPaginasItens = computed(() =>
+  Math.max(1, Math.ceil(itens.value.length / itensPorPaginaItens.value))
+)
+
+const itensPaginados = computed(() => {
+  const inicio = (paginaAtualItens.value - 1) * itensPorPaginaItens.value
+  return itens.value.slice(inicio, inicio + itensPorPaginaItens.value)
+})
+
+function irParaPaginaItens(pagina) {
+  if (pagina < 1 || pagina > totalPaginasItens.value) return
+  paginaAtualItens.value = pagina
+}
+
+// evita ficar numa página vazia se a lista encolher (ex: item some após virar 0 em estoque)
+watchEffect(() => {
+  if (paginaAtualItens.value > totalPaginasItens.value) {
+    paginaAtualItens.value = totalPaginasItens.value
+  }
+})
+
+// ===== Paginação: Perdas Recentes =====
+const itensPorPaginaPerdas = ref(10)
+const paginaAtualPerdas    = ref(1)
+
+const totalPaginasPerdas = computed(() =>
+  Math.max(1, Math.ceil(perdas.value.length / itensPorPaginaPerdas.value))
+)
+
+const perdasPaginadas = computed(() => {
+  const inicio = (paginaAtualPerdas.value - 1) * itensPorPaginaPerdas.value
+  return perdas.value.slice(inicio, inicio + itensPorPaginaPerdas.value)
+})
+
+function irParaPaginaPerdas(pagina) {
+  if (pagina < 1 || pagina > totalPaginasPerdas.value) return
+  paginaAtualPerdas.value = pagina
+}
+
+watchEffect(() => {
+  if (paginaAtualPerdas.value > totalPaginasPerdas.value) {
+    paginaAtualPerdas.value = totalPaginasPerdas.value
+  }
+})
 
 // ===== Seleção múltipla / perda em massa =====
 const modoSelecao       = ref(false)
