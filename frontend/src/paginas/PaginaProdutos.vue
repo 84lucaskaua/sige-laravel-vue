@@ -362,6 +362,8 @@ const encontrarValidade = (item, numeroLote) =>
   item.validades?.find(v => v.numero_lote === numeroLote)
 
 // Deriva a lista de lotes do produto (id_lote + numero_lote), sem duplicar
+// Essa função pode ser apagada — ela é a causa do bug, pois só lista
+// lotes que JÁ têm o produto. Se nada mais no arquivo a usa, remova-a.
 const lotesDoProduto = (item) => {
   if (!item.validades) return []
   const mapa = new Map()
@@ -373,12 +375,24 @@ const lotesDoProduto = (item) => {
   return [...mapa.values()]
 }
 
-const acionarTransferir = (item, numeroLote) => {
+const acionarTransferir = async (item, numeroLote) => {
   const validade = encontrarValidade(item, numeroLote)
   if (!validade) {
     erro('Não foi possível localizar os dados desse lote.')
     return
   }
+
+  let todosOsLotes = []
+  try {
+    const { data } = await api.get('/lotes')
+    todosOsLotes = data
+      .filter(l => l.id_lote !== validade.id_lote) // remove o lote de origem
+      .map(l => ({ id_lote: l.id_lote, numero_lote: l.numero_lote }))
+  } catch {
+    erro('Não foi possível carregar a lista de lotes.')
+    return
+  }
+
   modalTransferir.value = {
     item: {
       id_item:        validade.id_item,
@@ -387,7 +401,7 @@ const acionarTransferir = (item, numeroLote) => {
       unidade_medida: validade.unidade,
       produto:        { nome: item.nome },
     },
-    lotes: lotesDoProduto(item),
+    lotes: todosOsLotes,
   }
   menuLoteAtivo.value = null
   dropdownAberto.value = null
@@ -405,9 +419,7 @@ const acionarBaixa = (item, numeroLote) => {
     quantidade:     validade.quantidade,
     unidade_medida: validade.unidade,
   }
-  menuLoteAtivo.value = null
-  dropdownAberto.value = null
-}
+}  // ✅ fecha acionarBaixa
 
 const acionarHistorico = (item, numeroLote) => {
   loteDestaque.value = numeroLote

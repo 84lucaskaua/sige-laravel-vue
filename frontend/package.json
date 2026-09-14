@@ -1,6 +1,7 @@
 {
   "name": "sige-frontend",
   "version": "1.0.0",
+  "type": "module",
   "description": "SIGE - Sistema de Gestão de Estoque - Frontend Vue.js",
   "scripts": {
     "dev": "vite",
