@@ -102,8 +102,7 @@ php artisan serve
 # 12. Em outro terminal, instale as dependencias do Frontend
 cd ../Frontend
 npm install
-npm install lucide-vue-next
-npm install marked dompurify
+npm install lucide-vue-next marked dompurify exceljs
 # 13. Inicie o servidor de desenvolvimento do Frontend
 npm run dev
 #    O frontend ira rodar em: http://localhost:5173
