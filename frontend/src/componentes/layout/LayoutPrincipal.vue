@@ -25,8 +25,9 @@
         </button>
       </div>
 
+    
       <!-- Usuário -->
-      <div v-if="expandido" class="px-4 py-4 border-b border-slate-200 dark:border-slate-800 relative" ref="perfilRef">
+<div v-if="expandido" ref="perfilRef" class="px-4 py-4 border-b border-slate-200 dark:border-slate-800 relative">
         <button
           class="flex items-center gap-3 mb-3 w-full text-left rounded-lg px-1 py-1 -mx-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           @click="perfilAberto = !perfilAberto"
