@@ -28,16 +28,16 @@
 
     <!-- Botão principal -->
     <button
-      class="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-transform active:scale-90"
-      :aria-expanded="menuAberto"
-      aria-label="Abrir menu de suporte"
-      @click="alternarMenu"
-    >
-      <span class="icone-fab" :class="{ 'icone-fab-girado': menuAberto }">
-        <X v-if="menuAberto" :size="22" />
-        <Plus v-else :size="22" />
-      </span>
-    </button>
+  class="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-transform active:scale-90"
+  :aria-expanded="menuAberto || chatAberto || acessibilidadeAberto"
+  aria-label="Abrir menu de suporte"
+  @click="alternarMenu"
+>
+  <span class="icone-fab" :class="{ 'icone-fab-girado': menuAberto || chatAberto || acessibilidadeAberto }">
+    <X v-if="menuAberto || chatAberto || acessibilidadeAberto" :size="22" />
+    <Plus v-else :size="22" />
+  </span>
+</button>
 
   </div>
 
@@ -56,6 +56,12 @@ const chatAberto = ref(false)
 const acessibilidadeAberto = ref(false)
 
 function alternarMenu() {
+  if (chatAberto.value || acessibilidadeAberto.value) {
+    chatAberto.value = false
+    acessibilidadeAberto.value = false
+    menuAberto.value = false
+    return
+  }
   menuAberto.value = !menuAberto.value
 }
 
