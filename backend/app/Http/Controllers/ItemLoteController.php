@@ -13,28 +13,25 @@ use Illuminate\Support\Facades\DB;
 
 class ItemLoteController extends Controller
 {
-   public function store(Request $request, int $idLote)
+       public function store(Request $request, int $idLote)
 {
-    // Se um produto existente foi selecionado, descarta os campos
-    // de "produto novo" que o formulário possa ter enviado junto
-    // (ex: nome="" reaproveitado do mesmo input), evitando que a
-    // validação abaixo falhe por causa de um campo que não deveria
-    // nem ser exigido.
     if ($request->filled('id_produto')) {
         $request->request->remove('nome');
         $request->request->remove('sku');
         $request->request->remove('categoria');
         $request->request->remove('estoque_minimo');
+        $request->request->remove('percentual_alerta');
     }
 
     $request->validate([
-        'id_produto'     => 'nullable|integer|exists:produto,id_produto',
-        'nome'           => 'required_without:id_produto|string|min:2|max:255',
-        'sku'            => 'required_without:id_produto|string|max:50',
-        'quantidade'     => 'required|integer|min:1',
-        'categoria'      => 'required_without:id_produto|string',
-        'data_validade'  => 'nullable|date|after:today|before:2100-01-01',
-        'estoque_minimo' => 'required_without:id_produto|integer|min:1',
+        'id_produto'        => 'nullable|integer|exists:produto,id_produto',
+        'nome'              => 'required_without:id_produto|string|min:2|max:255',
+        'sku'               => 'required_without:id_produto|string|max:50',
+        'quantidade'        => 'required|integer|min:1',
+        'categoria'         => 'required_without:id_produto|string',
+        'data_validade'     => 'nullable|date|after:today|before:2100-01-01',
+        'estoque_minimo'    => 'required_without:id_produto|integer|min:1',
+        'percentual_alerta' => 'nullable|integer|min:1|max:100',
     ], [
         'nome.required_without'           => 'Informe o produto (id_produto) ou os dados de um produto novo.',
         'categoria.required_without'      => 'A categoria é obrigatória ao cadastrar um produto novo.',
@@ -47,12 +44,14 @@ class ItemLoteController extends Controller
         'estoque_minimo.required_without' => 'O estoque mínimo é obrigatório ao cadastrar um produto novo.',
         'estoque_minimo.integer'          => 'O estoque mínimo deve ser um número inteiro.',
         'estoque_minimo.min'              => 'O estoque mínimo deve ser pelo menos 1.',
+        'percentual_alerta.integer'       => 'A porcentagem de alerta deve ser um número inteiro.',
+        'percentual_alerta.min'           => 'A porcentagem de alerta deve ser pelo menos 1%.',
+        'percentual_alerta.max'           => 'A porcentagem de alerta não pode ser maior que 100%.',
     ]);
 
     if ($request->id_produto) {
         $idProduto = $request->id_produto;
     } else {
-        // ...
             $existente = Produto::where('sku', $request->sku)->first();
 
             if ($existente) {
@@ -64,11 +63,12 @@ class ItemLoteController extends Controller
 
             try {
                 $dadosProduto = [
-                    'sku'            => $request->sku,
-                    'nome'           => $request->nome,
-                    'unidade_medida' => $request->unidade_medida ?? 'UN',
-                    'estoque_minimo' => $request->estoque_minimo,
-                    'estoque_atual'  => 0,
+                    'sku'               => $request->sku,
+                    'nome'              => $request->nome,
+                    'unidade_medida'    => $request->unidade_medida ?? 'UN',
+                    'estoque_minimo'    => $request->estoque_minimo,
+                    'percentual_alerta' => $request->percentual_alerta ?? 20,
+                    'estoque_atual'     => 0,
                 ];
 
                 if ($request->filled('categoria')) {
