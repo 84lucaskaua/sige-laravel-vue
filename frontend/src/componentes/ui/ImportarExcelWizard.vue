@@ -244,6 +244,59 @@
 
       </div>
     </div>
+
+    <!-- Modal de confirmação para fechar com importação em andamento -->
+    <Transition
+      enter-active-class="transition ease-out duration-150"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition ease-in duration-100"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="mostrarConfirmFechar" class="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-700 rounded-xl p-6 max-w-sm w-full space-y-4">
+          <p class="text-slate-900 dark:text-white font-semibold text-lg flex items-center gap-2">
+            ⚠️ Importação em andamento
+          </p>
+          <p class="text-slate-600 dark:text-slate-300 text-sm">
+            Você tem uma importação em andamento. Deseja realmente cancelar e fechar?
+          </p>
+          <div class="flex gap-3">
+            <button
+              class="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white py-2 rounded-lg transition"
+              @click="mostrarConfirmFechar = false"
+            >
+              Continuar importação
+            </button>
+            <button
+              class="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg transition"
+              @click="confirmarFechar"
+            >
+              Cancelar e fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Toast de aviso -->
+    <Transition
+      enter-active-class="transition ease-out duration-150"
+      enter-from-class="opacity-0 translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-150"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="toast.show"
+        class="fixed bottom-6 right-6 z-[70] px-5 py-3 rounded-lg shadow-lg text-white flex items-center gap-3 text-sm bg-slate-800 dark:bg-slate-700"
+      >
+        <X class="w-4 h-4 text-orange-400" />
+        {{ toast.message }}
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -266,6 +319,9 @@ const resultado = ref({})
 
 const loteUnico = reactive({ numero_lote: '', data_validade: '' })
 const lotesMultiplos = ref([criarLoteVazio()])
+
+const mostrarConfirmFechar = ref(false)
+const toast = ref({ show: false, message: '' })
 
 function criarLoteVazio() {
   return { numero_lote: '', data_validade: '', quantidades: {} }
@@ -391,9 +447,16 @@ async function confirmarMultiplo() {
 function tentarFechar() {
   const temProgresso = etapa.value !== 'upload' && etapa.value !== 'sucesso'
   if (temProgresso) {
-    const confirmar = window.confirm('Você tem uma importação em andamento. Deseja realmente cancelar e fechar?')
-    if (!confirmar) return
+    mostrarConfirmFechar.value = true
+    return
   }
+  emit('fechar')
+}
+
+function confirmarFechar() {
+  mostrarConfirmFechar.value = false
+  toast.value = { show: true, message: 'Importação cancelada.' }
+  setTimeout(() => (toast.value.show = false), 3000)
   emit('fechar')
 }
 
