@@ -589,7 +589,8 @@ async function excluirLotesSelecionados() {
     lotesSelecionados.value = new Set()
     tabAtiva.value = null
     await carregarLotes()
-  } catch {
+  } catch (e) {
+    console.error(e)
     erro('Erro ao excluir lotes selecionados.')
   } finally {
     excluindoVarios.value = false
@@ -651,7 +652,8 @@ async function excluirItensSelecionados() {
     modoSelecaoItens.value = false
     itensSelecionados.value = new Set()
     await carregarLotes()
-  } catch {
+  } catch (e) {
+    console.error(e)
     erro('Erro ao excluir itens selecionados.')
   } finally {
     excluindoItens.value = false
@@ -772,7 +774,8 @@ async function excluirLote() {
     modalExcluirLoteAberto.value = false
     sucesso('Lote excluído com sucesso.')
     await carregarLotes()
-  } catch {
+  } catch (e) {
+    console.error(e)
     erro('Erro ao excluir lote.')
   }
 }
@@ -797,7 +800,8 @@ async function salvarOrdemItens() {
 
   try {
     await api.patch(`/lotes/${loteAtivo.value.id_lote}/itens/reordenar`, { itens })
-  } catch {
+  } catch (e) {
+    console.error(e)
     erro('Não foi possível salvar a nova ordem dos itens.')
     await carregarLotes()
   }
@@ -811,7 +815,8 @@ async function carregarLotes() {
     if (lotes.value.length > 0 && !tabAtiva.value) {
       tabAtiva.value = lotes.value[0].id_lote
     }
-  } catch {
+  } catch (e) {
+    console.error(e)
     erro('Não foi possível carregar os lotes.')
   } finally {
     carregando.value = false

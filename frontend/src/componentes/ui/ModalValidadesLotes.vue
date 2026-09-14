@@ -1,9 +1,9 @@
 <template>
   <div
-    v-if="produto"
-    class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-    @click.self="$emit('fechar')"
-  >
+  v-if="produto"
+  class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+  @click.self="$emit('fechar')"
+>
     <div class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6" :style="estiloArraste">
 
       <!-- Cabeçalho -->

@@ -25,9 +25,13 @@
         </button>
       </div>
 
+    
       <!-- Usuário -->
-      <div v-if="expandido" class="px-4 py-4 border-b border-slate-200 dark:border-slate-800">
-        <div class="flex items-center gap-3 mb-3">
+<div v-if="expandido" ref="perfilRef" class="px-4 py-4 border-b border-slate-200 dark:border-slate-800 relative">
+        <button
+          class="flex items-center gap-3 mb-3 w-full text-left rounded-lg px-1 py-1 -mx-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          @click="perfilAberto = !perfilAberto"
+        >
           <div
             class="w-9 h-9 rounded-full bg-blue-600 overflow-hidden flex items-center justify-center text-sm font-bold text-white shrink-0"
           >
@@ -38,13 +42,14 @@
             />
             <span v-else>{{ iniciaisDoUsuario }}</span>
           </div>
-          <div>
-            <p class="text-sm font-medium text-slate-900 dark:text-white">{{ usuario?.name }}</p>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-slate-900 dark:text-white truncate">{{ usuario?.name }}</p>
             <p class="text-xs capitalize text-slate-500 dark:text-slate-400">
               {{ usuario?.perfil }}
             </p>
           </div>
-        </div>
+        </button>
+
         <RouterLink
           to="/perfil"
           class="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -52,6 +57,59 @@
           <Settings :size="14" />
           Editar Perfil
         </RouterLink>
+
+        <!-- Painel com as informações do usuário -->
+        <Transition
+          enter-active-class="transition ease-out duration-150"
+          enter-from-class="opacity-0 -translate-y-1"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition ease-in duration-100"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="perfilAberto"
+            class="absolute left-4 right-4 top-full mt-1 rounded-xl shadow-lg z-50 overflow-hidden
+                   bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+          >
+            <div class="p-4 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800">
+              <div class="w-11 h-11 rounded-full bg-blue-600 overflow-hidden flex items-center justify-center text-sm font-bold text-white shrink-0">
+                <img v-if="usuario?.foto_url" :src="usuario.foto_url" class="w-full h-full object-cover" />
+                <span v-else>{{ iniciaisDoUsuario }}</span>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">{{ usuario?.name }}</p>
+                <p class="text-xs capitalize text-blue-600 dark:text-blue-400">{{ usuario?.perfil }}</p>
+              </div>
+            </div>
+
+            <div class="p-4 space-y-2 text-sm">
+              <div class="flex justify-between gap-3">
+                <span class="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Mail :size="13" /> E-mail
+                </span>
+                <span class="text-slate-900 dark:text-white truncate">{{ usuario?.email }}</span>
+              </div>
+              <div class="flex justify-between gap-3">
+                <span class="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <ShieldCheck :size="13" /> Perfil
+                </span>
+                <span class="text-slate-900 dark:text-white capitalize">{{ usuario?.perfil }}</span>
+              </div>
+            </div>
+
+            <div class="p-2 border-t border-slate-200 dark:border-slate-800">
+              <RouterLink
+                to="/perfil"
+                class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                @click="perfilAberto = false"
+              >
+                <Settings :size="14" />
+                Editar Perfil
+              </RouterLink>
+            </div>
+          </div>
+        </Transition>
       </div>
 
       <!-- Avatar colapsado -->
@@ -416,6 +474,7 @@ import {
   BarChart3,
   Download,
   Shield,
+  ShieldCheck,
   Users,
   Settings,
   LogOut,
@@ -427,16 +486,15 @@ import {
   Info,
   Sun,
   Moon,
+  Mail,
 } from 'lucide-vue-next';
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store';
 import { useTemaStore } from '@/servicos/tema.store';
 import { perfilPodeAcessarRota } from '@/servicos/permissoes';
 import logoSenac from '@/componentes/img/Senac_logo.svg.png';
 import api from '@/servicos/api';
-// Adicione o import
 import GlobalBusca from '@/componentes/ui/GlobalBusca.vue';
 
-// Adicione o estado, junto dos outros refs
 const buscaGlobalAberta = ref(false);
 const router = useRouter();
 const autenticacao = useAutenticacaoStore();
@@ -445,6 +503,8 @@ const logo = logoSenac;
 const expandido = ref(true);
 const painelAberto = ref(false);
 const painelAtalhosAberto = ref(false);
+const perfilAberto = ref(false);
+const perfilRef = ref(null);
 const aba = ref('todas');
 const carregando = ref(false);
 const notificacoes = ref([]);
@@ -603,6 +663,12 @@ function irPara(nomeRota, caminho) {
   router.push(caminho);
 }
 
+function fecharPerfilAoClicarFora(e) {
+  if (perfilRef.value && !perfilRef.value.contains(e.target)) {
+    perfilAberto.value = false;
+  }
+}
+
 function handleKeyboard(e) {
   if (!e.key) return; // ← proteção contra e.key undefined
   const alt = e.altKey;
@@ -648,17 +714,20 @@ function handleKeyboard(e) {
   if (e.key === 'Escape') {
     painelAberto.value = false;
     painelAtalhosAberto.value = false;
-    buscaGlobalAberta.value = false; // ← adicione esta linha
+    buscaGlobalAberta.value = false;
+    perfilAberto.value = false;
   }
 }
 
 onMounted(() => {
   carregarNotificacoes();
   window.addEventListener('keydown', handleKeyboard);
+  document.addEventListener('click', fecharPerfilAoClicarFora);
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyboard);
+  document.removeEventListener('click', fecharPerfilAoClicarFora);
 });
 </script>
 

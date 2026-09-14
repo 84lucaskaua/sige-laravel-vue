@@ -93,7 +93,7 @@
                   class="p-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Inativar"
                   :disabled="usuario.id === autenticacao.usuario?.id"
-                  @click="alternarStatusUsuario(usuario)"
+                  @click="abrirConfirmacaoStatus(usuario)"
                 >
                   <UserX :size="16" />
                 </button>
@@ -101,7 +101,7 @@
                   v-else
                   class="p-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50 transition"
                   title="Ativar"
-                  @click="alternarStatusUsuario(usuario)"
+                  @click="abrirConfirmacaoStatus(usuario)"
                 >
                   <UserCheck :size="16" />
                 </button>
@@ -128,12 +128,26 @@
       </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal de cadastro/edição -->
     <ModalUsuario
       v-if="modalAberto"
       :usuario="usuarioSelecionado"
       @fechar="fecharModal"
       @salvo="aoSalvar"
+    />
+
+    <!-- Modal de confirmação de status -->
+    <ModalConfirmacao
+      v-if="usuarioParaAlternarStatus"
+      :titulo="usuarioParaAlternarStatus.ativo ? 'Inativar usuário' : 'Ativar usuário'"
+      :subtitulo="usuarioParaAlternarStatus.ativo ? 'O usuário perderá o acesso ao sistema' : 'O usuário voltará a ter acesso ao sistema'"
+      :mensagem="`Deseja ${usuarioParaAlternarStatus.ativo ? 'inativar' : 'ativar'} o usuário &quot;${usuarioParaAlternarStatus.name}&quot;?`"
+      :variante="usuarioParaAlternarStatus.ativo ? 'perigo' : 'aviso'"
+      :texto-confirmar="usuarioParaAlternarStatus.ativo ? 'Inativar' : 'Ativar'"
+      texto-carregando="Salvando..."
+      :carregando="alternandoStatus"
+      @cancelar="fecharConfirmacaoStatus"
+      @confirmar="confirmarAlternarStatus"
     />
 
   </div>
@@ -145,6 +159,7 @@ import { Plus, Search, UserX, UserCheck, Pencil } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import ModalUsuario from '@/componentes/ui/ModalUsuario.vue'
+import ModalConfirmacao from '@/componentes/ui/ModalConfirmacao.vue'
 import { formatarData } from '@/utils/date'
 import { useNotificacao } from '@/composables/useNotificacao'
 
@@ -152,11 +167,13 @@ const { erro: notificarErro } = useNotificacao()
 
 const autenticacao = useAutenticacaoStore()
 
-const usuarios           = ref([])
-const carregando         = ref(false)
-const busca              = ref('')
-const modalAberto        = ref(false)
-const usuarioSelecionado = ref(null)
+const usuarios                  = ref([])
+const carregando                = ref(false)
+const busca                     = ref('')
+const modalAberto               = ref(false)
+const usuarioSelecionado        = ref(null)
+const usuarioParaAlternarStatus = ref(null)
+const alternandoStatus          = ref(false)
 
 const corDoPerfil = {
   admin:        'bg-blue-600 text-white',
@@ -219,15 +236,29 @@ async function aoSalvar() {
   await carregarUsuarios()
 }
 
-async function alternarStatusUsuario(usuario) {
+function abrirConfirmacaoStatus(usuario) {
+  usuarioParaAlternarStatus.value = usuario
+}
+
+function fecharConfirmacaoStatus() {
+  usuarioParaAlternarStatus.value = null
+}
+
+async function confirmarAlternarStatus() {
+  const usuario = usuarioParaAlternarStatus.value
+  if (!usuario) return
+
   const acao = usuario.ativo ? 'inativar' : 'ativar'
-  if (!confirm(`Deseja ${acao} o usuário "${usuario.name}"?`)) return
+  alternandoStatus.value = true
 
   try {
     await api.patch(`/usuarios/${usuario.id}/status`, { ativo: !usuario.ativo })
     await carregarUsuarios()
+    fecharConfirmacaoStatus()
   } catch (erro) {
     notificarErro(erro.response?.data?.mensagem || erro.response?.data?.message || `Erro ao ${acao} usuário.`)
+  } finally {
+    alternandoStatus.value = false
   }
 }
 

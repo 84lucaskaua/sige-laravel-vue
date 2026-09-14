@@ -13,108 +13,117 @@ use Illuminate\Support\Facades\DB;
 
 class ItemLoteController extends Controller
 {
-   public function store(Request $request, int $idLote)
-{
-    // Se um produto existente foi selecionado, descarta os campos
-    // de "produto novo" que o formulário possa ter enviado junto
-    // (ex: nome="" reaproveitado do mesmo input), evitando que a
-    // validação abaixo falhe por causa de um campo que não deveria
-    // nem ser exigido.
-    if ($request->filled('id_produto')) {
-        $request->request->remove('nome');
-        $request->request->remove('sku');
-        $request->request->remove('categoria');
-        $request->request->remove('estoque_minimo');
-    }
-
-    $request->validate([
-        'id_produto'     => 'nullable|integer|exists:produto,id_produto',
-        'nome'           => 'required_without:id_produto|string|min:2|max:255',
-        'sku'            => 'required_without:id_produto|string|max:50',
-        'quantidade'     => 'required|integer|min:1',
-        'categoria'      => 'required_without:id_produto|string',
-        'data_validade'  => 'nullable|date|after:today|before:2100-01-01',
-        'estoque_minimo' => 'required_without:id_produto|integer|min:1',
-    ], [
-        'nome.required_without'           => 'Informe o produto (id_produto) ou os dados de um produto novo.',
-        'categoria.required_without'      => 'A categoria é obrigatória ao cadastrar um produto novo.',
-        'quantidade.required'             => 'A quantidade é obrigatória.',
-        'quantidade.integer'              => 'A quantidade deve ser um número inteiro.',
-        'quantidade.min'                  => 'A quantidade não pode ser negativa.',
-        'data_validade.date'              => 'Informe uma data válida.',
-        'data_validade.after'             => 'A data de validade deve ser futura.',
-        'data_validade.before'            => 'A data de validade informada é inválida.',
-        'estoque_minimo.required_without' => 'O estoque mínimo é obrigatório ao cadastrar um produto novo.',
-        'estoque_minimo.integer'          => 'O estoque mínimo deve ser um número inteiro.',
-        'estoque_minimo.min'              => 'O estoque mínimo deve ser pelo menos 1.',
-    ]);
-
-    if ($request->id_produto) {
-        $idProduto = $request->id_produto;
-    } else {
-        // ...
-            $existente = Produto::where('sku', $request->sku)->first();
-
-            if ($existente) {
-                return response()->json([
-                    'message'              => "O SKU \"{$request->sku}\" já está cadastrado para o produto \"{$existente->nome}\". Selecione-o na lista em vez de criar um novo.",
-                    'id_produto_existente' => $existente->id_produto,
-                ], 422);
-            }
-
-            try {
-                $dadosProduto = [
-                    'sku'            => $request->sku,
-                    'nome'           => $request->nome,
-                    'unidade_medida' => $request->unidade_medida ?? 'UN',
-                    'estoque_minimo' => $request->estoque_minimo,
-                    'estoque_atual'  => 0,
-                ];
-
-                if ($request->filled('categoria')) {
-                    $categoria = Categoria::firstOrCreate(
-                        ['nome' => trim($request->categoria)]
-                    );
-                    $dadosProduto['id_categoria'] = $categoria->id_categoria;
-                }
-
-                if ($request->filled('fornecedor')) {
-                    $fornecedor = Fornecedor::firstOrCreate(
-                        ['nome' => trim($request->fornecedor)]
-                    );
-                    $dadosProduto['id_fornecedor'] = $fornecedor->id_fornecedor;
-                }
-
-                $produto = Produto::create($dadosProduto);
-            } catch (\Illuminate\Database\QueryException $e) {
-    $existente = Produto::where('sku', $request->sku)->first();
-
-    if ($existente) {
-        return response()->json([
-            'message'              => "O SKU \"{$request->sku}\" já está cadastrado para o produto \"{$existente->nome}\". Selecione-o na lista em vez de criar um novo.",
-            'id_produto_existente' => $existente->id_produto,
-        ], 422);
-    }
-
-    throw $e;
-}
-            $idProduto = $produto->id_produto;
+    public function store(Request $request, int $idLote)
+    {
+        if ($request->filled('id_produto')) {
+            $request->request->remove('nome');
+            $request->request->remove('sku');
+            $request->request->remove('categoria');
+            $request->request->remove('estoque_minimo');
+            $request->request->remove('percentual_alerta');
         }
 
-        $ehManual = $request->filled('prioridade_abc');
-
-        $item = ItemLote::create([
-            'id_lote'           => $idLote,
-            'id_produto'        => $idProduto,
-            'quantidade'        => $request->quantidade,
-            'unidade_medida'    => $request->unidade_medida ?? 'UN',
-            'data_validade'     => $request->data_validade ?: null,
-            'localizacao'       => $request->localizacao,
-            'prioridade_abc'    => $ehManual ? $request->prioridade_abc : null,
-            'prioridade_manual' => $ehManual,
+        $request->validate([
+            'id_produto'        => 'nullable|integer|exists:produto,id_produto',
+            'nome'              => 'required_without:id_produto|string|min:2|max:255',
+            'sku'               => 'required_without:id_produto|string|max:50',
+            'quantidade'        => 'required|integer|min:1',
+            'categoria'         => 'required_without:id_produto|string',
+            'data_validade'     => 'nullable|date|after:today|before:2100-01-01',
+            'estoque_minimo'    => 'required_without:id_produto|integer|min:1',
+            'percentual_alerta' => 'nullable|integer|min:1|max:100',
+        ], [
+            'nome.required_without'           => 'Informe o produto (id_produto) ou os dados de um produto novo.',
+            'categoria.required_without'      => 'A categoria é obrigatória ao cadastrar um produto novo.',
+            'quantidade.required'             => 'A quantidade é obrigatória.',
+            'quantidade.integer'              => 'A quantidade deve ser um número inteiro.',
+            'quantidade.min'                  => 'A quantidade não pode ser negativa.',
+            'data_validade.date'              => 'Informe uma data válida.',
+            'data_validade.after'             => 'A data de validade deve ser futura.',
+            'data_validade.before'            => 'A data de validade informada é inválida.',
+            'estoque_minimo.required_without' => 'O estoque mínimo é obrigatório ao cadastrar um produto novo.',
+            'estoque_minimo.integer'          => 'O estoque mínimo deve ser um número inteiro.',
+            'estoque_minimo.min'              => 'O estoque mínimo deve ser pelo menos 1.',
+            'percentual_alerta.integer'       => 'A porcentagem de alerta deve ser um número inteiro.',
+            'percentual_alerta.min'           => 'A porcentagem de alerta deve ser pelo menos 1%.',
+            'percentual_alerta.max'           => 'A porcentagem de alerta não pode ser maior que 100%.',
         ]);
 
-        Produto::whereKey($idProduto)->increment('estoque_atual', $request->quantidade);
+        try {
+            $item = DB::transaction(function () use ($request, $idLote) {
+                if ($request->id_produto) {
+                    $idProduto = $request->id_produto;
+                } else {
+                    $existente = Produto::where('sku', $request->sku)->first();
+
+                    if ($existente) {
+                        throw new \RuntimeException(json_encode([
+                            'message'              => "O SKU \"{$request->sku}\" já está cadastrado para o produto \"{$existente->nome}\". Selecione-o na lista em vez de criar um novo.",
+                            'id_produto_existente' => $existente->id_produto,
+                        ]));
+                    }
+
+                    $dadosProduto = [
+                        'sku'               => $request->sku,
+                        'nome'              => $request->nome,
+                        'unidade_medida'    => $request->unidade_medida ?? 'UN',
+                        'estoque_minimo'    => $request->estoque_minimo,
+                        'percentual_alerta' => $request->percentual_alerta ?? 20,
+                        'estoque_atual'     => 0,
+                    ];
+
+                    if ($request->filled('categoria')) {
+                        $categoria = Categoria::firstOrCreate(
+                            ['nome' => trim($request->categoria)]
+                        );
+                        $dadosProduto['id_categoria'] = $categoria->id_categoria;
+                    }
+
+                    if ($request->filled('fornecedor')) {
+                        $fornecedor = Fornecedor::firstOrCreate(
+                            ['nome' => trim($request->fornecedor)]
+                        );
+                        $dadosProduto['id_fornecedor'] = $fornecedor->id_fornecedor;
+                    }
+
+                    try {
+                        $produto = Produto::create($dadosProduto);
+                    } catch (\Illuminate\Database\QueryException $e) {
+                        $existente = Produto::where('sku', $request->sku)->first();
+
+                        if ($existente) {
+                            throw new \RuntimeException(json_encode([
+                                'message'              => "O SKU \"{$request->sku}\" já está cadastrado para o produto \"{$existente->nome}\". Selecione-o na lista em vez de criar um novo.",
+                                'id_produto_existente' => $existente->id_produto,
+                            ]));
+                        }
+
+                        throw $e;
+                    }
+
+                    $idProduto = $produto->id_produto;
+                }
+
+                $ehManual = $request->filled('prioridade_abc');
+
+                $item = ItemLote::create([
+                    'id_lote'           => $idLote,
+                    'id_produto'        => $idProduto,
+                    'quantidade'        => $request->quantidade,
+                    'unidade_medida'    => $request->unidade_medida ?? 'UN',
+                    'data_validade'     => $request->data_validade ?: null,
+                    'localizacao'       => $request->localizacao,
+                    'prioridade_abc'    => $ehManual ? $request->prioridade_abc : null,
+                    'prioridade_manual' => $ehManual,
+                ]);
+
+                Produto::whereKey($idProduto)->increment('estoque_atual', $request->quantidade);
+
+                return $item;
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(json_decode($e->getMessage(), true), 422);
+        }
 
         RecalcularAbcJob::dispatch();
 
@@ -145,19 +154,21 @@ class ItemLoteController extends Controller
             'data_validade.before' => 'A data de validade informada é inválida.',
         ]);
 
-        $qtdAntiga = $item->quantidade;
-        $ehManual  = $request->filled('prioridade_abc');
+        DB::transaction(function () use ($request, $item) {
+            $qtdAntiga = $item->quantidade;
+            $ehManual  = $request->filled('prioridade_abc');
 
-        $dados = $request->only(['quantidade', 'unidade_medida', 'data_validade', 'localizacao']);
-        $dados['prioridade_manual'] = $ehManual;
-        $dados['prioridade_abc']    = $ehManual ? $request->prioridade_abc : null;
+            $dados = $request->only(['quantidade', 'unidade_medida', 'data_validade', 'localizacao']);
+            $dados['prioridade_manual'] = $ehManual;
+            $dados['prioridade_abc']    = $ehManual ? $request->prioridade_abc : null;
 
-        $item->update($dados);
+            $item->update($dados);
 
-        $diferenca = $item->quantidade - $qtdAntiga;
-        if ($diferenca !== 0) {
-            Produto::whereKey($item->id_produto)->increment('estoque_atual', $diferenca);
-        }
+            $diferenca = $item->quantidade - $qtdAntiga;
+            if ($diferenca !== 0) {
+                Produto::whereKey($item->id_produto)->increment('estoque_atual', $diferenca);
+            }
+        });
 
         RecalcularAbcJob::dispatch();
 
@@ -179,10 +190,12 @@ class ItemLoteController extends Controller
             'motivo.max'          => 'O motivo não pode ter mais de 255 caracteres.',
         ]);
 
-        $item->update(['quantidade' => $item->quantidade - $request->quantidade]);
-        Produto::whereKey($item->id_produto)->decrement('estoque_atual', $request->quantidade);
+        DB::transaction(function () use ($request, $item) {
+            $item->update(['quantidade' => $item->quantidade - $request->quantidade]);
+            Produto::whereKey($item->id_produto)->decrement('estoque_atual', $request->quantidade);
 
-        Movimentacao::registrar('SAIDA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
+            Movimentacao::registrar('SAIDA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
+        });
 
         RecalcularAbcJob::dispatch();
 
@@ -202,12 +215,15 @@ class ItemLoteController extends Controller
         ]);
 
         $item = ItemLote::findOrFail($id);
-        $item->quantidade += $request->quantidade;
-        $item->save();
 
-        Produto::whereKey($item->id_produto)->increment('estoque_atual', $request->quantidade);
+        DB::transaction(function () use ($request, $item) {
+            $item->quantidade += $request->quantidade;
+            $item->save();
 
-        Movimentacao::registrar('ENTRADA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
+            Produto::whereKey($item->id_produto)->increment('estoque_atual', $request->quantidade);
+
+            Movimentacao::registrar('ENTRADA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
+        });
 
         RecalcularAbcJob::dispatch();
 
@@ -246,56 +262,58 @@ class ItemLoteController extends Controller
         return response()->json(['message' => 'Ordem atualizada com sucesso.']);
     }
 
-   public function destroy(int $id)
-{
-    $item = ItemLote::findOrFail($id);
-    $idProduto = $item->id_produto;
+    public function destroy(int $id)
+    {
+        DB::transaction(function () use ($id) {
+            $item = ItemLote::findOrFail($id);
+            $idProduto = $item->id_produto;
 
-    Produto::whereKey($idProduto)->decrement('estoque_atual', $item->quantidade);
+            Produto::whereKey($idProduto)->decrement('estoque_atual', $item->quantidade);
 
-    $item->delete();
+            $item->delete();
 
-    // Se o produto ficou sem nenhum lote, remove o cadastro também.
-    if (!ItemLote::where('id_produto', $idProduto)->exists()) {
-        Produto::whereKey($idProduto)->delete();
-    }
-
-    RecalcularAbcJob::dispatch();
-
-    return response()->json(['message' => 'Item excluído com sucesso.']);
-}
-
-  public function destroyMultiplos(Request $request)
-{
-    $request->validate([
-        'ids'   => 'required|array|min:1',
-        'ids.*' => 'integer|exists:item_lote,id_item',
-    ], [
-        'ids.required' => 'Selecione ao menos um item para excluir.',
-        'ids.*.exists' => 'Um dos itens selecionados não existe.',
-    ]);
-
-    $itens = ItemLote::whereIn('id_item', $request->ids)->get();
-    $idsProdutosAfetados = $itens->pluck('id_produto')->unique();
-
-    DB::transaction(function () use ($itens, $idsProdutosAfetados) {
-        foreach ($itens as $item) {
-            Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
-        }
-        ItemLote::whereIn('id_item', $itens->pluck('id_item'))->delete();
-
-        // Remove produtos que ficaram sem nenhum lote.
-        foreach ($idsProdutosAfetados as $idProduto) {
+            // Se o produto ficou sem nenhum lote, remove o cadastro também.
             if (!ItemLote::where('id_produto', $idProduto)->exists()) {
                 Produto::whereKey($idProduto)->delete();
             }
-        }
-    });
+        });
 
-    RecalcularAbcJob::dispatch();
+        RecalcularAbcJob::dispatch();
 
-    return response()->json(['message' => count($itens) . ' item(ns) excluído(s) com sucesso.']);
-}
+        return response()->json(['message' => 'Item excluído com sucesso.']);
+    }
+
+    public function destroyMultiplos(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:item_lote,id_item',
+        ], [
+            'ids.required' => 'Selecione ao menos um item para excluir.',
+            'ids.*.exists' => 'Um dos itens selecionados não existe.',
+        ]);
+
+        $itens = ItemLote::whereIn('id_item', $request->ids)->get();
+        $idsProdutosAfetados = $itens->pluck('id_produto')->unique();
+
+        DB::transaction(function () use ($itens, $idsProdutosAfetados) {
+            foreach ($itens as $item) {
+                Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+            }
+            ItemLote::whereIn('id_item', $itens->pluck('id_item'))->delete();
+
+            // Remove produtos que ficaram sem nenhum lote.
+            foreach ($idsProdutosAfetados as $idProduto) {
+                if (!ItemLote::where('id_produto', $idProduto)->exists()) {
+                    Produto::whereKey($idProduto)->delete();
+                }
+            }
+        });
+
+        RecalcularAbcJob::dispatch();
+
+        return response()->json(['message' => count($itens) . ' item(ns) excluído(s) com sucesso.']);
+    }
 
     public function historico(int $id)
     {

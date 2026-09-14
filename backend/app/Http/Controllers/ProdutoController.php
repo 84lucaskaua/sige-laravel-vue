@@ -56,6 +56,10 @@ class ProdutoController extends Controller
                 })
                 ->values();
 
+            // Status calculado com base em estoque_minimo + percentual_alerta do produto.
+            // O front usa esse campo pronto ao invés de recalcular a mesma regra em 3 lugares.
+            $produto->status_estoque = $produto->statusEstoque();
+
             return $produto;
         });
 
