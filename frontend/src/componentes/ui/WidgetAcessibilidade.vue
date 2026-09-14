@@ -1,18 +1,15 @@
 <template>
-  <div class="fixed bottom-24 right-5 z-[9999]">
+  <div v-if="aberto" class="fixed bottom-24 right-5 z-[9999]">
 
     <!-- Painel expandido -->
-    <div
-      v-if="painelAberto"
-      class="mb-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-3 flex flex-col gap-2 w-48"
-    >
+    <div class="mb-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-3 flex flex-col gap-2 w-48">
       <div class="flex items-center justify-between px-1">
         <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Tamanho da fonte</p>
         <button
           class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
           title="Fechar"
           aria-label="Fechar opções de fonte"
-          @click="painelAberto = false"
+          @click="emit('update:aberto', false)"
         >
           <X :size="16" />
         </button>
@@ -51,25 +48,19 @@
       </p>
     </div>
 
-    <!-- Botão flutuante principal -->
-    <button
-      class="w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition flex items-center justify-center"
-      title="Opções de acessibilidade"
-      aria-label="Abrir opções de acessibilidade"
-      @click="painelAberto = !painelAberto"
-    >
-      <ALargeSmall :size="22" />
-    </button>
-
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { ALargeSmall, X } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { X } from 'lucide-vue-next'
 import { useAcessibilidade } from '@/composables/useAcessibilidade'
 
-const painelAberto = ref(false)
+defineProps({
+  aberto: { type: Boolean, default: false }
+})
+const emit = defineEmits(['update:aberto'])
+
 const { nivelAtual, aumentarFonte, diminuirFonte, restaurarPadrao } = useAcessibilidade()
 
 const rotuloNivel = computed(() => {

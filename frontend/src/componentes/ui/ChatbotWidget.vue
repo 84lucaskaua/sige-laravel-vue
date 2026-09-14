@@ -1,18 +1,9 @@
 <!-- eslint-disable vue/no-v-html -->
 <template>
-  <!-- Botão flutuante -->
-  <button
-    v-if="!aberto"
-    class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg flex items-center justify-center transition hover:scale-105"
-    @click="aberto = true"
-  >
-    <MessageCircle :size="24" class="text-white" />
-  </button>
-
   <!-- Janela do chat -->
   <div
     v-if="aberto"
-    class="fixed bottom-6 right-6 z-50 w-96 h-[32rem] rounded-xl shadow-2xl flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 animate-chat-in"
+    class="fixed bottom-24 right-5 z-50 w-96 h-[32rem] rounded-xl shadow-2xl flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 animate-chat-in"
   >
     <!-- Cabeçalho -->
     <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-blue-600 rounded-t-xl">
@@ -33,7 +24,7 @@
         >
           <Trash2 :size="16" />
         </button>
-        <button class="text-white/80 hover:text-white transition p-1" @click="aberto = false">
+        <button class="text-white/80 hover:text-white transition p-1" @click="emit('update:aberto', false)">
           <X :size="20" />
         </button>
       </div>
@@ -121,7 +112,7 @@
 
 <script setup>
 import { ref, reactive, nextTick, onMounted, watch } from 'vue'
-import { MessageCircle, Bot, X, Send, Trash2 } from 'lucide-vue-next'
+import { Bot, X, Send, Trash2 } from 'lucide-vue-next'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import api from '@/servicos/api'
@@ -129,7 +120,11 @@ import api from '@/servicos/api'
 const CHAVE_HISTORICO = 'sige_chat_historico'
 const LIMITE_HISTORICO = 50
 
-const aberto       = ref(false)
+const props = defineProps({
+  aberto: { type: Boolean, default: false }
+})
+const emit = defineEmits(['update:aberto'])
+
 const pergunta      = ref('')
 const mensagens     = ref([])
 const carregando    = ref(false)
@@ -188,7 +183,7 @@ onMounted(() => {
   rolarParaFinal()
 })
 
-watch(aberto, (val) => {
+watch(() => props.aberto, (val) => {
   if (val) rolarParaFinal()
 })
 
@@ -206,7 +201,7 @@ async function enviarMensagem(textoForcado) {
   mensagens.value.push(msgBot)
   rolarParaFinal()
 
-    try {
+  try {
     const baseURL = api.defaults.baseURL || ''
     const token = localStorage.getItem('token')
     const resposta = await fetch(`${baseURL}/chatbot/stream`, {

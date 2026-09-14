@@ -397,11 +397,13 @@
 />
 
     <ChatbotWidget />
+    <MenuSuporte />
   </div>
 </template>
 
 <script setup>
 import ChatbotWidget from '@/componentes/ui/ChatbotWidget.vue';
+import MenuSuporte from '@/componentes/ui/MenuSuporte.vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { RouterLink, RouterView, useRouter } from 'vue-router';
 import {
