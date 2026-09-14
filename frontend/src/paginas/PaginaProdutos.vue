@@ -1,4 +1,4 @@
-  <template>
+<template>
     <div class="p-6 bg-white dark:bg-black min-h-screen">
 
       <!-- Cabeçalho -->
@@ -467,8 +467,9 @@
     try {
       const { data } = await api.get('/produtos')
       produtos.value = data
-    } catch {
-      alert('Não foi possível carregar os produtos.')
+    } catch (e) {
+      console.error(e)
+      erro('Não foi possível carregar os produtos.')
     } finally {
       carregando.value = false
     }
