@@ -2,6 +2,7 @@ import { ref, computed, onBeforeUnmount } from 'vue'
 
 export function useModalArrastavel() {
   const arrastando = ref(false)
+  const arrastou = ref(false) // true se houve movimento real durante o clique
   const posicao = ref({ x: 0, y: 0 })
   let inicioMouse = { x: 0, y: 0 }
   let inicioPosicao = { x: 0, y: 0 }
@@ -9,6 +10,7 @@ export function useModalArrastavel() {
   function aoMoverGlobal(evento) {
     if (!arrastando.value) return
     evento.preventDefault()
+    arrastou.value = true
     posicao.value = {
       x: inicioPosicao.x + (evento.pageX - inicioMouse.x),
       y: inicioPosicao.y + (evento.pageY - inicioMouse.y),
@@ -20,6 +22,12 @@ export function useModalArrastavel() {
     arrastando.value = false
     window.removeEventListener('mousemove', aoMoverGlobal)
     window.removeEventListener('mouseup', aoSoltarGlobal)
+
+    // adia o reset pra depois do evento de click nascer,
+    // já que mouseup dispara antes do click do navegador
+    setTimeout(() => {
+      arrastou.value = false
+    }, 0)
   }
 
   function aoIniciarArraste(evento) {
@@ -27,6 +35,7 @@ export function useModalArrastavel() {
     if (evento.target.closest('button, a, input, select, textarea')) return
 
     arrastando.value = true
+    arrastou.value   = false
     inicioMouse    = { x: evento.pageX, y: evento.pageY }
     inicioPosicao  = { ...posicao.value }
 
@@ -48,5 +57,5 @@ export function useModalArrastavel() {
     window.removeEventListener('mouseup', aoSoltarGlobal)
   })
 
-  return { aoIniciarArraste, estiloArraste, resetarPosicao }
+  return { aoIniciarArraste, estiloArraste, resetarPosicao, arrastou }
 }
