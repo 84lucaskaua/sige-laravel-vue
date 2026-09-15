@@ -10,12 +10,12 @@ use Illuminate\Support\Facades\DB;
 
 class LoteController extends Controller
 {
-   public function index()
-{
-    // Precisa carregar 'itens.produto.fornecedor' — sem isso, item.produto.fornecedor vem null no front
-    $lotes = Lote::with('itens.produto.fornecedor')->orderBy('id_lote', 'asc')->get();
-    return response()->json($lotes);
-}
+    public function index()
+    {
+        // Precisa carregar 'itens.produto.fornecedor' — sem isso, item.produto.fornecedor vem null no front
+        $lotes = Lote::with('itens.produto.fornecedor')->orderBy('id_lote', 'asc')->get();
+        return response()->json($lotes);
+    }
 
     public function store(Request $request)
     {
@@ -57,78 +57,78 @@ class LoteController extends Controller
         return response()->json($lote);
     }
 
-   public function destroy(int $id)
-{
-    $lote = Lote::with('itens')->findOrFail($id);
-    $idsProdutosAfetados = $lote->itens->pluck('id_produto')->unique();
+    public function destroy(int $id)
+    {
+        $lote = Lote::with('itens')->findOrFail($id);
+        $idsProdutosAfetados = $lote->itens->pluck('id_produto')->unique();
 
-    DB::transaction(function () use ($lote, $id, $idsProdutosAfetados) {
-        // Antes do cascade apagar os item_lote, desconta cada quantidade
-        // do estoque_atual do produto correspondente — senão o produto
-        // fica com estoque "fantasma" (valor antigo nunca decrementado).
-        foreach ($lote->itens as $item) {
-            Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
-        }
-
-        DB::table('movimentacao')->where('id_lote', $id)->delete();
-
-        AuditHelper::log('Exclusao', 'Lote "' . $lote->numero_lote . '" excluido.');
-
-        $lote->delete();
-
-        // O cascade já removeu os item_lote junto com o lote. Agora
-        // verifica quais produtos ficaram sem nenhum lote e os remove.
-        foreach ($idsProdutosAfetados as $idProduto) {
-            if (!\App\Models\ItemLote::where('id_produto', $idProduto)->exists()) {
-                Produto::whereKey($idProduto)->delete();
-            }
-        }
-    });
-
-    RecalcularAbcJob::dispatch();
-
-    return response()->json(['message' => 'Lote excluido com sucesso.']);
-}
-
-    public function destroyMultiplos(Request $request)
-{
-    $request->validate([
-        'ids'   => 'required|array|min:1',
-        'ids.*' => 'integer|exists:lote,id_lote',
-    ], [
-        'ids.required' => 'Selecione ao menos um lote para excluir.',
-        'ids.*.exists' => 'Um dos lotes selecionados não existe.',
-    ]);
-
-    $lotes = Lote::with('itens')->whereIn('id_lote', $request->ids)->get();
-    $idsProdutosAfetados = $lotes->flatMap->itens->pluck('id_produto')->unique();
-
-    DB::transaction(function () use ($request, $lotes, $idsProdutosAfetados) {
-        foreach ($lotes as $lote) {
+        DB::transaction(function () use ($lote, $id, $idsProdutosAfetados) {
+            // Antes do cascade apagar os item_lote, desconta cada quantidade
+            // do estoque_atual do produto correspondente — senão o produto
+            // fica com estoque "fantasma" (valor antigo nunca decrementado).
             foreach ($lote->itens as $item) {
                 Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
             }
-        }
 
-        DB::table('movimentacao')->whereIn('id_lote', $request->ids)->delete();
+            DB::table('movimentacao')->where('id_lote', $id)->delete();
 
-        foreach ($lotes as $lote) {
-            AuditHelper::log('Exclusao', 'Lote "' . $lote->numero_lote . '" excluído (exclusão em massa).');
-        }
+            AuditHelper::log('Exclusao', 'Lote "' . $lote->numero_lote . '" excluido.');
 
-        Lote::whereIn('id_lote', $request->ids)->delete();
+            $lote->delete();
 
-        // O cascade já removeu os item_lote junto com os lotes. Agora
-        // verifica quais produtos ficaram sem nenhum lote e os remove.
-        foreach ($idsProdutosAfetados as $idProduto) {
-            if (!\App\Models\ItemLote::where('id_produto', $idProduto)->exists()) {
-                Produto::whereKey($idProduto)->delete();
+            // O cascade já removeu os item_lote junto com o lote. Agora
+            // verifica quais produtos ficaram sem nenhum lote e os remove.
+            foreach ($idsProdutosAfetados as $idProduto) {
+                if (!\App\Models\ItemLote::where('id_produto', $idProduto)->exists()) {
+                    Produto::whereKey($idProduto)->delete();
+                }
             }
-        }
-    });
+        });
 
-    RecalcularAbcJob::dispatch();
+        RecalcularAbcJob::dispatch();
 
-    return response()->json(['message' => count($lotes) . ' lote(s) excluído(s) com sucesso.']);
-}
+        return response()->json(['message' => 'Lote excluido com sucesso.']);
+    }
+
+    public function destroyMultiplos(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:lote,id_lote',
+        ], [
+            'ids.required' => 'Selecione ao menos um lote para excluir.',
+            'ids.*.exists' => 'Um dos lotes selecionados não existe.',
+        ]);
+
+        $lotes = Lote::with('itens')->whereIn('id_lote', $request->ids)->get();
+        $idsProdutosAfetados = $lotes->flatMap->itens->pluck('id_produto')->unique();
+
+        DB::transaction(function () use ($request, $lotes, $idsProdutosAfetados) {
+            foreach ($lotes as $lote) {
+                foreach ($lote->itens as $item) {
+                    Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+                }
+            }
+
+            DB::table('movimentacao')->whereIn('id_lote', $request->ids)->delete();
+
+            foreach ($lotes as $lote) {
+                AuditHelper::log('Exclusao', 'Lote "' . $lote->numero_lote . '" excluído (exclusão em massa).');
+            }
+
+            Lote::whereIn('id_lote', $request->ids)->delete();
+
+            // O cascade já removeu os item_lote junto com os lotes. Agora
+            // verifica quais produtos ficaram sem nenhum lote e os remove.
+            foreach ($idsProdutosAfetados as $idProduto) {
+                if (!\App\Models\ItemLote::where('id_produto', $idProduto)->exists()) {
+                    Produto::whereKey($idProduto)->delete();
+                }
+            }
+        });
+
+        RecalcularAbcJob::dispatch();
+
+        return response()->json(['message' => count($lotes) . ' lote(s) excluído(s) com sucesso.']);
+    }
 }

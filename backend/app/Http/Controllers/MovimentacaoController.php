@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Movimentacao;
+use App\Helpers\AuditHelper;
 use Carbon\Carbon;
 
 class MovimentacaoController extends Controller
@@ -28,10 +29,18 @@ class MovimentacaoController extends Controller
 
         return response()->json($movimentacoes);
     }
+
     public function destroy(int $id)
-{
-    $mov = Movimentacao::findOrFail($id);
-    $mov->delete();
-    return response()->json(['message' => 'Movimentação excluída.']);
-}
+    {
+        $mov = Movimentacao::with(['item.produto'])->findOrFail($id);
+
+        AuditHelper::log(
+            'Exclusao',
+            'Movimentação de ' . ($mov->tipo === 'ENTRADA' ? 'entrada' : 'saída') .
+            ' (' . $mov->quantidade . ' un.) do produto "' . ($mov->item?->produto?->nome ?? '—') . '" excluída.'
+        );
+
+        $mov->delete();
+        return response()->json(['message' => 'Movimentação excluída.']);
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Produto;
 use App\Models\ItemLote;
+use App\Helpers\AuditHelper;
 use Illuminate\Http\Request;
 
 class ProdutoController extends Controller
@@ -71,8 +72,6 @@ class ProdutoController extends Controller
     // pra ele, com sua própria quantidade/validade/localização).
     public function buscarPorSku(Request $request)
     {
-       
-
         $request->validate([
             'sku' => 'required|string|max:50',
         ]);
@@ -85,6 +84,9 @@ class ProdutoController extends Controller
     public function destroy(int $id)
     {
         $produto = Produto::findOrFail($id);
+
+        AuditHelper::log('Exclusao', 'Produto "' . $produto->nome . '" (SKU: ' . $produto->sku . ') excluído.');
+
         $produto->delete();
 
         return response()->json(['message' => 'Produto excluído com sucesso.']);
@@ -101,6 +103,10 @@ class ProdutoController extends Controller
         ]);
 
         $produtos = Produto::whereIn('id_produto', $request->ids)->get();
+
+        foreach ($produtos as $produto) {
+            AuditHelper::log('Exclusao', 'Produto "' . $produto->nome . '" (SKU: ' . $produto->sku . ') excluído (exclusão em massa).');
+        }
 
         Produto::whereIn('id_produto', $request->ids)->delete();
 
