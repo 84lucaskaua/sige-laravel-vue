@@ -19,7 +19,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-vue-next": "^1.0.0",
-    "marked": "^18.0.12",
+    "marked": "^18.0.13",
     "pinia": "^2.1.7",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0",
