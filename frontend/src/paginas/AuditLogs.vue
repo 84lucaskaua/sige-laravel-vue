@@ -80,6 +80,9 @@
         <option value="Exclusão">Exclusão</option>
         <option value="Ativação">Ativação</option>
         <option value="Inativação">Inativação</option>
+        <option value="Entrada de Estoque">Entrada de Estoque</option>
+        <option value="Saída de Estoque">Saída de Estoque</option>
+        <option value="Transferência">Transferência</option>
       </select>
 
       <!-- Botão de exportação com opções -->
@@ -313,6 +316,9 @@ function actionClass(action) {
     'Exclusão': 'bg-red-900 text-red-300',
     'Ativação':   'bg-teal-900 text-teal-300',
     'Inativação': 'bg-zinc-700 text-zinc-300',
+    'Entrada de Estoque': 'bg-emerald-900 text-emerald-300',
+    'Saída de Estoque':   'bg-orange-900 text-orange-300',
+    'Transferência':      'bg-indigo-900 text-indigo-300',
   }
   return map[action] ?? 'bg-gray-700 text-gray-300'
 }
