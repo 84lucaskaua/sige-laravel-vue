@@ -37,26 +37,42 @@ class LoteController extends Controller
     }
 
     public function update(Request $request, int $id)
-    {
-        $lote = Lote::findOrFail($id);
+{
+    $lote = Lote::findOrFail($id);
 
-        $request->validate([
-            'numero'       => 'required|string|unique:lote,numero_lote,' . $id . ',id_lote',
-            'data_entrada' => 'required|date',
-            'descricao'    => 'nullable|string',
-        ]);
+    $request->validate([
+        'numero'       => 'required|string|unique:lote,numero_lote,' . $id . ',id_lote',
+        'data_entrada' => 'required|date',
+        'descricao'    => 'nullable|string',
+    ]);
 
-        $lote->update([
-            'numero_lote'  => $request->numero,
-            'data_entrada' => $request->data_entrada,
-            'descricao'    => $request->descricao,
-        ]);
+    $numeroAntigo = $lote->numero_lote;
 
-        AuditHelper::log('Edicao', 'Lote "' . $lote->numero_lote . '" atualizado.');
-
-        return response()->json($lote);
+    $mudancas = [];
+    if ($lote->numero_lote !== $request->numero) {
+        $mudancas[] = "número: \"{$lote->numero_lote}\" → \"{$request->numero}\"";
+    }
+    if ((string) $lote->data_entrada !== (string) $request->data_entrada) {
+        $mudancas[] = "data de entrada: {$lote->data_entrada} → {$request->data_entrada}";
+    }
+    if ($lote->descricao !== $request->descricao) {
+        $mudancas[] = "descrição alterada";
     }
 
+    $lote->update([
+        'numero_lote'  => $request->numero,
+        'data_entrada' => $request->data_entrada,
+        'descricao'    => $request->descricao,
+    ]);
+
+    $descricaoLog = count($mudancas) > 0
+        ? 'Lote "' . $numeroAntigo . '" atualizado (' . implode('; ', $mudancas) . ').'
+        : 'Lote "' . $numeroAntigo . '" atualizado (sem alterações detectadas).';
+
+    AuditHelper::log('Edicao', $descricaoLog);
+
+    return response()->json($lote);
+}
     public function destroy(int $id)
     {
         $lote = Lote::with('itens')->findOrFail($id);

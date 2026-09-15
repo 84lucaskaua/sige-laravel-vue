@@ -97,6 +97,9 @@
         <div class="flex justify-between items-start mb-6">
           <div>
             <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ loteAtivo.numero_lote }}</h2>
+            <p v-if="loteAtivo.descricao" class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              {{ loteAtivo.descricao }}
+            </p>
             <div class="flex items-center gap-4 mt-1 text-slate-500 dark:text-slate-400 text-sm">
               <span class="flex items-center gap-1">
                 <Calendar :size="14" />
