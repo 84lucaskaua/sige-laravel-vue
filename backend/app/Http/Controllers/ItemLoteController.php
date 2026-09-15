@@ -142,6 +142,10 @@ class ItemLoteController extends Controller
                 return $item;
             });
         } catch (\RuntimeException $e) {
+             \Illuminate\Support\Facades\Log::error('ERRO AO ADICIONAR ITEM: ' . $e->getMessage(), [
+                'classe' => get_class($e),
+                'arquivo' => $e->getFile() . ':' . $e->getLine(),
+            ]);
             return response()->json(json_decode($e->getMessage(), true), 422);
         }
 

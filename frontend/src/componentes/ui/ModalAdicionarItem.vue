@@ -254,6 +254,7 @@ async function salvar() {
   }
 
   salvando.value = true
+  const dados = { ...form.value }
   try {
     const dados = { ...form.value }
 
@@ -271,9 +272,13 @@ async function salvar() {
       delete dados.categoria_outros
     }
 
-    await api.post(`/lotes/${props.lote.id_lote}/itens`, dados)
+        await api.post(`/lotes/${props.lote.id_lote}/itens`, dados)
     emit('salvo')
   } catch (e) {
+    console.log('STATUS:', e.response?.status)
+    console.log('DADOS DO ERRO:', JSON.stringify(e.response?.data, null, 2))
+    console.log('PAYLOAD ENVIADO:', JSON.stringify(dados, null, 2))
+
     const erros = e.response?.data?.errors
     erro.value = erros
       ? Object.values(erros).flat().join('. ')
