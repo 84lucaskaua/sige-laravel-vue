@@ -7,6 +7,7 @@ use App\Models\Produto;
 use App\Models\Categoria;
 use App\Models\Fornecedor;
 use App\Models\Movimentacao;
+use App\Helpers\AuditHelper;
 use App\Jobs\RecalcularAbcJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -51,8 +52,11 @@ class ItemLoteController extends Controller
 
         try {
             $item = DB::transaction(function () use ($request, $idLote) {
+                $produtoNovo = false;
+
                 if ($request->id_produto) {
                     $idProduto = $request->id_produto;
+                    $nomeProduto = Produto::whereKey($idProduto)->value('nome');
                 } else {
                     $existente = Produto::where('sku', $request->sku)->first();
 
@@ -101,7 +105,9 @@ class ItemLoteController extends Controller
                         throw $e;
                     }
 
-                    $idProduto = $produto->id_produto;
+                    $idProduto   = $produto->id_produto;
+                    $nomeProduto = $produto->nome;
+                    $produtoNovo = true;
                 }
 
                 $ehManual = $request->filled('prioridade_abc');
@@ -118,6 +124,20 @@ class ItemLoteController extends Controller
                 ]);
 
                 Produto::whereKey($idProduto)->increment('estoque_atual', $request->quantidade);
+
+                $numeroLote = \App\Models\Lote::whereKey($idLote)->value('numero_lote') ?? $idLote;
+
+                if ($produtoNovo) {
+                    AuditHelper::log(
+                        'Criacao',
+                        "Produto \"{$nomeProduto}\" cadastrado e adicionado ao lote {$numeroLote} (qtd: {$request->quantidade})."
+                    );
+                } else {
+                    AuditHelper::log(
+                        'Criacao',
+                        "Produto \"{$nomeProduto}\" adicionado ao lote {$numeroLote} (qtd: {$request->quantidade})."
+                    );
+                }
 
                 return $item;
             });
@@ -141,7 +161,7 @@ class ItemLoteController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $item = ItemLote::findOrFail($id);
+        $item = ItemLote::with('produto')->findOrFail($id);
 
         $request->validate([
             'quantidade'     => 'required|integer|min:0',
@@ -168,6 +188,11 @@ class ItemLoteController extends Controller
             if ($diferenca !== 0) {
                 Produto::whereKey($item->id_produto)->increment('estoque_atual', $diferenca);
             }
+
+            AuditHelper::log(
+                'Edicao',
+                "Item do produto \"{$item->produto?->nome}\" editado (qtd: {$qtdAntiga} → {$item->quantidade})."
+            );
         });
 
         RecalcularAbcJob::dispatch();
@@ -177,7 +202,7 @@ class ItemLoteController extends Controller
 
     public function baixa(Request $request, int $id)
     {
-        $item = ItemLote::findOrFail($id);
+        $item = ItemLote::with('produto')->findOrFail($id);
 
         $request->validate([
             'quantidade' => 'required|integer|min:1|max:' . $item->quantidade,
@@ -195,6 +220,12 @@ class ItemLoteController extends Controller
             Produto::whereKey($item->id_produto)->decrement('estoque_atual', $request->quantidade);
 
             Movimentacao::registrar('SAIDA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
+
+            $descricao = "Baixa de {$request->quantidade} unidade(s) do produto \"{$item->produto?->nome}\".";
+            if ($request->filled('motivo')) {
+                $descricao .= " Motivo: {$request->motivo}";
+            }
+            AuditHelper::log('Saída de Estoque', $descricao);
         });
 
         RecalcularAbcJob::dispatch();
@@ -214,7 +245,7 @@ class ItemLoteController extends Controller
             'motivo.max'          => 'O motivo não pode ter mais de 255 caracteres.',
         ]);
 
-        $item = ItemLote::findOrFail($id);
+        $item = ItemLote::with('produto')->findOrFail($id);
 
         DB::transaction(function () use ($request, $item) {
             $item->quantidade += $request->quantidade;
@@ -223,6 +254,12 @@ class ItemLoteController extends Controller
             Produto::whereKey($item->id_produto)->increment('estoque_atual', $request->quantidade);
 
             Movimentacao::registrar('ENTRADA', $request->quantidade, $item->id_lote, $item->id_item, $request->motivo);
+
+            $descricao = "Entrada de {$request->quantidade} unidade(s) do produto \"{$item->produto?->nome}\".";
+            if ($request->filled('motivo')) {
+                $descricao .= " Motivo: {$request->motivo}";
+            }
+            AuditHelper::log('Entrada de Estoque', $descricao);
         });
 
         RecalcularAbcJob::dispatch();
@@ -265,10 +302,17 @@ class ItemLoteController extends Controller
     public function destroy(int $id)
     {
         DB::transaction(function () use ($id) {
-            $item = ItemLote::findOrFail($id);
+            $item = ItemLote::with('produto')->findOrFail($id);
             $idProduto = $item->id_produto;
+            $nomeProduto = $item->produto?->nome;
+            $numeroLote = \App\Models\Lote::whereKey($item->id_lote)->value('numero_lote') ?? $item->id_lote;
 
             Produto::whereKey($idProduto)->decrement('estoque_atual', $item->quantidade);
+
+            AuditHelper::log(
+                'Exclusao',
+                "Item do produto \"{$nomeProduto}\" (qtd: {$item->quantidade}) excluído do lote {$numeroLote}."
+            );
 
             $item->delete();
 
@@ -293,12 +337,18 @@ class ItemLoteController extends Controller
             'ids.*.exists' => 'Um dos itens selecionados não existe.',
         ]);
 
-        $itens = ItemLote::whereIn('id_item', $request->ids)->get();
+        $itens = ItemLote::with('produto')->whereIn('id_item', $request->ids)->get();
         $idsProdutosAfetados = $itens->pluck('id_produto')->unique();
 
         DB::transaction(function () use ($itens, $idsProdutosAfetados) {
             foreach ($itens as $item) {
                 Produto::whereKey($item->id_produto)->decrement('estoque_atual', $item->quantidade);
+
+                $numeroLote = \App\Models\Lote::whereKey($item->id_lote)->value('numero_lote') ?? $item->id_lote;
+                AuditHelper::log(
+                    'Exclusao',
+                    "Item do produto \"{$item->produto?->nome}\" (qtd: {$item->quantidade}) excluído do lote {$numeroLote} (exclusão em massa)."
+                );
             }
             ItemLote::whereIn('id_item', $itens->pluck('id_item'))->delete();
 
@@ -402,6 +452,8 @@ class ItemLoteController extends Controller
 
     private function executarTransferencia(ItemLote $itemOrigem, int $idLoteDestino, int $qtd): array
     {
+        $nomeProduto = $itemOrigem->produto?->nome ?? $itemOrigem->id_produto;
+
         $itemOrigem->decrement('quantidade', $qtd);
 
         $itemDestino = ItemLote::where('id_lote', $idLoteDestino)
@@ -433,6 +485,11 @@ class ItemLoteController extends Controller
             "Transferido para lote {$numeroLoteDestino}");
         Movimentacao::registrar('TRANSFERENCIA', $qtd, $itemDestino->id_lote, $itemDestino->id_item,
             "Recebido do lote {$numeroLoteOrigem}");
+
+        AuditHelper::log(
+            'Transferência',
+            "Transferido {$qtd} unidade(s) do produto \"{$nomeProduto}\" do lote {$numeroLoteOrigem} para o lote {$numeroLoteDestino}."
+        );
 
         RecalcularAbcJob::dispatch();
 
