@@ -70,9 +70,10 @@
       <!-- Abas -->
       <div class="flex items-center gap-1 px-4 pt-4 border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
         <button
-          v-for="lote in lotes"
-          :key="lote.id_lote"
-          :class="tabAtiva === lote.id_lote
+  v-for="lote in lotes"
+  :key="lote.id_lote"
+  :data-id-lote="lote.id_lote"
+  :class="tabAtiva === lote.id_lote
             ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border-b-2 border-blue-500'
             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'"
           class="px-4 py-2 rounded-t-lg text-sm font-medium transition whitespace-nowrap flex items-center gap-1.5"
@@ -209,15 +210,15 @@
               </tr>
             </thead>
             <draggable
-              :list="itensPaginados"
-              :disabled="modoSelecaoItens"
-              tag="tbody"
-              item-key="id_item"
-              handle=".drag-handle"
-              animation="200"
-              class="divide-y divide-slate-200 dark:divide-slate-800"
-              @start="aoIniciarArraste"
-              @end="salvarOrdemItens"
+  :list="itensPaginados"
+  :disabled="modoSelecaoItens"
+  tag="tbody"
+  item-key="id_item"
+  handle=".drag-handle"
+  animation="200"
+  class="divide-y divide-slate-200 dark:divide-slate-800"
+  @start="aoIniciarArraste"
+  @end="aoTerminarArraste"
             >
               <template #item="{ element: item }">
                 <tr
@@ -791,6 +792,34 @@ function fecharModal() {
 async function aoSalvar() {
   fecharModal()
   await carregarLotes()
+}
+
+async function aoTerminarArraste(evt) {
+  const idLoteDestino = detectarTabAlvo(evt)
+
+  if (idLoteDestino && idLoteDestino !== tabAtiva.value && itemArrastado.value) {
+    itemParaTransferir.value = itemArrastado.value
+    loteDestinoPreSelecionado.value = idLoteDestino
+    modalTransferirAberto.value = true
+    itemArrastado.value = null
+    await carregarLotes() // desfaz a reordenação visual local, já que o item saiu do lote
+    return
+  }
+
+  itemArrastado.value = null
+  await salvarOrdemItens()
+}
+
+function detectarTabAlvo(evt) {
+  const originalEvent = evt.originalEvent
+  if (!originalEvent) return null
+
+  const { clientX, clientY } = originalEvent
+  if (clientX === undefined || clientY === undefined) return null
+
+  const elemento = document.elementFromPoint(clientX, clientY)
+  const tab = elemento?.closest('[data-id-lote]')
+  return tab ? Number(tab.dataset.idLote) : null
 }
 
 async function salvarOrdemItens() {
