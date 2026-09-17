@@ -34,24 +34,24 @@ class ImportacaoController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Planilha');
 
-        $headers = ['CÓDIGO', 'DESCRIÇÃO', 'UNIDADE', 'SALDO', 'VALIDADE'];
+        $headers = ['CÓDIGO', 'DESCRIÇÃO', 'UNIDADE', 'SALDO', 'ESTOQUE MÍNIMO', 'VALIDADE'];
         $sheet->fromArray($headers, null, 'A1');
-        $sheet->getStyle('A1:E1')->getFont()->setBold(true);
-        $sheet->getStyle('A1:E1')->getFill()
+        $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:F1')->getFill()
             ->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setRGB('D9E2F3');
 
         $sheet->fromArray(
-            ['ES0610000000001', 'ABAIXADOR DE MADEIRA PARA LÍNGUA', 'PCT', 6, '31/12/2024'],
+            ['ES0610000000001', 'ABAIXADOR DE MADEIRA PARA LÍNGUA', 'PCT', 6, 2, '31/12/2024'],
             null,
             'A2'
         );
-        $sheet->getStyle('A2:E2')->getFill()
+        $sheet->getStyle('A2:F2')->getFill()
             ->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setRGB('FFF2CC');
 
-        $sheet->fromArray(['', 'ACETONA 500ML', 'UN', 2, '06/2026'], null, 'A3');
-        $sheet->getStyle('A3:E3')->getFill()
+        $sheet->fromArray(['', 'ACETONA 500ML', 'UN', 2, 1, '06/2026'], null, 'A3');
+        $sheet->getStyle('A3:F3')->getFill()
             ->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setRGB('FFF2CC');
 
@@ -62,7 +62,7 @@ class ImportacaoController extends Controller
             $sheet->setCellValueExplicit("D{$row}", '', DataType::TYPE_STRING);
         }
 
-        foreach (['A' => 22, 'B' => 45, 'C' => 12, 'D' => 10, 'E' => 14] as $col => $width) {
+        foreach (['A' => 22, 'B' => 45, 'C' => 12, 'D' => 10, 'E' => 16, 'F' => 14] as $col => $width) {
             $sheet->getColumnDimension($col)->setWidth($width);
         }
         $sheet->freezePane('A2');
@@ -78,6 +78,7 @@ class ImportacaoController extends Controller
             'DESCRIÇÃO: obrigatório. Nome do produto.',
             'UNIDADE: opcional. Se vazio, assume "UN".',
             'SALDO: obrigatório. Quantidade em estoque. Linhas sem saldo são ignoradas.',
+            'ESTOQUE MÍNIMO: opcional. Quantidade mínima antes do produto ser considerado crítico. Se vazio, assume 0.',
             'VALIDADE: opcional. Aceita datas como 31/12/2025, 2025-12-31, ou "12/2025" (assume dia 1º do mês).',
             '',
             'Linhas amarelas: exemplos de preenchimento correto — pode apagar antes de importar.',
@@ -89,6 +90,7 @@ class ImportacaoController extends Controller
             'Evite: linhas totalmente em branco no meio dos dados e alterar os nomes das colunas no cabeçalho.',
             '',
             'Se o CÓDIGO já existir no sistema, o estoque desse produto é incrementado (somado) em vez de duplicado.',
+            'O ESTOQUE MÍNIMO só é aplicado na criação de produtos novos — se o produto já existir, o mínimo atual dele não é alterado.',
         ];
         foreach ($texto as $i => $linha) {
             $instrucoes->setCellValue('A' . ($i + 2), $linha);
@@ -136,11 +138,12 @@ class ImportacaoController extends Controller
             $header = array_map(fn($v) => mb_strtoupper(trim((string)$v)), $rows[$headerIndex]);
             $colMap = [];
             foreach ($header as $idx => $col) {
-                if (str_contains($col, 'CODIGO') || str_contains($col, 'CÓDIGO')) $colMap['codigo']    = $idx;
-                if (str_contains($col, 'DESCRI'))                                  $colMap['descricao'] = $idx;
-                if (str_contains($col, 'UNIDADE'))                                 $colMap['unidade']   = $idx;
-                if (str_contains($col, 'SALDO'))                                   $colMap['saldo']     = $idx;
-                if (str_contains($col, 'VALIDADE'))                                $colMap['validade']  = $idx;
+                if (str_contains($col, 'CODIGO') || str_contains($col, 'CÓDIGO')) $colMap['codigo']        = $idx;
+                if (str_contains($col, 'DESCRI'))                                  $colMap['descricao']     = $idx;
+                if (str_contains($col, 'UNIDADE'))                                 $colMap['unidade']       = $idx;
+                if (str_contains($col, 'SALDO'))                                   $colMap['saldo']         = $idx;
+                if (str_contains($col, 'MINIMO') || str_contains($col, 'MÍNIMO'))  $colMap['estoque_minimo'] = $idx;
+                if (str_contains($col, 'VALIDADE'))                                $colMap['validade']      = $idx;
             }
 
             if (!isset($colMap['descricao'], $colMap['saldo'])) {
@@ -164,11 +167,12 @@ class ImportacaoController extends Controller
                     continue;
                 }
 
-                $codigo       = isset($colMap['codigo'])   ? trim((string)($row[$colMap['codigo']]   ?? '')) : '';
-                $unidade      = isset($colMap['unidade'])  ? trim((string)($row[$colMap['unidade']]  ?? 'UN')) : 'UN';
-                $validade     = isset($colMap['validade']) ? $row[$colMap['validade']]                         : null;
-                $quantidade   = (int) $saldo;
-                $dataValidade = $this->converterValidade($validade);
+                $codigo         = isset($colMap['codigo'])         ? trim((string)($row[$colMap['codigo']]         ?? '')) : '';
+                $unidade        = isset($colMap['unidade'])        ? trim((string)($row[$colMap['unidade']]        ?? 'UN')) : 'UN';
+                $validade       = isset($colMap['validade'])       ? $row[$colMap['validade']]                              : null;
+                $estoqueMinimo  = isset($colMap['estoque_minimo']) ? $row[$colMap['estoque_minimo']]                        : null;
+                $quantidade     = (int) $saldo;
+                $dataValidade   = $this->converterValidade($validade);
 
                 $sku = $codigo !== ''
                     ? $codigo
@@ -183,6 +187,7 @@ class ImportacaoController extends Controller
                     'nome'              => $descricao,
                     'unidade'           => $unidade ?: 'UN',
                     'quantidade'        => $quantidade,
+                    'estoque_minimo'    => is_numeric($estoqueMinimo) ? (int) $estoqueMinimo : 0,
                     'validade'          => $dataValidade,
                     'produto_existente' => (bool) $produtoExistente, // útil pro frontend avisar na tabela
                 ];
@@ -202,15 +207,16 @@ class ImportacaoController extends Controller
     public function confirmarImportacao(Request $request)
     {
         $request->validate([
-            'modo'               => 'required|in:unico,multiplo',
-            'lote.numero_lote'   => 'required_if:modo,unico|nullable|string',
-            'lote.data_validade' => 'nullable|date',
-            'itens'              => 'required_if:modo,unico|array',
-            'itens.*.sku'        => 'required_with:itens|string',
-            'itens.*.nome'       => 'required_with:itens|string',
-            'itens.*.quantidade' => 'required_with:itens|integer|min:0',
-            'itens.*.unidade'    => 'nullable|string',
-            'itens.*.validade'   => 'nullable|date',
+            'modo'                        => 'required|in:unico,multiplo',
+            'lote.numero_lote'            => 'required_if:modo,unico|nullable|string',
+            'lote.data_validade'          => 'nullable|date',
+            'itens'                       => 'required_if:modo,unico|array',
+            'itens.*.sku'                 => 'required_with:itens|string',
+            'itens.*.nome'                => 'required_with:itens|string',
+            'itens.*.quantidade'          => 'required_with:itens|integer|min:0',
+            'itens.*.unidade'             => 'nullable|string',
+            'itens.*.estoque_minimo'      => 'nullable|integer|min:0',
+            'itens.*.validade'            => 'nullable|date',
             'lotes'                       => 'required_if:modo,multiplo|array',
             'lotes.*.numero_lote'         => 'nullable|string',
             'lotes.*.data_validade'       => 'nullable|date',
@@ -219,6 +225,7 @@ class ImportacaoController extends Controller
             'lotes.*.itens.*.nome'        => 'required_with:lotes.*.itens|string',
             'lotes.*.itens.*.quantidade'  => 'required_with:lotes.*.itens|integer|min:0',
             'lotes.*.itens.*.unidade'     => 'nullable|string',
+            'lotes.*.itens.*.estoque_minimo' => 'nullable|integer|min:0',
         ]);
 
         DB::beginTransaction();
@@ -278,7 +285,7 @@ class ImportacaoController extends Controller
                     'nome'           => $it['nome'],
                     'unidade_medida' => $it['unidade'] ?? 'UN',
                     'preco_custo'    => 0,
-                    'estoque_minimo' => 0,
+                    'estoque_minimo' => (int) ($it['estoque_minimo'] ?? 0),
                     'estoque_atual'  => 0,
                     'prioridade_abc' => 'C',
                     'id_categoria'   => null,
