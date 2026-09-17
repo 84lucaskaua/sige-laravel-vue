@@ -32,22 +32,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/top-produtos', [DashboardController::class, 'topProdutos']);
 
     // ─── Lotes ───────────────────────────────────────────────
-    Route::apiResource('/lotes', LoteController::class);
-    Route::delete('/lotes', [LoteController::class, 'destroyMultiplos']);
+    Route::apiResource('/lotes', LoteController::class)->middleware('perfil:admin,operador');
+    Route::delete('/lotes', [LoteController::class, 'destroyMultiplos'])->middleware('perfil:admin,operador');
 
     // ─── Itens de lote ───────────────────────────────────────
     Route::get('/lotes/{idLote}/itens',             [ItemLoteController::class, 'index']);
-    Route::post('/lotes/{idLote}/itens',            [ItemLoteController::class, 'store']);
-    Route::patch('/lotes/{idLote}/itens/reordenar', [ItemLoteController::class, 'reordenar']);
-    Route::put('/itens/{id}',              [ItemLoteController::class, 'update']);
-    Route::patch('/itens/{id}/baixa',      [ItemLoteController::class, 'baixa']);
-    Route::patch('/itens/{id}/entrada',    [ItemLoteController::class, 'entrada']);
-    Route::patch('/itens/{id}/transferir', [ItemLoteController::class, 'transferir']);
+    Route::post('/lotes/{idLote}/itens',            [ItemLoteController::class, 'store'])->middleware('perfil:admin,operador');
+    Route::patch('/lotes/{idLote}/itens/reordenar', [ItemLoteController::class, 'reordenar'])->middleware('perfil:admin,operador');
+    Route::put('/itens/{id}',              [ItemLoteController::class, 'update'])->middleware('perfil:admin,operador');
+    Route::patch('/itens/{id}/baixa',      [ItemLoteController::class, 'baixa'])->middleware('perfil:admin,operador');
+    Route::patch('/itens/{id}/entrada',    [ItemLoteController::class, 'entrada'])->middleware('perfil:admin,operador');
+    Route::patch('/itens/{id}/transferir', [ItemLoteController::class, 'transferir'])->middleware('perfil:admin,operador');
     Route::get('/itens', [ItemLoteController::class, 'todos']);
-    Route::delete('/itens/{id}',           [ItemLoteController::class, 'destroy']);
-    Route::delete('/itens', [ItemLoteController::class, 'destroyMultiplos']);
+    Route::delete('/itens/{id}',           [ItemLoteController::class, 'destroy'])->middleware('perfil:admin,operador');
+    Route::delete('/itens', [ItemLoteController::class, 'destroyMultiplos'])->middleware('perfil:admin,operador');
     Route::get('/itens/{id}/historico',    [ItemLoteController::class, 'historico']);
-Route::post('/itens/transferir-lote', [ItemLoteController::class, 'transferirEmLote']);
+    Route::post('/itens/transferir-lote', [ItemLoteController::class, 'transferirEmLote'])->middleware('perfil:admin,operador');
     // ─── Perfil ──────────────────────────────────────────────
     Route::put('/perfil',       [PerfilController::class, 'atualizarPerfil']);
     Route::post('/perfil',      [PerfilController::class, 'atualizarPerfil']);
@@ -61,13 +61,13 @@ Route::post('/itens/transferir-lote', [ItemLoteController::class, 'transferirEmL
 
     // ─── Perdas ──────────────────────────────────────────────
     Route::get('/perdas',              [PerdaController::class, 'index']);
-    Route::post('/perdas',             [PerdaController::class, 'store']);
-     Route::post('/perdas/varios',      [PerdaController::class, 'storeVarios']);
+    Route::post('/perdas',             [PerdaController::class, 'store'])->middleware('perfil:admin,operador');
+     Route::post('/perdas/varios',      [PerdaController::class, 'storeVarios'])->middleware('perfil:admin,operador');
     Route::get('/perdas/estatisticas', [PerdaController::class, 'estatisticas']);
 
     // ─── Movimentações ───────────────────────────────────────
     Route::get('/movimentacoes',         [MovimentacaoController::class, 'index']);
-    Route::delete('/movimentacoes/{id}', [MovimentacaoController::class, 'destroy']);
+    Route::delete('/movimentacoes/{id}', [MovimentacaoController::class, 'destroy'])->middleware('perfil:admin');
 
     // ─── Relatórios ──────────────────────────────────────────
     Route::get('/relatorios/estoque',     [RelatorioController::class, 'estoque']);
@@ -83,7 +83,7 @@ Route::post('/itens/transferir-lote', [ItemLoteController::class, 'transferirEmL
     Route::get('/importacao-exportacao/template-csv', [ImportacaoController::class, 'downloadTemplate']);
     Route::get('/importacao-exportacao/template',     [ImportacaoController::class, 'downloadTemplate']);
     Route::post('/importacao-exportacao/preview',     [ImportacaoController::class, 'previewImportacao']);
-    Route::post('/importacao-exportacao/confirmar',   [ImportacaoController::class, 'confirmarImportacao']);
+    Route::post('/importacao-exportacao/confirmar',   [ImportacaoController::class, 'confirmarImportacao'])->middleware('perfil:admin,operador');
 
     // ─── Exportação ──────────────────────────────────────────
     Route::get('/importacao-exportacao/exportar/produtos-csv',       [ExportController::class, 'exportarProdutosCSV']);
@@ -93,17 +93,17 @@ Route::post('/itens/transferir-lote', [ItemLoteController::class, 'transferirEmL
 
     // ─── Backup ──────────────────────────────────────────────
     Route::get('/importacao-exportacao/exportar/backup',   [BackupController::class, 'exportarBackup']);
-    Route::post('/importacao-exportacao/restaurar/backup', [BackupController::class, 'restaurarBackup']);
+    Route::post('/importacao-exportacao/restaurar/backup', [BackupController::class, 'restaurarBackup'])->middleware('perfil:admin');
 
     // ─── Auditoria ───────────────────────────────────────────
-    Route::get('/audit-logs',        [AuditLogController::class, 'index']);
-    Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
+    Route::get('/audit-logs',        [AuditLogController::class, 'index'])->middleware('perfil:admin');
+    Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->middleware('perfil:admin');
 
     // ─── Usuários ────────────────────────────────────────────
-    Route::get('/usuarios',               [UsuarioController::class, 'index']);
-    Route::post('/usuarios',              [UsuarioController::class, 'store']);
-    Route::put('/usuarios/{id}',          [UsuarioController::class, 'update']);
-    Route::patch('/usuarios/{id}/status', [UsuarioController::class, 'alternarStatus']);
+    Route::get('/usuarios',               [UsuarioController::class, 'index'])->middleware('perfil:admin');
+    Route::post('/usuarios',              [UsuarioController::class, 'store'])->middleware('perfil:admin');
+    Route::put('/usuarios/{id}',          [UsuarioController::class, 'update'])->middleware('perfil:admin');
+    Route::patch('/usuarios/{id}/status', [UsuarioController::class, 'alternarStatus'])->middleware('perfil:admin');
 
     // ─── Chatbot ─────────────────────────────────────────────
     Route::post('/chatbot', [ChatbotController::class, 'perguntar']);
