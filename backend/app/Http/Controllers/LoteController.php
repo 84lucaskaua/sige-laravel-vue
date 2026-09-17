@@ -101,7 +101,7 @@ class LoteController extends Controller
             }
         });
 
-        RecalcularAbcJob::dispatch();
+        RecalcularAbcJob::dispatchSync();
 
         return response()->json(['message' => 'Lote excluido com sucesso.']);
     }
@@ -143,7 +143,7 @@ class LoteController extends Controller
             }
         });
 
-        RecalcularAbcJob::dispatch();
+        RecalcularAbcJob::dispatchSync();
 
         return response()->json(['message' => count($lotes) . ' lote(s) excluído(s) com sucesso.']);
     }

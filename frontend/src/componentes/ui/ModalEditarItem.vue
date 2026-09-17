@@ -27,7 +27,7 @@
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label class="label">Quantidade *</label>
-            <input v-model.number="form.quantidade" type="number" min="1" required class="campo" />
+            <input v-model.number="form.quantidade" type="number" min="0" required class="campo" />
           </div>
           <div>
             <label class="label">Unidade *</label>
@@ -60,11 +60,21 @@
         <div class="mb-6">
           <label class="label">Prioridade Manual</label>
           <select v-model="form.prioridade_abc" class="campo">
-            <option value="">Automática</option>
+            <option value="">
+              Automática<span v-if="classeCalculada"> (atual: {{ classeCalculada }})</span>
+            </option>
             <option value="A">A — Alta</option>
             <option value="B">B — Média</option>
             <option value="C">C — Baixa</option>
           </select>
+          <p class="text-xs text-slate-400 mt-1">
+            <template v-if="form.prioridade_abc">
+              Definida manualmente — o sistema não vai recalcular esta prioridade.
+            </template>
+            <template v-else>
+              O sistema recalcula automaticamente com base na movimentação<span v-if="classeCalculada"> (hoje: classe {{ classeCalculada }})</span>.
+            </template>
+          </p>
         </div>
 
         <div v-if="erro" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-red-600 dark:text-red-400 text-sm">
@@ -123,13 +133,33 @@ const { aoIniciarArraste, estiloArraste } = useModalArrastavel()
 const salvando = ref(false)
 const erro     = ref('')
 
+// prioridade_manual pode vir como true/false, 1/0 ou "1"/"0"
+const ehManual = Boolean(
+  props.item.prioridade_manual === true ||
+  props.item.prioridade_manual === 1 ||
+  props.item.prioridade_manual === '1'
+)
+
+// Classe que o sistema calculou sozinho (só serve de informação quando é automática)
+const classeCalculada = computed(() =>
+  ehManual ? null : (props.item.prioridade_abc || null)
+)
+
+// Normaliza a data para o formato aceito pelo <input type="date">
+function paraInputDate(valor) {
+  if (!valor) return ''
+  return String(valor).slice(0, 10)
+}
+
 // Só campos que o backend (ItemLoteController@update) realmente salva
 const valoresOriginais = {
   quantidade:      props.item.quantidade     ?? null,
   unidade_medida:  props.item.unidade_medida || 'UN',
-  data_validade:   props.item.data_validade  || '',
+  data_validade:   paraInputDate(props.item.data_validade),
   localizacao:     props.item.localizacao    || '',
-  prioridade_abc:  props.item.prioridade_abc || '',
+  // Se não for manual, o select fica em "Automática" mesmo que exista
+  // uma classe calculada gravada no banco — senão ao salvar ela virava manual.
+  prioridade_abc:  ehManual ? (props.item.prioridade_abc || '') : '',
 }
 
 const form = ref({ ...valoresOriginais })
@@ -160,7 +190,20 @@ async function salvar() {
   erro.value     = ''
   salvando.value = true
   try {
-    await api.put(`/itens/${props.item.id_item}`, form.value)
+    const dados = {
+      quantidade:     form.value.quantidade,
+      unidade_medida: form.value.unidade_medida,
+      data_validade:  form.value.data_validade || null,
+      localizacao:    form.value.localizacao || null,
+    }
+
+    // Só envia prioridade_abc quando o usuário escolheu manualmente.
+    // Ausente = automática (o backend zera prioridade_manual e recalcula).
+    if (form.value.prioridade_abc) {
+      dados.prioridade_abc = form.value.prioridade_abc
+    }
+
+    await api.put(`/itens/${props.item.id_item}`, dados)
     emit('salvo')
   } catch (e) {
     const erros = e.response?.data?.errors
