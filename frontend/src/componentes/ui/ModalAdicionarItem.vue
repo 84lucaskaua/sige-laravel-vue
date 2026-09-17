@@ -222,7 +222,7 @@ watch(() => form.value.sku, (sku) => {
       if (idDestaBusca === idBuscaAtual) buscandoProduto.value = false
     }
   }, 400)
-}) 
+})
 
 const temAlteracoes = computed(() => {
   return !!(
@@ -270,6 +270,12 @@ async function salvar() {
   let dados = {}
   try {
     dados = { ...form.value }
+
+    // Só envia prioridade_abc quando o usuário escolheu manualmente.
+    // Ausente = automática, backend calcula normalmente.
+    if (!dados.prioridade_abc) {
+      delete dados.prioridade_abc
+    }
 
     if (produtoEncontrado.value) {
       dados.id_produto = produtoEncontrado.value.id_produto

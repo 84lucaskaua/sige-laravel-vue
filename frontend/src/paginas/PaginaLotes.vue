@@ -254,15 +254,15 @@
                   <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
 
                   <td class="py-3">
-                  <span
-  class="px-2 py-0.5 rounded text-xs font-bold text-white inline-flex items-center gap-1"
-  :class="item.prioridade_abc === 'A' ? 'bg-red-600' : item.prioridade_abc === 'B' ? 'bg-amber-600' : 'bg-gray-500'"
-  :title="item.prioridade_manual ? 'Prioridade manual' : 'Prioridade automática'"
->
-  <Lock v-if="item.prioridade_manual" :size="10" />
-  {{ item.prioridade_abc || 'C' }}
-</span>
-                  </td>
+  <span
+    class="px-2 py-0.5 rounded text-xs font-bold text-white inline-flex items-center gap-1"
+    :class="item.prioridade_abc === 'A' ? 'bg-green-600' : item.prioridade_abc === 'B' ? 'bg-orange-500' : 'bg-red-600'"
+    :title="item.prioridade_manual ? 'Prioridade manual' : 'Prioridade automática'"
+  >
+    <Lock v-if="item.prioridade_manual" :size="10" />
+    {{ item.prioridade_abc || 'C' }}
+  </span>
+</td>
 
                   <td class="py-3">
                     <div class="flex items-center gap-1 flex-wrap">

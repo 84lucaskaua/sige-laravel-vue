@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\DB;
 
 class ItemLoteController extends Controller
 {
+    // Maior inteiro que o PHP consegue representar com precisão (64-bit).
+    // Acima disso o BIGINT UNSIGNED do MySQL ainda aguenta, mas o PHP
+    // já viraria float e perderia precisão — então este é o teto seguro.
+    private const QUANTIDADE_MAX = 9223372036854775807;
+
     public function store(Request $request, int $idLote)
     {
         if ($request->filled('id_produto')) {
@@ -28,7 +33,7 @@ class ItemLoteController extends Controller
             'id_produto'        => 'nullable|integer|exists:produto,id_produto',
             'nome'              => 'required_without:id_produto|string|min:2|max:255',
             'sku'               => 'required_without:id_produto|string|max:50',
-            'quantidade'        => 'required|integer|min:1',
+            'quantidade'        => 'required|integer|min:1|max:' . self::QUANTIDADE_MAX,
             'categoria'         => 'required_without:id_produto|string',
             'data_validade'     => 'nullable|date|after:today|before:2100-01-01',
             'estoque_minimo'    => 'required_without:id_produto|integer|min:1',
@@ -39,6 +44,7 @@ class ItemLoteController extends Controller
             'quantidade.required'             => 'A quantidade é obrigatória.',
             'quantidade.integer'              => 'A quantidade deve ser um número inteiro.',
             'quantidade.min'                  => 'A quantidade não pode ser negativa.',
+            'quantidade.max'                  => 'A quantidade informada é grande demais.',
             'data_validade.date'              => 'Informe uma data válida.',
             'data_validade.after'             => 'A data de validade deve ser futura.',
             'data_validade.before'            => 'A data de validade informada é inválida.',
@@ -168,12 +174,13 @@ class ItemLoteController extends Controller
         $item = ItemLote::with('produto')->findOrFail($id);
 
         $request->validate([
-            'quantidade'     => 'required|integer|min:0',
+            'quantidade'     => 'required|integer|min:0|max:' . self::QUANTIDADE_MAX,
             'data_validade'  => 'nullable|date|before:2100-01-01',
         ], [
             'quantidade.required'  => 'A quantidade é obrigatória.',
             'quantidade.integer'   => 'A quantidade deve ser um número inteiro.',
             'quantidade.min'       => 'A quantidade não pode ser negativa.',
+            'quantidade.max'       => 'A quantidade informada é grande demais.',
             'data_validade.date'   => 'Informe uma data válida.',
             'data_validade.before' => 'A data de validade informada é inválida.',
         ]);
@@ -240,12 +247,13 @@ class ItemLoteController extends Controller
     public function entrada(Request $request, int $id)
     {
         $request->validate([
-            'quantidade' => 'required|integer|min:1',
+            'quantidade' => 'required|integer|min:1|max:' . self::QUANTIDADE_MAX,
             'motivo'     => 'nullable|string|max:255',
         ], [
             'quantidade.required' => 'A quantidade é obrigatória.',
             'quantidade.integer'  => 'A quantidade deve ser um número inteiro.',
             'quantidade.min'      => 'A quantidade deve ser pelo menos 1.',
+            'quantidade.max'      => 'A quantidade informada é grande demais.',
             'motivo.max'          => 'O motivo não pode ter mais de 255 caracteres.',
         ]);
 
