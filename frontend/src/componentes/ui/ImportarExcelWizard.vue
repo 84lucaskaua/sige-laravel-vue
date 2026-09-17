@@ -79,24 +79,24 @@
           <!-- Tabela de itens -->
           <div class="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
             <table class="w-full text-sm">
-             <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-  <tr>
-    <th class="text-left px-3 py-2">SKU</th>
-    <th class="text-left px-3 py-2">Produto</th>
-    <th class="text-right px-3 py-2">Qtd</th>
-    <th class="text-right px-3 py-2">Est. Mínimo</th>
-    <th class="text-left px-3 py-2">Validade</th>
-  </tr>
-</thead>
-<tbody>
-  <tr v-for="it in itens" :key="it.sku" class="border-t border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300">
-    <td class="px-3 py-1.5">{{ it.sku }}</td>
-    <td class="px-3 py-1.5">{{ it.nome }}</td>
-    <td class="px-3 py-1.5 text-right">{{ it.quantidade }} {{ it.unidade }}</td>
-    <td class="px-3 py-1.5 text-right">{{ it.estoque_minimo }}</td>
-    <td class="px-3 py-1.5">{{ it.validade || '—' }}</td>
-  </tr>
-</tbody>
+              <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                <tr>
+                  <th class="text-left px-3 py-2">SKU</th>
+                  <th class="text-left px-3 py-2">Produto</th>
+                  <th class="text-right px-3 py-2">Qtd</th>
+                  <th class="text-right px-3 py-2">Est. Mínimo</th>
+                  <th class="text-left px-3 py-2">Validade</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="it in itens" :key="it.sku" class="border-t border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+                  <td class="px-3 py-1.5">{{ it.sku }}</td>
+                  <td class="px-3 py-1.5">{{ it.nome }}</td>
+                  <td class="px-3 py-1.5 text-right">{{ it.quantidade }} {{ it.unidade }}</td>
+                  <td class="px-3 py-1.5 text-right">{{ it.estoque_minimo }}</td>
+                  <td class="px-3 py-1.5">{{ it.validade || '—' }}</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -259,7 +259,8 @@
       <div v-if="mostrarConfirmFechar" class="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-700 rounded-xl p-6 max-w-sm w-full space-y-4">
           <p class="text-slate-900 dark:text-white font-semibold text-lg flex items-center gap-2">
-            ⚠️ Importação em andamento
+            <AlertTriangle :size="20" class="text-orange-500" />
+            Importação em andamento
           </p>
           <p class="text-slate-600 dark:text-slate-300 text-sm">
             Você tem uma importação em andamento. Deseja realmente cancelar e fechar?
@@ -304,7 +305,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { Upload, X, Package, Layers, ArrowLeft, Plus, Trash2, Check } from 'lucide-vue-next'
+import { Upload, X, Package, Layers, ArrowLeft, Plus, Trash2, Check, AlertTriangle } from 'lucide-vue-next'
 import api from '@/servicos/api'
 
 const emit = defineEmits(['fechar', 'importado'])
@@ -412,19 +413,19 @@ async function confirmarMultiplo() {
   carregando.value = true
   erro.value = ''
 
-const lotesPayload = lotesMultiplos.value.map(lote => ({
-  numero_lote: lote.numero_lote || null,
-  data_validade: lote.data_validade || null,
-  itens: itens.value
-    .filter(it => (Number(lote.quantidades[it.sku]) || 0) > 0)
-    .map(it => ({
-      sku: it.sku,
-      nome: it.nome,
-      unidade: it.unidade,
-      quantidade: Number(lote.quantidades[it.sku]),
-      estoque_minimo: it.estoque_minimo,
-    })),
-})).filter(l => l.itens.length > 0)
+  const lotesPayload = lotesMultiplos.value.map(lote => ({
+    numero_lote: lote.numero_lote || null,
+    data_validade: lote.data_validade || null,
+    itens: itens.value
+      .filter(it => (Number(lote.quantidades[it.sku]) || 0) > 0)
+      .map(it => ({
+        sku: it.sku,
+        nome: it.nome,
+        unidade: it.unidade,
+        quantidade: Number(lote.quantidades[it.sku]),
+        estoque_minimo: it.estoque_minimo,
+      })),
+  })).filter(l => l.itens.length > 0)
 
   if (lotesPayload.length === 0) {
     erro.value = 'Distribua ao menos uma unidade em algum lote.'

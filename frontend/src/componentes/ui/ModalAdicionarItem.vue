@@ -84,6 +84,19 @@
           </div>
         </div>
 
+        <div class="mb-4">
+          <label class="label">Prioridade Manual</label>
+          <select v-model="form.prioridade_abc" class="campo">
+            <option value="">Automática</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+          <p class="text-xs text-slate-400 mt-1">
+            Se definida manualmente, a prioridade não será recalculada automaticamente pelo sistema.
+          </p>
+        </div>
+
         <div v-if="!produtoEncontrado" class="mb-6">
           <label class="label">Categoria *</label>
           <select v-model="form.categoria" required class="campo">
@@ -254,9 +267,9 @@ async function salvar() {
   }
 
   salvando.value = true
-  const dados = { ...form.value }
+  let dados = {}
   try {
-    const dados = { ...form.value }
+    dados = { ...form.value }
 
     if (produtoEncontrado.value) {
       dados.id_produto = produtoEncontrado.value.id_produto
@@ -272,13 +285,9 @@ async function salvar() {
       delete dados.categoria_outros
     }
 
-        await api.post(`/lotes/${props.lote.id_lote}/itens`, dados)
+    await api.post(`/lotes/${props.lote.id_lote}/itens`, dados)
     emit('salvo')
   } catch (e) {
-    console.log('STATUS:', e.response?.status)
-    console.log('DADOS DO ERRO:', JSON.stringify(e.response?.data, null, 2))
-    console.log('PAYLOAD ENVIADO:', JSON.stringify(dados, null, 2))
-
     const erros = e.response?.data?.errors
     erro.value = erros
       ? Object.values(erros).flat().join('. ')

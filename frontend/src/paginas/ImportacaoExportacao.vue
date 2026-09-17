@@ -72,7 +72,6 @@
 </div>
 
        <!-- Movimentações -->
-<!-- Movimentações -->
 <div class="bg-white dark:bg-[#1e1e2e] border border-slate-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
   <div>
     <p class="text-slate-900 dark:text-white font-semibold">Movimentações</p>
@@ -119,7 +118,7 @@
             <!-- Preview das colunas esperadas -->
             <div class="bg-blue-50 dark:bg-[#0f1a2e] border border-blue-200 dark:border-blue-900 rounded-lg px-3 py-2 text-xs text-blue-700 dark:text-blue-300 space-y-1">
               <p class="font-semibold text-blue-700 dark:text-blue-400">Colunas lidas da planilha:</p>
-              <p>CÓDIGO · DESCRIÇÃO · UNIDADE · SALDO · VALIDADE</p>
+              <p>CÓDIGO · DESCRIÇÃO · UNIDADE · SALDO · ESTOQUE MÍNIMO · VALIDADE</p>
             </div>
 
             <button
@@ -202,7 +201,10 @@
     <!-- Modal confirmação restaurar -->
     <div v-if="modalRestaurar" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
       <div class="bg-white dark:bg-[#1e1e2e] border border-red-300 dark:border-red-700 rounded-xl p-6 max-w-sm w-full mx-4 space-y-4">
-        <p class="text-slate-900 dark:text-white font-semibold text-lg">⚠️ Atenção!</p>
+        <p class="text-slate-900 dark:text-white font-semibold text-lg flex items-center gap-2">
+          <AlertTriangle :size="20" class="text-red-600 dark:text-red-400" />
+          Atenção!
+        </p>
         <p class="text-slate-600 dark:text-gray-300 text-sm">
           Esta ação irá <strong class="text-red-600 dark:text-red-400">apagar todos os dados atuais</strong> e substituir pelo backup selecionado. Essa ação não pode ser desfeita.
         </p>
@@ -235,6 +237,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/servicos/api'
+import { AlertTriangle } from 'lucide-vue-next'
 import ImportarExcelWizard from '@/componentes/ui/ImportarExcelWizard.vue'
 
 const stats           = ref({ lotes: 0, produtos: 0, movimentacoes: 0, itens_estoque: 0 })

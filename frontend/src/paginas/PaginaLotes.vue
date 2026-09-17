@@ -205,6 +205,7 @@
                 <th class="text-left pb-3 font-medium">Validade</th>
                 <th class="text-left pb-3 font-medium">Fornecedor</th>
                 <th class="text-left pb-3 font-medium">Localização</th>
+                <th class="text-left pb-3 font-medium">Prioridade</th>
                 <th class="text-left pb-3 font-medium">Status</th>
                 <th class="text-left pb-3 font-medium">Ações</th>
               </tr>
@@ -251,6 +252,17 @@
 
                   <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.produto?.fornecedor?.nome || '—' }}</td>
                   <td class="py-3 text-slate-500 dark:text-slate-400">{{ item.localizacao || '—' }}</td>
+
+                  <td class="py-3">
+                  <span
+  class="px-2 py-0.5 rounded text-xs font-bold text-white inline-flex items-center gap-1"
+  :class="item.prioridade_abc === 'A' ? 'bg-red-600' : item.prioridade_abc === 'B' ? 'bg-amber-600' : 'bg-gray-500'"
+  :title="item.prioridade_manual ? 'Prioridade manual' : 'Prioridade automática'"
+>
+  <Lock v-if="item.prioridade_manual" :size="10" />
+  {{ item.prioridade_abc || 'C' }}
+</span>
+                  </td>
 
                   <td class="py-3">
                     <div class="flex items-center gap-1 flex-wrap">
@@ -533,7 +545,7 @@
 <script setup>
 import draggable from 'vuedraggable'
 import { ref, computed, onMounted, watch, watchEffect } from 'vue'
-import { Plus, Shield, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus, ChevronLeft, ChevronRight, ArrowRightLeft } from 'lucide-vue-next'
+import { Plus, Shield, X, PackageMinus, Package, Trash2, Calendar, Pencil, PackageOpen, PackagePlus, ChevronLeft, ChevronRight, ArrowRightLeft, Lock } from 'lucide-vue-next'
 import { useAutenticacaoStore } from '@/servicos/autenticacao.store'
 import api from '@/servicos/api'
 import { useNotificacao } from '@/composables/useNotificacao'
