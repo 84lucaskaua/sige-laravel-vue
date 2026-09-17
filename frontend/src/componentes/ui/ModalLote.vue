@@ -49,6 +49,30 @@
 
       </form>
     </div>
+
+    <!-- Modal confirmação descartar alterações -->
+    <div v-if="mostrarConfirmDescartar" class="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
+      <div class="bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-700 rounded-xl w-full max-w-sm p-6 space-y-4">
+        <p class="text-slate-900 dark:text-white font-semibold text-lg">Descartar alterações?</p>
+        <p class="text-slate-600 dark:text-slate-300 text-sm">
+          Você tem informações não salvas. Deseja realmente descartar e fechar?
+        </p>
+        <div class="flex gap-3">
+          <button
+            class="flex-1 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            @click="mostrarConfirmDescartar = false"
+          >
+            Continuar editando
+          </button>
+          <button
+            class="flex-1 py-2.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition font-medium"
+            @click="confirmarDescartar"
+          >
+            Descartar
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -68,6 +92,7 @@ const { aoIniciarArraste, estiloArraste } = useModalArrastavel()
 const ehEdicao = computed(() => !!props.lote)
 const salvando = ref(false)
 const erro     = ref('')
+const mostrarConfirmDescartar = ref(false)
 
 const numeroOriginal      = props.lote?.numero_lote  || ''
 const dataEntradaOriginal = props.lote?.data_entrada || new Date().toISOString().split('T')[0]
@@ -89,9 +114,14 @@ const temAlteracoes = computed(() => {
 
 function tentarFechar() {
   if (temAlteracoes.value) {
-    const confirmar = window.confirm('Você tem informações não salvas. Deseja realmente descartar e fechar?')
-    if (!confirmar) return
+    mostrarConfirmDescartar.value = true
+    return
   }
+  emit('fechar')
+}
+
+function confirmarDescartar() {
+  mostrarConfirmDescartar.value = false
   emit('fechar')
 }
 
