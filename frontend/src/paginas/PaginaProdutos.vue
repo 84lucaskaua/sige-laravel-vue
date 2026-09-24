@@ -81,7 +81,7 @@
         </thead>
         <tbody>
           <tr
-            v-for="item in produtosFiltrados"
+            v-for="item in produtosPaginados"
             :key="item.id_produto"
             class="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
             @click="abrirModalValidades(item)"
@@ -110,7 +110,7 @@
                 <div
                   v-if="dropdownAberto === item.id_produto"
                   :style="{ position: 'fixed', top: posicaoDropdown.top + 'px', left: posicaoDropdown.left + 'px' }"
-                  class="z-[9999] min-w-[160px] max-h-56 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-2 flex flex-col gap-1"
+                  class="z-9999 min-w-40 max-h-56 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-2 flex flex-col gap-1"
                   @click.stop
                 >
                   <!-- Busca dentro do dropdown (só aparece com 10+ lotes) -->
@@ -156,6 +156,14 @@
           </tr>
         </tbody>
       </table>
+
+      <PaginacaoControles
+        v-model:pagina-atual="paginaAtual"
+        v-model:por-pagina="porPagina"
+        :total-paginas="totalPaginas"
+        :total="produtosFiltrados.length"
+        rotulo="produtos"
+      />
     </div>
 
     <!-- Submenu de ações rápidas do lote (único, fora do v-for, teleportado) -->
@@ -163,7 +171,7 @@
       <div
         v-if="menuLoteAtivo"
         :style="{ position: 'fixed', top: posicaoMenuLote.top + 'px', left: posicaoMenuLote.left + 'px' }"
-        class="z-[9999] min-w-[150px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-1 flex flex-col"
+        class="z-9999 min-w-37.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-1 flex flex-col"
         @click.stop
       >
         <button
@@ -220,11 +228,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import api from '@/servicos/api'
 import ModalValidadesLotes from '@/componentes/ui/ModalValidadesLotes.vue'
 import ModalBaixaEstoque from '@/componentes/ui/ModalBaixaEstoque.vue'
 import ModalTransferirItem from '@/componentes/ui/ModalTransferirItem.vue'
+import PaginacaoControles from '@/paginas/PaginacaoControles.vue'
 import { useNotificacao } from '@/composables/useNotificacao'
 
 const { erro } = useNotificacao()
@@ -242,6 +251,8 @@ const posicaoMenuLote     = ref({ top: 0, left: 0 })
 const buscaLotePorProduto = ref({})
 const modalBaixa          = ref(null) // { id_item, nome, quantidade, unidade_medida }
 const modalTransferir     = ref(null) // { item: {...}, lotes: [...] }
+const paginaAtual         = ref(1)
+const porPagina           = ref(10)
 
 let temporizadorBusca = null
 
@@ -444,6 +455,19 @@ const produtosFiltrados = computed(() => {
     const categoriaOk = !filtroCategoria.value || item.categoria_nome === filtroCategoria.value
     return buscaOk && baixoOk && categoriaOk
   })
+})
+
+const totalPaginas = computed(() =>
+  Math.max(1, Math.ceil(produtosFiltrados.value.length / porPagina.value))
+)
+
+const produtosPaginados = computed(() => {
+  const inicio = (paginaAtual.value - 1) * porPagina.value
+  return produtosFiltrados.value.slice(inicio, inicio + porPagina.value)
+})
+
+watch([termoDeBusca, filtroBaixo, filtroCategoria], () => {
+  paginaAtual.value = 1
 })
 
 const totalVencendo = computed(() =>
