@@ -3,7 +3,8 @@
   <!-- Janela do chat -->
   <div
     v-if="aberto"
-    class="fixed bottom-24 right-5 z-50 w-96 h-[32rem] rounded-xl shadow-2xl flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 animate-chat-in"
+    class="fixed z-50 w-96 max-w-[calc(100vw-1rem)] h-[32rem] max-h-[calc(100vh-1rem)] rounded-xl shadow-2xl flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 animate-chat-in"
+    :style="estiloPosicao"
   >
     <!-- Cabeçalho -->
     <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-blue-600 rounded-t-xl">
@@ -121,7 +122,12 @@ const CHAVE_HISTORICO = 'sige_chat_historico'
 const LIMITE_HISTORICO = 50
 
 const props = defineProps({
-  aberto: { type: Boolean, default: false }
+  aberto: { type: Boolean, default: false },
+  // Posição da janela (right/bottom/top em px). O MenuSuporte calcula para ficar colada na bolinha.
+  estiloPosicao: {
+    type: Object,
+    default: () => ({ bottom: '6rem', right: '1.25rem' })
+  }
 })
 const emit = defineEmits(['update:aberto'])
 

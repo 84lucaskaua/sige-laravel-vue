@@ -1,5 +1,5 @@
 <template>
-  <div v-if="aberto" class="fixed bottom-24 right-5 z-[9999]">
+  <div v-if="aberto" class="fixed z-[9999]" :style="estiloPosicao">
 
     <!-- Painel expandido -->
     <div class="mb-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-3 flex flex-col gap-2 w-48">
@@ -57,7 +57,12 @@ import { X } from 'lucide-vue-next'
 import { useAcessibilidade } from '@/composables/useAcessibilidade'
 
 defineProps({
-  aberto: { type: Boolean, default: false }
+  aberto: { type: Boolean, default: false },
+  // Posição do painel (right/bottom/top em px). O MenuSuporte calcula para ficar colado na bolinha.
+  estiloPosicao: {
+    type: Object,
+    default: () => ({ bottom: '6rem', right: '1.25rem' })
+  }
 })
 const emit = defineEmits(['update:aberto'])
 

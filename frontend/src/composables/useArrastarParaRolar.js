@@ -1,49 +1,61 @@
-import { ref, onBeforeUnmount } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 
-export function useArrastarParaRolar() {
-  const elementoRef = ref(null)
+export function useModalArrastavel() {
   const arrastando = ref(false)
-  let posX = 0
-  let posY = 0
-  let scrollXInicial = 0
-  let scrollYInicial = 0
+  const arrastou = ref(false) // true se houve movimento real durante o clique
+  const posicao = ref({ x: 0, y: 0 })
+  let inicioMouse = { x: 0, y: 0 }
+  let inicioPosicao = { x: 0, y: 0 }
 
   function aoMoverGlobal(evento) {
-    if (!arrastando.value || !elementoRef.value) return
+    if (!arrastando.value) return
     evento.preventDefault()
-    const distanciaX = (evento.pageX - posX) * 1.2
-    const distanciaY = (evento.pageY - posY) * 1.2
-    elementoRef.value.scrollLeft = scrollXInicial - distanciaX
-    elementoRef.value.scrollTop  = scrollYInicial - distanciaY
+    arrastou.value = true
+    posicao.value = {
+      x: inicioPosicao.x + (evento.pageX - inicioMouse.x),
+      y: inicioPosicao.y + (evento.pageY - inicioMouse.y),
+    }
   }
 
   function aoSoltarGlobal() {
     if (!arrastando.value) return
     arrastando.value = false
-    if (elementoRef.value) elementoRef.value.style.cursor = 'grab'
     window.removeEventListener('mousemove', aoMoverGlobal)
     window.removeEventListener('mouseup', aoSoltarGlobal)
+
+    // adia o reset pra depois do evento de click nascer,
+    // já que mouseup dispara antes do click do navegador
+    setTimeout(() => {
+      arrastou.value = false
+    }, 0)
   }
 
-  function aoIniciar(evento) {
-    if (!elementoRef.value) return
-    if (evento.target.closest('button, a, input, select, textarea, .drag-handle')) return
+  function aoIniciarArraste(evento) {
+    // não inicia o drag se o clique começou em botão/input dentro do cabeçalho (ex: X de fechar)
+    if (evento.target.closest('button, a, input, select, textarea')) return
 
     arrastando.value = true
-    posX = evento.pageX
-    posY = evento.pageY
-    scrollXInicial = elementoRef.value.scrollLeft
-    scrollYInicial = elementoRef.value.scrollTop
-    elementoRef.value.style.cursor = 'grabbing'
+    arrastou.value   = false
+    inicioMouse    = { x: evento.pageX, y: evento.pageY }
+    inicioPosicao  = { ...posicao.value }
 
     window.addEventListener('mousemove', aoMoverGlobal)
     window.addEventListener('mouseup', aoSoltarGlobal)
   }
+
+  // chama isso no @fechar ou logo antes de reabrir o modal, senão ele reabre deslocado
+  function resetarPosicao() {
+    posicao.value = { x: 0, y: 0 }
+  }
+
+  const estiloArraste = computed(() => ({
+    transform: `translate(${posicao.value.x}px, ${posicao.value.y}px)`,
+  }))
 
   onBeforeUnmount(() => {
     window.removeEventListener('mousemove', aoMoverGlobal)
     window.removeEventListener('mouseup', aoSoltarGlobal)
   })
 
-  return { elementoRef, aoIniciar }
+  return { aoIniciarArraste, estiloArraste, resetarPosicao, arrastou }
 }
