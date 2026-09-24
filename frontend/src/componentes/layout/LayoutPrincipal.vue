@@ -319,6 +319,15 @@
                   v-if="!notif.lida"
                   class="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2"
                 ></div>
+
+                <!-- Apagar notificação -->
+                <button
+                  title="Apagar notificação"
+                  class="shrink-0 p-1 rounded-lg transition text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  @click.stop="apagarNotificacao(notif)"
+                >
+                  <Trash2 :size="14" />
+                </button>
               </div>
             </div>
           </div>
@@ -326,13 +335,19 @@
 
         <div
           v-if="notificacoes.length > 0"
-          class="px-5 py-3 border-t border-slate-200 dark:border-slate-800"
+          class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between"
         >
           <button
             class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition"
             @click="marcarTodasLidas"
           >
             Marcar todas como lidas
+          </button>
+          <button
+            class="text-xs text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition"
+            @click="apagarTodas"
+          >
+            Apagar todas
           </button>
         </div>
       </div>
@@ -579,6 +594,40 @@ const notificacoesFiltradas = computed(() =>
 );
 const totalNaoLidas = computed(() => notificacoes.value.filter((n) => !n.lida).length);
 
+// IDs das notificações apagadas ficam salvos no navegador, porque a lista
+// é recalculada a partir de /produtos toda vez que o painel abre.
+const CHAVE_APAGADAS = 'sige:notificacoes-apagadas';
+
+function lerApagadas() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(CHAVE_APAGADAS) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+function salvarApagadas(set) {
+  try {
+    localStorage.setItem(CHAVE_APAGADAS, JSON.stringify([...set]));
+  } catch (e) {
+    console.error('Erro ao salvar notificações apagadas', e);
+  }
+}
+const apagadas = lerApagadas();
+
+function apagarNotificacao(notif) {
+  apagadas.add(notif.id);
+  salvarApagadas(apagadas);
+  notificacoes.value = notificacoes.value.filter((n) => n.id !== notif.id);
+}
+
+function apagarTodas() {
+  // Apaga TODAS as notificações, seja qual for a aba aberta
+  notificacoes.value.forEach((n) => apagadas.add(n.id));
+  salvarApagadas(apagadas);
+  notificacoes.value = [];
+  aba.value = 'todas';
+}
+
 function diasParaVencer(dataValidade) {
   if (!dataValidade) return null;
   const hoje = new Date();
@@ -607,7 +656,8 @@ produtos.forEach((item) => {
         const dias = diasParaVencer(item.data_validade);
         if (dias !== null && dias <= 30) {
           lista.push({
-            id: `venc-${item.id_item}`,
+            // A validade entra no ID: se a data do produto mudar, a notificação volta
+            id: `venc-${item.id_item}-${item.data_validade}`,
             tipo: 'vencimento',
             titulo:
               dias < 0
@@ -632,7 +682,7 @@ produtos.forEach((item) => {
         });
       }
     });
-    notificacoes.value = lista;
+    notificacoes.value = lista.filter((n) => !apagadas.has(n.id));
   } catch (e) {
     console.error('Erro ao carregar notificações', e);
   } finally {
